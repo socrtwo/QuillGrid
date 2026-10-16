@@ -75,3 +75,13 @@ describe('engine', () => {
     expect(formatValue(1.5, '[h]:mm:ss').text).toBe('36:00:00');
   });
 });
+
+describe('LET scope in lazy functions', () => {
+  it('IF over an array inside LET sees LET names', () => {
+    const b = new Workbook(); const e = new Engine(b);
+    const m = e.evaluateMatrix('LET(g,SEQUENCE(2,2),IF(g>2,g,0))', b.sheet);
+    expect(m).toEqual([[0, 0], [3, 4]]);
+    expect(e.evaluateScalar('LET(x,5,IFERROR(x/0,x))', b.sheet, 0, 0)).toBe(5);
+    expect(e.evaluateScalar('LET(f,LAMBDA(a,a*2),y,3,f(y)+y)', b.sheet, 0, 0)).toBe(9);
+  });
+});

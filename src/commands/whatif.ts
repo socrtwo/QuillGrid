@@ -147,7 +147,7 @@ export interface SeekResult { x: number; y: number; ok: boolean; iterations: num
 /** Finds x so that f(x) = target (Newton/secant steps, switching to bracketed regula falsi once the sign changes). */
 export function goalSeek(f: (x: number) => number, target: number, x0: number, opts: { maxIter?: number; tol?: number } = {}): SeekResult {
   const maxIter = opts.maxIter ?? 100;
-  const tol = opts.tol ?? 1e-7 * Math.max(1, Math.abs(target));
+  const tol = opts.tol ?? 1e-10 * Math.max(1, Math.abs(target));
   const g = (x: number) => { const y = f(x); return Number.isFinite(y) ? y - target : NaN; };
   let x = Number.isFinite(x0) ? x0 : 0;
   let gx = g(x);

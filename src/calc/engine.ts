@@ -456,8 +456,9 @@ export class Engine {
     const ctx: Ctx & { rel: typeof rel } = {
       book: this.book, sheet, r, c, scope, rel,
       cell: (sh, rr, cc) => eng.readCell(sh, rr, cc),
-      evalNode: (n, sc) => eng.evalNode(n, sc === undefined ? ctx : { ...ctx, scope: sc }),
-      callLambda: (fn, args) => eng.callLambda(fn, args, ctx),
+      // Methods (not arrows): a context copied with a LET/LAMBDA scope ({ ...ctx, scope }) must evaluate in that scope.
+      evalNode(n, sc) { return eng.evalNode(n, sc === undefined ? this : { ...this, scope: sc }); },
+      callLambda(fn, args) { return eng.callLambda(fn, args, this); },
       volatile: () => { eng.volatileNow = true; },
       usedBounds: (sh) => eng.usedBounds(sh),
       resolveRef: (text, a1) => eng.resolveRefText(text, sheet, a1, r, c),

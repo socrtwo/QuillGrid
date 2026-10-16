@@ -2,8 +2,8 @@
 
 An original, open-source spreadsheet for Android (and the web, desktop and iOS) whose goal is simple: **no missing commands**. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, on a keyboard shortcut, or in a macro, which is the full-library customization that mobile and online spreadsheet apps leave out. It is the companion to the [QuillForge](https://github.com/socrtwo/QuillForge) word processor and shares its interface and customization system.
 
-- **@@COMMANDS@@ commands** across File, Home, Insert, Draw, Page Layout, Formulas, Data, Review, View, Tools, **AI**, Developer and Help, plus contextual Table Design, PivotTable Analyze, Chart Design, Picture Format and Shape Format tabs. See [docs/COMMANDS.md](docs/COMMANDS.md).
-- **@@FUNCTIONS@@ worksheet functions**, including dynamic arrays (FILTER, SORT, UNIQUE, SEQUENCE, XLOOKUP, TEXTSPLIT, VSTACK, GROUPBY, PIVOTBY…), LET and LAMBDA with MAP/REDUCE/SCAN/BYROW/BYCOL, and the full statistical, financial, engineering and database libraries.
+- **659 commands** across File, Home, Insert, Draw, Page Layout, Formulas, Data, Review, View, Tools, **AI**, Developer and Help, plus contextual Table Design, PivotTable Analyze, Chart Design, Picture Format and Shape Format tabs. See [docs/COMMANDS.md](docs/COMMANDS.md).
+- **507 worksheet functions**, including dynamic arrays (FILTER, SORT, UNIQUE, SEQUENCE, XLOOKUP, TEXTSPLIT, VSTACK, GROUPBY, PIVOTBY…), LET and LAMBDA with MAP/REDUCE/SCAN/BYROW/BYCOL, and the full statistical, financial, engineering and database libraries.
 - **Opens damaged workbooks** with a recovery engine built on the author's [Word Recovery](https://github.com/socrtwo/wordrecovery-SF) / Immortal Unzipper heritage: byte-level ZIP salvage, XML repair, raw worksheet scanning, and record-level salvage of Excel 97–2003 .xls files. See [docs/RECOVERY.md](docs/RECOVERY.md).
 - **AI tab** with formula writing and explanation, data analysis, fill-by-instruction, classification, extraction and cleaning. It offers a free on-device model (no account) and a setup wizard for free and paid providers. See [docs/AI.md](docs/AI.md).
 - **Quick Access Bar chooser** with the desktop-style categories: *Popular Commands*, *Commands Not in the Tabs*, *All Commands*, each tab, and *Macros*. You can add separators, reorder, reset, and import or export the layout. Long-press any ribbon button to add it, and the bar can sit at the top or at the bottom near the keyboard.
@@ -78,11 +78,20 @@ Providers:
 - Ollama or LM Studio on your computer.
 - Paid keys: OpenAI, Anthropic, DeepSeek, xAI, Perplexity, Together, Fireworks, Hugging Face, Moonshot, Qwen, Azure, Bedrock, or any OpenAI-compatible service.
 
-Keys are stored encrypted on the device (Android Keystore, the system keychain on desktop), and nothing is sent until you use an AI command.
+Keys are stored encrypted on the device (Android Keystore on Android, the system keychain on desktop; a plain browser keeps them in site storage), and nothing is sent until you use an AI command.
 
 ## Known limitations (0.1)
 
-@@LIMITATIONS@@
+- **Native builds are untested on devices.** The web build, 438 unit tests and a browser smoke test (`npm run e2e`) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
+- **VBA is preserved, not run.** .xlsm files keep their VBA project when saved as .xlsm; macros run only in QuillLattice's JavaScript macro language.
+- **PivotTables from other programs open as static values.** PivotTables made in QuillLattice are live, but they are written to .xlsx as values, not as pivot caches.
+- **OpenDocument charts and embedded objects** are not opened or saved; cell data, formulas, styles, merges and conditional formats are.
+- **.xls is import-only.** Excel 97–2003 files open with values, formulas and formatting; save them as .xlsx.
+- **No network functions in cells.** WEBSERVICE returns #VALUE!; STOCKHISTORY and linked data types have no data source. ENCODEURL and FILTERXML work.
+- **External workbook links** are kept as their last values; they are not refreshed from the other file.
+- **Solver** uses simplex with branch and bound for linear models (integer and binary constraints supported) and a penalty Nelder–Mead search for nonlinear ones, which finds local optima only; the AllDifferent constraint is not supported.
+- **Printing** goes through the system print dialog; there is no direct PDF writer, so page breaks can differ slightly between platforms.
+- **Performance:** a 50,000-cell dependency chain recalculates in about 0.1 s incrementally and 2.5 s in full on a desktop; very large workbooks on low-end phones will be slower.
 
 ## Build
 

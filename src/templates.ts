@@ -35,7 +35,11 @@ function styleRange(sheet: Sheet, rg: string, st: CellStyle): void {
   }
 }
 
-function widths(sheet: Sheet, ws: number[]): void { ws.forEach((w, i) => sheet.colW.set(i, w)); }
+function widths(sheet: Sheet, ws: number[]): void {
+  ws.forEach((w, i) => sheet.colW.set(i, w));
+  // Rows holding a large title get room for it.
+  for (const [k, cell] of sheet.cells) { const sz = cell.s ? sheet.book.styles[cell.s]?.size : 0; if (sz && sz > 12) { const r = Math.floor(k / 16384); sheet.rowH.set(r, Math.max(sheet.rowH.get(r) || 0, Math.ceil(sz * 4 / 3 * 1.35))); } }
+}
 
 function table(sheet: Sheet, name: string, rg: Range, cols: string[], style = 'TableStyleMedium2', totals = false): void {
   sheet.tables.push({ id: 't' + name, name, range: rg, columns: cols.map((n) => ({ name: n })), style, opts: { ...DEFAULT_TABLE_OPTS, totals } });
@@ -96,7 +100,7 @@ export const TEMPLATES: TemplateDef[] = [
       put(s, 'C10', [['=IPMT($B$4/$B$6,A10#,$B$5*$B$6,-$B$3)']]);
       put(s, 'D10', [['=PPMT($B$4/$B$6,A10#,$B$5*$B$6,-$B$3)']]);
       put(s, 'E10', [['=$B$3-SCAN(0,D10#,LAMBDA(a,x,a+x))']]);
-      s.colStyle.set(1, b.styleId({ numFmt: MONEY })); s.colStyle.set(2, b.styleId({ numFmt: MONEY })); s.colStyle.set(3, b.styleId({ numFmt: MONEY })); s.colStyle.set(4, b.styleId({ numFmt: MONEY }));
+      styleRange(s, 'B10:E369', { numFmt: MONEY });
       s.freeze = { rows: 9, cols: 0 };
       widths(s, [130, 110, 110, 110, 120]);
       return b;
@@ -219,16 +223,16 @@ export const TEMPLATES: TemplateDef[] = [
       const b = new Workbook(); const s = b.sheet;
       const y = new Date().getFullYear();
       s.name = String(y);
-      put(s, 'A1', [[{ v: y, s: TITLE }]]);
+      put(s, 'A1', [[{ v: String(y), s: TITLE }]]);
       for (let m = 0; m < 12; m++) {
         const r0 = 2 + Math.floor(m / 3) * 9, c0 = (m % 3) * 8;
         const ref = (r: number, c: number) => `${String.fromCharCode(65 + c0 + c)}${r0 + r + 1}`;
-        put(s, ref(0, 0), [[{ f: `DATE(${y},${m + 1},1)`, s: { numFmt: 'mmmm', bold: true, size: 12 } }]]);
+        put(s, ref(0, 0), [[{ v: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m], s: { bold: true, size: 12, color: '#1e5f3a' } }]]);
         put(s, ref(1, 0), [['S', 'M', 'T', 'W', 'T', 'F', 'S']], { bold: true, hAlign: 'center', color: '#7a8a99' });
         put(s, ref(2, 0), [[{ f: `LET(d,DATE(${y},${m + 1},1),s,d-WEEKDAY(d)+1,g,SEQUENCE(6,7,s),IF(MONTH(g)=${m + 1},g,""))`, s: { numFmt: 'd', hAlign: 'center' } }]]);
         styleRange(s, `${ref(2, 0)}:${ref(7, 6)}`, { numFmt: 'd', hAlign: 'center' });
       }
-      for (let c = 0; c < 24; c++) s.colW.set(c, c % 8 === 7 ? 16 : 28);
+      widths(s, Array.from({ length: 24 }, (_, c) => (c % 8 === 7 ? 16 : 28)));
       return b;
     },
   },

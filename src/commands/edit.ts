@@ -2,7 +2,7 @@
  * Edit commands: cell entry, undo/redo, clipboard (with Paste Special), fill, clear, find & replace, go to,
  * selection helpers and navigation.
  */
-import { def } from './registry';
+import { def, getCommand } from './registry';
 import type { App } from '../app';
 import type { Sheet } from '../model/workbook';
 import type { Cell, CellComment, Scalar, DataValidation } from '../model/types';
@@ -123,6 +123,7 @@ def([
           return;
         }
         setInput(app, s, arg.r, arg.c, text);
+        if (app.prefs.flashFill && text && !text.startsWith('=')) setTimeout(() => { if (getCommand('data.flashFillSuggest')) app.exec('data.flashFillSuggest', { r: arg.r, c: arg.c }); }, 0);
         // Extend list formats and formulas: a new row at the bottom of a table grows the table.
         for (const t of s.tables) {
           if (t.opts.header && arg.r === t.range.r1 && arg.c >= t.range.c1 && arg.c <= t.range.c2) {
