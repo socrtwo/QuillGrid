@@ -59,6 +59,8 @@ export interface CellStyle {
   locked?: boolean;   // default true
   hidden?: boolean;   // hide formula when protected
   rtl?: boolean;
+  /** In-cell checkbox: TRUE/FALSE values are drawn as a checked/unchecked box. */
+  checkbox?: boolean;
 }
 
 export interface Cell {
@@ -144,7 +146,7 @@ export interface TableDef {
   filter?: { columns: Record<number, FilterCriteria>; sort?: { col: number; desc: boolean } };
 }
 
-export interface ChartSeries { name?: string; nameRef?: string; values: string; categories?: string; color?: string; type?: ChartType; secondary?: boolean }
+export interface ChartSeries { name?: string; nameRef?: string; values: string; categories?: string; color?: string; type?: ChartType; secondary?: boolean; /** Bubble sizes (bubble charts). */ sizes?: string }
 export type ChartType = 'column' | 'stackedColumn' | 'percentColumn' | 'bar' | 'stackedBar' | 'percentBar' | 'line' | 'lineMarkers' | 'stackedLine' | 'area' | 'stackedArea' | 'percentArea' | 'pie' | 'doughnut' | 'scatter' | 'scatterLines' | 'bubble' | 'radar' | 'filledRadar' | 'histogram' | 'pareto' | 'boxWhisker' | 'waterfall' | 'funnel' | 'treemap' | 'sunburst' | 'stock' | 'combo';
 
 export interface ChartDef {
@@ -181,6 +183,10 @@ export interface DrawingObject {
   font?: Partial<CellStyle>;
   svg?: string;
   lockAspect?: boolean;
+  /** Original picture data before effects/crop were applied (Reset Picture). */
+  orig?: string;
+  /** Effects and object settings: shadow, glow, flips, picture adjustments, slicer state, diagram colors... */
+  fx?: Record<string, any>;
 }
 
 export interface Sparkline { id: string; cell: { r: number; c: number }; data: string; type: 'line' | 'column' | 'winloss'; color?: string; markers?: boolean; high?: boolean; low?: boolean; negative?: boolean }

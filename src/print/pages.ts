@@ -138,7 +138,7 @@ export function fitScale(sheet: Sheet, area: Range | Range[], wIn?: number, hIn?
     let totalW = 0, totalH = 0;
     for (let c = a.c1; c <= a.c2; c++) totalW += sheet.colWidth(c);
     for (let r = a.r1; r <= a.r2; r++) totalH += sheet.rowHeight(r);
-    // Manual breaks add pages: with fit to page, each manual break still starts a page, so each page holds a share.
+    // Repeated print titles take room again on every page after the first.
     const tr = parseTitleSpan(p.titleRows, 'row'), tc = parseTitleSpan(p.titleCols, 'col');
     totalW += spanSize(sheet, tc, 'col', a.c1) * Math.max(0, (p.fitWide || 1) - 1);
     totalH += spanSize(sheet, tr, 'row', a.r1) * Math.max(0, (p.fitTall || 1) - 1);
@@ -177,9 +177,10 @@ export function layoutPages(sheet: Sheet, opts: { areas?: Range[]; ignoreArea?: 
   const rowsAll: number[] = [], colsAll: number[] = [];
   const pages: PageSpec[] = [];
   areas.forEach((a, ai) => {
-    // With "fit to N pages" Excel ignores manual breaks only along an axis it must squeeze; keep them otherwise.
-    const rb = axisBreaks(a.r1, a.r2, (r) => sheet.rowHeight(r), availH, p.fitTall ? [] : sheet.rowBreaks, (start) => spanSize(sheet, titleRows, 'row', start));
-    const cb = axisBreaks(a.c1, a.c2, (c) => sheet.colWidth(c), availW, p.fitWide ? [] : sheet.colBreaks, (start) => spanSize(sheet, titleCols, 'col', start));
+    // Manual page breaks are ignored while the sheet is scaled to fit a number of pages (as in Excel).
+    const fit = !!(p.fitWide || p.fitTall);
+    const rb = axisBreaks(a.r1, a.r2, (r) => sheet.rowHeight(r), availH, fit ? [] : sheet.rowBreaks, (start) => spanSize(sheet, titleRows, 'row', start));
+    const cb = axisBreaks(a.c1, a.c2, (c) => sheet.colWidth(c), availW, fit ? [] : sheet.colBreaks, (start) => spanSize(sheet, titleCols, 'col', start));
     rowsAll.push(...rb); colsAll.push(...cb);
     const rs = [a.r1, ...rb], cs = [a.c1, ...cb];
     const rSpans = rs.map((r, i) => [r, (rs[i + 1] ?? a.r2 + 1) - 1] as [number, number]);

@@ -167,7 +167,7 @@ export const DEFAULT_TABS: RibbonTab[] = [
     id: 'shapeFormat', label: 'Shape Format', contextual: (app) => { const o = selObj(app); return o?.kind === 'drawing' && o.def.kind !== 'image'; }, accent: '#c06000', groups: [
       { id: 'insert', label: 'Insert Shapes', items: ['insert.shapes', 'drawing.editText'] },
       { id: 'styles', label: 'Shape Styles', items: ['drawing.fill', 'drawing.outline', 'drawing.effects'] },
-      { id: 'wordart', label: 'WordArt Styles', items: ['drawing.textFill', 'drawing.textOutline'] },
+      { id: 'wordart', label: 'Decorative Text Styles', items: ['drawing.textFill', 'drawing.textOutline'] },
       { id: 'arrange', label: 'Arrange', items: ['object.bringForward', 'object.sendBackward', 'object.align', 'object.group', 'object.rotate'] },
       { id: 'size', label: 'Size', items: ['drawing.size'] },
     ],
