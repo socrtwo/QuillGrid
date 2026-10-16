@@ -1,0 +1,85 @@
+{
+  "name": "QuillLattice",
+  "short_name": "QuillLattice",
+  "description": "An open-source spreadsheet that opens and saves Excel, OpenDocument and CSV files, with a complete, customizable command library.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
+  "background_color": "#ffffff",
+  "theme_color": "#1e5f3a",
+  "categories": [
+    "productivity",
+    "business",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "./",
+      "name": "Spreadsheet",
+      "accept": {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+          ".xlsx"
+        ],
+        "application/vnd.ms-excel.sheet.macroEnabled.12": [
+          ".xlsm"
+        ],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.template": [
+          ".xltx"
+        ],
+        "application/vnd.ms-excel": [
+          ".xls"
+        ],
+        "application/vnd.oasis.opendocument.spreadsheet": [
+          ".ods"
+        ],
+        "application/vnd.oasis.opendocument.flat-spreadsheet": [
+          ".fods"
+        ],
+        "text/csv": [
+          ".csv"
+        ],
+        "text/tab-separated-values": [
+          ".tsv",
+          ".tab"
+        ],
+        "application/x-quilllattice": [
+          ".qlw"
+        ],
+        "application/x-quilllattice-encrypted": [
+          ".qlwe"
+        ]
+      }
+    }
+  ]
+}

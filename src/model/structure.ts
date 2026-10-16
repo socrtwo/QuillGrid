@@ -1,0 +1,370 @@
+/**
+ * Structural edits: insert/delete rows and columns, move ranges, rename sheets — with every reference
+ * in the workbook (formulas, names, conditional formats, validation, tables, charts, merges, comments,
+ * print areas, drawings) adjusted the way a spreadsheet does.
+ */
+import { cellKey, keyRow, keyCol, MAX_COLS, MAX_ROWS, parseRange, rangeName, splitSheetRef, quoteSheet, type Range } from './address';
+import type { Sheet, Workbook } from './workbook';
+import type { Cell } from './types';
+import { mapRefs, type RefToken } from '../calc/parser';
+
+export type Axis = 'row' | 'col';
+
+/** Adjusts a single coordinate range [a, b] for an insertion of n at index `at` (n < 0 deletes -n starting at `at`). */
+function adjustSpan(a: number, b: number, at: number, n: number, max: number): [number, number] | null {
+  if (n > 0) {
+    if (a >= at) a += n;
+    if (b >= at) b += n;
+    if (a >= max) return null;
+    return [a, Math.min(b, max - 1)];
+  }
+  const del = -n, end = at + del - 1;
+  if (b < at) return [a, b];
+  if (a > end) return [a - del, b - del];
+  // overlap
+  if (a >= at && b <= end) return null; // entirely deleted
+  const na = a < at ? a : at;
+  const nb = b > end ? b - del : at - 1;
+  return nb < na ? null : [na, nb];
+}
+
+export function adjustRange(rg: Range, axis: Axis, at: number, n: number): Range | null {
+  if (axis === 'row') {
+    const s = adjustSpan(rg.r1, rg.r2, at, n, MAX_ROWS);
+    return s ? { ...rg, r1: s[0], r2: s[1] } : null;
+  }
+  const s = adjustSpan(rg.c1, rg.c2, at, n, MAX_COLS);
+  return s ? { ...rg, c1: s[0], c2: s[1] } : null;
+}
+
+/** Rewrites formula references to `target` sheet for an insert/delete, as seen from a formula on `home`. */
+export function adjustFormula(f: string, home: Sheet, target: Sheet, axis: Axis, at: number, n: number): string {
+  return mapRefs(f, (ref) => {
+    const refSheet = ref.sheet ? home.book.sheetByName(ref.sheet) : home;
+    if (refSheet !== target || ref.sheet2) return null;
+    if ((axis === 'row' && ref.kind === 'cols') || (axis === 'col' && ref.kind === 'rows')) return null;
+    const rg = adjustRange({ r1: ref.r1, c1: ref.c1, r2: ref.r2, c2: ref.c2 }, axis, at, n);
+    if (!rg) return { ...ref, invalid: true };
+    if (rg.r1 === ref.r1 && rg.r2 === ref.r2 && rg.c1 === ref.c1 && rg.c2 === ref.c2) return null;
+    return { ...ref, ...rg } as RefToken;
+  });
+}
+
+/** Adjusts "Sheet!A1:B2" style reference text (names, chart series, print areas, validation lists). */
+export function adjustRefText(text: string, home: Sheet, target: Sheet, axis: Axis, at: number, n: number): string {
+  const lead = text.startsWith('=') ? '=' : '';
+  return lead + adjustFormula(text.slice(lead.length), home, target, axis, at, n);
+}
+
+function remapKeyed<T>(m: Map<number, T>, axis: Axis, at: number, n: number): Map<number, T> {
+  const out = new Map<number, T>();
+  for (const [k, v] of m) {
+    let r = keyRow(k), c = keyCol(k);
+    if (axis === 'row') { if (r >= at) { if (n < 0 && r < at - n) continue; r += n; } if (r >= MAX_ROWS) continue; }
+    else { if (c >= at) { if (n < 0 && c < at - n) continue; c += n; } if (c >= MAX_COLS) continue; }
+    out.set(cellKey(r, c), v);
+  }
+  return out;
+}
+
+function remapIndex<T>(m: Map<number, T>, at: number, n: number, max: number): Map<number, T> {
+  const out = new Map<number, T>();
+  for (const [i, v] of m) {
+    if (i < at) out.set(i, v);
+    else if (n < 0 && i < at - n) continue;
+    else if (i + n < max) out.set(i + n, v);
+  }
+  return out;
+}
+
+function remapSet(s: Set<number>, at: number, n: number, max: number): Set<number> {
+  const out = new Set<number>();
+  for (const i of s) {
+    if (i < at) out.add(i);
+    else if (n < 0 && i < at - n) continue;
+    else if (i + n < max) out.add(i + n);
+  }
+  return out;
+}
+
+/**
+ * Inserts (n > 0) or deletes (n < 0) whole rows or columns at index `at` of `sheet`.
+ * Must be called inside book.transact().
+ */
+export function shiftCells(sheet: Sheet, axis: Axis, at: number, n: number): void {
+  const book = sheet.book;
+  book.recordBook();
+  const max = axis === 'row' ? MAX_ROWS : MAX_COLS;
+  // 1. Formulas everywhere that reference this sheet
+  for (const sh of book.sheets) {
+    for (const [k, cell] of sh.cells) {
+      if (cell.f == null) continue;
+      const nf = adjustFormula(cell.f, sh, sheet, axis, at, n);
+      if (nf !== cell.f) sh.cells.set(k, { ...cell, f: nf });
+    }
+    for (const cf of sh.cf) cf.formulas = cf.formulas?.map((f) => adjustFormula(f, sh, sheet, axis, at, n));
+    for (const dv of sh.validations) {
+      if (dv.formula1) dv.formula1 = adjustFormula(dv.formula1, sh, sheet, axis, at, n);
+      if (dv.formula2) dv.formula2 = adjustFormula(dv.formula2, sh, sheet, axis, at, n);
+    }
+    for (const ch of sh.charts) {
+      for (const s of ch.series) {
+        s.values = adjustRefText(s.values, sh, sheet, axis, at, n);
+        if (s.categories) s.categories = adjustRefText(s.categories, sh, sheet, axis, at, n);
+        if (s.nameRef) s.nameRef = adjustRefText(s.nameRef, sh, sheet, axis, at, n);
+      }
+    }
+    for (const sp of sh.sparklines) sp.data = adjustRefText(sp.data, sh, sheet, axis, at, n);
+  }
+  for (const nm of book.names) {
+    const home = (nm.sheet && book.sheetByName(nm.sheet)) || book.sheets[0];
+    nm.ref = adjustRefText(nm.ref, home, sheet, axis, at, n);
+  }
+  // 2. The sheet's own cells and per-row/col data
+  sheet.cells = remapKeyed(sheet.cells, axis, at, n);
+  sheet.comments = remapKeyed(sheet.comments, axis, at, n);
+  if (axis === 'row') {
+    sheet.rowH = remapIndex(sheet.rowH, at, n, max);
+    sheet.rowLevel = remapIndex(sheet.rowLevel, at, n, max);
+    sheet.rowStyle = remapIndex(sheet.rowStyle, at, n, max);
+    sheet.hiddenRows = remapSet(sheet.hiddenRows, at, n, max);
+    sheet.rowBreaks = [...remapSet(new Set(sheet.rowBreaks), at, n, max)];
+    // Inserted rows inherit the formatting of the row above.
+    if (n > 0 && at > 0) {
+      const above = sheet.rowStyle.get(at - 1);
+      const ah = sheet.rowH.get(at - 1);
+      for (let i = 0; i < n; i++) {
+        if (above != null) sheet.rowStyle.set(at + i, above);
+        if (ah != null) sheet.rowH.set(at + i, ah);
+      }
+      for (const [k, cell] of [...sheet.cells]) {
+        if (keyRow(k) !== at - 1 || !cell.s) continue;
+        for (let i = 0; i < n; i++) sheet.cells.set(cellKey(at + i, keyCol(k)), { s: cell.s });
+      }
+    }
+  } else {
+    sheet.colW = remapIndex(sheet.colW, at, n, max);
+    sheet.colLevel = remapIndex(sheet.colLevel, at, n, max);
+    sheet.colStyle = remapIndex(sheet.colStyle, at, n, max);
+    sheet.hiddenCols = remapSet(sheet.hiddenCols, at, n, max);
+    sheet.colBreaks = [...remapSet(new Set(sheet.colBreaks), at, n, max)];
+    if (n > 0 && at > 0) {
+      const left = sheet.colStyle.get(at - 1);
+      const lw = sheet.colW.get(at - 1);
+      for (let i = 0; i < n; i++) {
+        if (left != null) sheet.colStyle.set(at + i, left);
+        if (lw != null) sheet.colW.set(at + i, lw);
+      }
+      for (const [k, cell] of [...sheet.cells]) {
+        if (keyCol(k) !== at - 1 || !cell.s) continue;
+        for (let i = 0; i < n; i++) sheet.cells.set(cellKey(keyRow(k), at + i), { s: cell.s });
+      }
+    }
+  }
+  // Spill caches are regenerated by recalc.
+  for (const [k, cell] of [...sheet.cells]) if (cell.sp != null && cell.f == null) { if (cell.s) sheet.cells.set(k, { s: cell.s }); else sheet.cells.delete(k); }
+  for (const [k, cell] of sheet.cells) if (cell.arr) { const a = adjustRange(cell.arr, axis, at, n); if (a) cell.arr = a; else delete cell.arr; void k; }
+  const adj = (rg: Range) => adjustRange(rg, axis, at, n);
+  sheet.merges = sheet.merges.map(adj).filter((x): x is Range => !!x && (x.r1 !== x.r2 || x.c1 !== x.c2));
+  for (const cf of sheet.cf) cf.ranges = cf.ranges.map(adj).filter((x): x is Range => !!x);
+  sheet.cf = sheet.cf.filter((x) => x.ranges.length);
+  for (const dv of sheet.validations) dv.ranges = dv.ranges.map(adj).filter((x): x is Range => !!x);
+  sheet.validations = sheet.validations.filter((x) => x.ranges.length);
+  if (sheet.filter) { const r = adj(sheet.filter.range); if (r) sheet.filter.range = r; else sheet.filter = null; }
+  sheet.tables = sheet.tables.filter((t) => { const r = adj(t.range); if (!r) return false; if (axis === 'col') adjustTableColumns(t, at, n); t.range = r; return true; });
+  const moveAnchor = (o: { at: { r: number; c: number } }) => {
+    if (axis === 'row') { if (o.at.r >= at) o.at.r = Math.max(at, o.at.r + n); }
+    else if (o.at.c >= at) o.at.c = Math.max(at, o.at.c + n);
+  };
+  sheet.charts.forEach(moveAnchor);
+  sheet.drawings.forEach(moveAnchor);
+  sheet.sparklines = sheet.sparklines.filter((sp) => {
+    const v = axis === 'row' ? sp.cell.r : sp.cell.c;
+    if (v < at) return true;
+    if (n < 0 && v < at - n) return false;
+    if (axis === 'row') sp.cell.r += n; else sp.cell.c += n;
+    return true;
+  });
+  if (axis === 'row' && sheet.freeze.rows > at) sheet.freeze.rows = Math.max(at, sheet.freeze.rows + n);
+  if (axis === 'col' && sheet.freeze.cols > at) sheet.freeze.cols = Math.max(at, sheet.freeze.cols + n);
+  if (sheet.print.area) sheet.print.area = adjustRefText(sheet.print.area, sheet, sheet, axis, at, n);
+  book.pending.structural = true;
+}
+
+function adjustTableColumns(t: { range: Range; columns: { name: string }[] }, at: number, n: number): void {
+  const rel = at - t.range.c1;
+  if (rel < 0 || rel > t.columns.length) return;
+  if (n > 0) {
+    const names = new Set(t.columns.map((c) => c.name.toLowerCase()));
+    const add = [];
+    for (let i = 0; i < n; i++) { let k = t.columns.length + i + 1, nm = `Column${k}`; while (names.has(nm.toLowerCase())) nm = `Column${++k}`; names.add(nm.toLowerCase()); add.push({ name: nm }); }
+    t.columns.splice(rel, 0, ...add);
+  } else t.columns.splice(rel, -n);
+}
+
+/**
+ * Inserts cells by shifting only a block (Insert ▸ Shift cells down/right), as opposed to whole rows/cols.
+ * Formulas referencing the moved block move with it; other references are unchanged.
+ */
+export function insertCellsShift(sheet: Sheet, rg: Range, dir: 'down' | 'right' | 'up' | 'left'): void {
+  const book = sheet.book;
+  book.recordSheet(sheet);
+  const used = sheet.usedRange() || rg;
+  if (dir === 'down' || dir === 'up') {
+    const h = rg.r2 - rg.r1 + 1;
+    const block: Range = { r1: rg.r1, c1: rg.c1, r2: Math.max(used.r2, rg.r2), c2: rg.c2 };
+    if (dir === 'down') moveBlock(sheet, block, h, 0);
+    else { clearBlock(sheet, rg); moveBlock(sheet, { ...block, r1: rg.r2 + 1 }, -h, 0); }
+  } else {
+    const w = rg.c2 - rg.c1 + 1;
+    const block: Range = { r1: rg.r1, c1: rg.c1, r2: rg.r2, c2: Math.max(used.c2, rg.c2) };
+    if (dir === 'right') moveBlock(sheet, block, 0, w);
+    else { clearBlock(sheet, rg); moveBlock(sheet, { ...block, c1: rg.c2 + 1 }, 0, -w); }
+  }
+}
+
+function clearBlock(sheet: Sheet, rg: Range): void {
+  for (const k of [...sheet.cells.keys()]) { const r = keyRow(k), c = keyCol(k); if (r >= rg.r1 && r <= rg.r2 && c >= rg.c1 && c <= rg.c2) { sheet.book.recordCell(sheet, k); sheet.cells.delete(k); sheet.book.noteChange(sheet, k); } }
+}
+
+/**
+ * Moves the cells of a block by (dr, dc) (cut/paste and drag-move semantics): the moved cells keep their
+ * formulas' relative references pointing at the same cells (references INTO the block from anywhere follow
+ * the block), and whatever was at the destination is overwritten.
+ */
+export function moveBlock(sheet: Sheet, src: Range, dr: number, dc: number, dest: Sheet = sheet): void {
+  const book = sheet.book;
+  book.recordSheet(sheet);
+  if (dest !== sheet) book.recordSheet(dest);
+  const moved: [number, number, Cell][] = [];
+  for (const [k, cell] of [...sheet.cells]) {
+    const r = keyRow(k), c = keyCol(k);
+    if (r >= src.r1 && r <= src.r2 && c >= src.c1 && c <= src.c2) { moved.push([r, c, cell]); sheet.cells.delete(k); }
+  }
+  const dst: Range = { r1: src.r1 + dr, c1: src.c1 + dc, r2: src.r2 + dr, c2: src.c2 + dc };
+  if (dst.r1 < 0 || dst.c1 < 0 || dst.r2 >= MAX_ROWS || dst.c2 >= MAX_COLS) throw new Error('The move would place cells outside the sheet.');
+  for (const k of [...dest.cells.keys()]) { const r = keyRow(k), c = keyCol(k); if (r >= dst.r1 && r <= dst.r2 && c >= dst.c1 && c <= dst.c2) dest.cells.delete(k); }
+  // Moved formulas keep pointing at the same cells: their *relative* refs must be rewritten as if shifted back,
+  // except refs into the moved block itself, which move along.
+  for (const [r, c, cell] of moved) {
+    let f = cell.f;
+    if (f != null) f = rewriteMoved(f, sheet, dest, src, dr, dc, true);
+    const next: Cell = { ...cell, ...(f != null ? { f } : {}) };
+    if (next.sp != null) delete next.sp;
+    dest.cells.set(cellKey(r + dr, c + dc), next);
+  }
+  // References into the block from all other formulas follow it.
+  for (const sh of book.sheets) {
+    for (const [k, cell] of sh.cells) {
+      if (cell.f == null) continue;
+      if (sh === dest && inRg(dst, keyRow(k), keyCol(k)) && moved.some(([r, c]) => cellKey(r + dr, c + dc) === k)) continue;
+      const nf = rewriteMoved(cell.f, sh, dest, src, dr, dc, false, sheet);
+      if (nf !== cell.f) sh.cells.set(k, { ...cell, f: nf });
+    }
+  }
+  for (const nm of book.names) {
+    const home = (nm.sheet && book.sheetByName(nm.sheet)) || book.sheets[0];
+    const lead = nm.ref.startsWith('=') ? '=' : '';
+    nm.ref = lead + rewriteMoved(nm.ref.slice(lead.length), home, dest, src, dr, dc, false, sheet);
+  }
+  // Comments, merges, validation and formats inside the block move too.
+  const movedComments: [number, any][] = [];
+  for (const [k, cm] of [...sheet.comments]) if (inRg(src, keyRow(k), keyCol(k))) { movedComments.push([k, cm]); sheet.comments.delete(k); }
+  for (const [k, cm] of movedComments) dest.comments.set(cellKey(keyRow(k) + dr, keyCol(k) + dc), cm);
+  const mm = sheet.merges.filter((m) => m.r1 >= src.r1 && m.r2 <= src.r2 && m.c1 >= src.c1 && m.c2 <= src.c2);
+  sheet.merges = sheet.merges.filter((m) => !mm.includes(m));
+  dest.merges = dest.merges.filter((m) => !(m.r1 <= dst.r2 && m.r2 >= dst.r1 && m.c1 <= dst.c2 && m.c2 >= dst.c1));
+  for (const m of mm) dest.merges.push({ r1: m.r1 + dr, c1: m.c1 + dc, r2: m.r2 + dr, c2: m.c2 + dc });
+  book.pending.structural = true;
+}
+
+function inRg(rg: Range, r: number, c: number): boolean { return r >= rg.r1 && r <= rg.r2 && c >= rg.c1 && c <= rg.c2; }
+
+function rewriteMoved(f: string, home: Sheet, dest: Sheet, src: Range, dr: number, dc: number, isMovedCell: boolean, srcSheet: Sheet = home): string {
+  return mapRefs(f, (ref) => {
+    const refSheet = ref.sheet ? home.book.sheetByName(ref.sheet) : (isMovedCell ? srcSheet : home);
+    const inside = refSheet === srcSheet && ref.r1 >= src.r1 && ref.r2 <= src.r2 && ref.c1 >= src.c1 && ref.c2 <= src.c2;
+    const nr = { ...ref };
+    if (inside) {
+      nr.r1 += dr; nr.r2 += dr; nr.c1 += dc; nr.c2 += dc;
+      if (dest !== srcSheet && (!isMovedCell || dest !== home)) nr.sheet = dest.name;
+      if (isMovedCell && dest !== srcSheet && !ref.sheet) delete nr.sheet;
+      return nr;
+    }
+    if (isMovedCell) {
+      // A moved formula referring outside the block keeps pointing at the same cells.
+      if (dest !== srcSheet && !ref.sheet) nr.sheet = srcSheet.name;
+      return nr.sheet !== ref.sheet ? nr : null;
+    }
+    return null;
+  });
+}
+
+/** Renames a sheet and updates every reference to it. Call inside book.transact(). */
+export function renameSheet(book: Workbook, sheet: Sheet, newName: string): void {
+  const old = sheet.name;
+  if (old === newName) return;
+  book.recordBook();
+  const fix = (f: string, home: Sheet) => mapRefs(f, (ref) => {
+    let changed = false;
+    const nr = { ...ref };
+    if (ref.sheet && ref.sheet.toLowerCase() === old.toLowerCase()) { nr.sheet = newName; changed = true; }
+    if (ref.sheet2 && ref.sheet2.toLowerCase() === old.toLowerCase()) { nr.sheet2 = newName; changed = true; }
+    void home;
+    return changed ? nr : null;
+  });
+  const fixNames = (f: string) => f.replace(new RegExp(`(^|[^\\w.'])(${escapeRe(quoteSheet(old))})!`, 'gi'), (_m, pre) => `${pre}${quoteSheet(newName)}!`);
+  for (const sh of book.sheets) {
+    for (const [k, cell] of sh.cells) if (cell.f != null) { const nf = fixNames(fix(cell.f, sh)); if (nf !== cell.f) sh.cells.set(k, { ...cell, f: nf }); }
+    for (const ch of sh.charts) for (const s of ch.series) { s.values = fixNames(s.values); if (s.categories) s.categories = fixNames(s.categories); if (s.nameRef) s.nameRef = fixNames(s.nameRef); }
+    for (const sp of sh.sparklines) sp.data = fixNames(sp.data);
+    for (const dv of sh.validations) { if (dv.formula1) dv.formula1 = fixNames(fix(dv.formula1, sh)); if (dv.formula2) dv.formula2 = fixNames(fix(dv.formula2, sh)); }
+    for (const pv of sh.pivots) { pv.source = fixNames(pv.source); if (pv.target.sheet === old) pv.target.sheet = newName; }
+  }
+  for (const nm of book.names) { nm.ref = fixNames(fix(nm.ref.replace(/^=/, ''), sheet)); if (nm.sheet === old) nm.sheet = newName; }
+  sheet.name = newName;
+  book.pending.structural = true;
+}
+
+/** After deleting a sheet, references to it become #REF!. */
+export function invalidateSheetRefs(book: Workbook, name: string): void {
+  const low = name.toLowerCase();
+  for (const sh of book.sheets) {
+    for (const [k, cell] of sh.cells) {
+      if (cell.f == null) continue;
+      const nf = mapRefs(cell.f, (ref) => (ref.sheet && ref.sheet.toLowerCase() === low ? { ...ref, invalid: true } : null));
+      if (nf !== cell.f) sh.cells.set(k, { ...cell, f: nf });
+    }
+  }
+  book.names = book.names.filter((n) => !(n.sheet && n.sheet.toLowerCase() === low));
+}
+
+export function validSheetName(name: string): string | null {
+  if (!name.trim()) return 'A sheet name cannot be blank.';
+  if (name.length > 31) return 'A sheet name can have at most 31 characters.';
+  if (/[\\/?*[\]:]/.test(name)) return 'A sheet name cannot contain \\ / ? * [ ] or :';
+  if (/^'|'$/.test(name)) return 'A sheet name cannot begin or end with an apostrophe.';
+  if (name.toLowerCase() === 'history') return '"History" is a reserved name.';
+  return null;
+}
+
+function escapeRe(s: string): string { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+/** Parses "Sheet1!A1:B5" against a workbook. */
+export function resolveRangeText(book: Workbook, text: string, fallback: Sheet): { sheet: Sheet; range: Range } | null {
+  const { sheet: sn, ref } = splitSheetRef(text.replace(/^=/, ''));
+  const sheet = sn ? book.sheetByName(sn) : fallback;
+  if (!sheet) return null;
+  const range = parseRange(ref);
+  if (!range) {
+    const nm = book.names.find((n) => n.name.toLowerCase() === ref.toLowerCase() && (!n.sheet || n.sheet === sheet.name));
+    if (nm) return resolveRangeText(book, nm.ref, fallback);
+    return null;
+  }
+  return { sheet, range };
+}
+
+export function rangeRefText(sheet: Sheet, rg: Range, abs = true, homeSheet?: Sheet): string {
+  const body = abs ? rangeName(rg).replace(/([A-Z]+)(\d+)/g, '$$$1$$$2') : rangeName(rg);
+  return (homeSheet && homeSheet === sheet ? '' : quoteSheet(sheet.name) + '!') + body;
+}
