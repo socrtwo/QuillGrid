@@ -454,6 +454,7 @@ async function insertSlicer(app: App, timeline: boolean): Promise<void> {
         hh = Math.min(300, 30 + 8 + st.items.length * 30 + 6);
       }
       const at = { r: t.range.r1 + k * 2, c: t.range.c2 + 2 + k * 3, dx: 0, dy: 0, w, h: Math.max(80, hh) };
+      for (let i = 0; i < 30 && [...s.charts, ...s.drawings].some((x) => x.at.r === at.r && x.at.c === at.c && Math.abs(x.at.dx - at.dx) < 8 && Math.abs(x.at.dy - at.dy) < 8); i++) { at.dx += 24; at.dy += 24; }
       const id = newId('slc');
       first = first || id;
       s.drawings.push({ id, kind: 'shape', shape: 'slicer', text: timeline ? `${name} (timeline)` : name, fill: accent(app, 0), at, fx: { ...st }, alt: `${timeline ? 'Timeline' : 'Slicer'} for ${t.name}[${name}]` });
