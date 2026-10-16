@@ -753,7 +753,7 @@ function condMenu(app: App): MenuEntry[] {
     {
       label: 'Data Bars', icon: 'data_thresholding', submenu: [
         { heading: 'Gradient Fill' },
-        ...BAR_COLORS.map((b) => ({ id: 'cond.dataBar', arg: { color: b.color, gradient: true }, label: `${b.name} Data Bar`, swatch: `linear-gradient(90deg,${b.color},#ffffff)`, preview: '' })),
+        ...BAR_COLORS.map((b) => ({ id: 'cond.dataBar', arg: { color: b.color, gradient: true }, label: `${b.name} Data Bar`, swatch: `linear-gradient(90deg,${b.color},#ffffff)` })),
         { heading: 'Solid Fill' },
         ...BAR_COLORS.map((b) => ({ id: 'cond.dataBar', arg: { color: b.color, gradient: false }, label: `Solid ${b.name} Data Bar`, swatch: b.color })),
         { separator: true },

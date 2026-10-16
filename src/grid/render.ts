@@ -305,9 +305,36 @@ function displayText(g: Grid, cell: Cell, st: CellStyle, widthPx: number, z: num
   return { text: f.text, color: f.color, isNumber: !!f.isNumber || typeof v === 'number', fill: f.fill };
 }
 
+/** Box geometry of an in-cell checkbox (shared by painting and hit testing). */
+export function checkboxRect(p: { x: number; y: number; w: number; h: number }, st: CellStyle, z: number): { x: number; y: number; s: number } {
+  const s = Math.max(6, Math.min(p.h - 4, p.w - 4, 14 * z));
+  const x = st.hAlign === 'left' ? p.x + 3 * z : st.hAlign === 'right' ? p.x + p.w - s - 3 * z : p.x + (p.w - s) / 2;
+  return { x, y: p.y + (p.h - s) / 2, s };
+}
+
+function paintCheckbox(ctx: CanvasRenderingContext2D, t: Theme, p: CellPaint, on: boolean, st: CellStyle, z: number): void {
+  const b = checkboxRect(p, st, z);
+  const r = Math.max(1.5, b.s * 0.18);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(b.x + r, b.y); ctx.arcTo(b.x + b.s, b.y, b.x + b.s, b.y + b.s, r); ctx.arcTo(b.x + b.s, b.y + b.s, b.x, b.y + b.s, r); ctx.arcTo(b.x, b.y + b.s, b.x, b.y, r); ctx.arcTo(b.x, b.y, b.x + b.s, b.y, r); ctx.closePath();
+  ctx.fillStyle = on ? (st.color || t.accent) : t.dark ? '#1e1e1e' : '#ffffff';
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, z);
+  ctx.strokeStyle = on ? (st.color || t.accent) : t.dark ? '#9a9a9a' : '#6f6f6f';
+  ctx.stroke();
+  if (on) {
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.5, b.s * 0.14); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(b.x + b.s * 0.24, b.y + b.s * 0.52); ctx.lineTo(b.x + b.s * 0.43, b.y + b.s * 0.7); ctx.lineTo(b.x + b.s * 0.77, b.y + b.s * 0.31); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function paintText(g: Grid, ctx: CanvasRenderingContext2D, t: Theme, p: CellPaint, base: CellStyle, z: number, occupied: (r: number, c: number) => boolean, c1: number, c2: number, overflowOnly = false): void {
   const cell = p.cell!;
   const st = p.st;
+  // In-cell checkbox (Insert ▸ Checkbox): TRUE/FALSE drawn as a box.
+  if (st.checkbox && typeof cell.v === 'boolean' && !(g.sheet.showFormulas && cell.f != null)) { if (!overflowOnly) paintCheckbox(ctx, t, p, cell.v, st, z); return; }
   const effective: CellStyle = { ...st };
   if (p.table?.bold && st.bold == null) effective.bold = true;
   const disp = displayText(g, cell, effective, p.w, z);

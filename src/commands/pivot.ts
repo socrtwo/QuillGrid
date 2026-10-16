@@ -268,7 +268,8 @@ async function createDialog(app: App, arg?: { source?: string; dest?: 'new' | 'e
     const dest = arg.dest === 'existing' && arg.location ? resolveRangeText(book, arg.location, app.sheet) : null;
     const { source, dest: _d, location: _l, ...init } = arg;
     void _d; void _l;
-    createPivot(app, init, source, dest ? { sheet: dest.sheet, r: dest.range.r1, c: dest.range.c1 } : { newSheet: true });
+    const made = createPivot(app, init, source, dest ? { sheet: dest.sheet, r: dest.range.r1, c: dest.range.c1 } : { newSheet: true });
+    if (made && !app.ui.paneOpen('pivotFields')) app.ui.openPane('pivotFields', { sheetId: made.sheet.id, id: made.pv.id });
     return;
   }
   const r = await openDialog({
@@ -778,7 +779,7 @@ def([
   { id: 'pivot.fields', label: 'Field List', icon: 'view_list', tab: TAB, group: 'PivotTable', noRecord: true, edits: false, tip: 'Show or hide the PivotTable Fields pane', run: (app) => app.ui.togglePane('pivotFields'), isActive: (app) => !!app.ui?.paneOpen?.('pivotFields') },
   { id: 'pivot.options', label: 'Options', icon: 'settings', tab: TAB, group: 'PivotTable', edits: true, tip: 'Name, layout, totals and data source of the PivotTable', run: (app) => optionsDialog(app) },
   { id: 'pivot.refresh', label: 'Refresh', icon: 'refresh', tab: TAB, group: 'Data', kind: 'split', edits: true, keys: ['Alt-F5'], tip: 'Read the source data again and update the PivotTable', run: (app, arg) => refresh(app, arg === 'all'), menu: () => [{ id: 'pivot.refresh', label: 'Refresh', icon: 'refresh' }, { id: 'pivot.refresh', arg: 'all', label: 'Refresh All PivotTables', icon: 'sync' }] },
-  { id: 'pivot.refreshAll', label: 'Refresh All PivotTables', icon: 'sync', tab: TAB, group: 'Data', edits: true, keys: ['Mod-Alt-F5'], run: (app) => refresh(app, true) },
+  { id: 'pivot.refreshAll', label: 'Refresh All PivotTables', icon: 'sync', tab: TAB, group: 'Data', edits: true, run: (app) => refresh(app, true) },
   { id: 'pivot.changeSource', label: 'Change Data Source', icon: 'dataset', tab: TAB, group: 'Data', edits: true, tip: 'Use a different range or table for this PivotTable', run: (app, arg) => changeSource(app, arg) },
   { id: 'pivot.clear', label: 'Clear All', icon: 'clear_all', tab: TAB, group: 'Actions', edits: true, tip: 'Remove all fields, filters and formatting from the PivotTable', run: (app) => clearPivot(app) },
   { id: 'pivot.move', label: 'Move PivotTable', icon: 'open_with', tab: TAB, group: 'Actions', edits: true, tip: 'Move the PivotTable to another location', run: (app, arg) => movePivot(app, arg) },

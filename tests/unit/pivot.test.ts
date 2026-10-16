@@ -125,3 +125,30 @@ describe('computePivot', () => {
     expect(String(cellValue(r.cells[0][0]))).toMatch(/PivotTable Fields/);
   });
 });
+
+describe('pivot commands helpers', () => {
+  it('reads a source range, places fields and recommends layouts', async () => {
+    const { Workbook } = await import('../../src/model/workbook');
+    const { readSource, placeField, recommendPivots } = await import('../../src/commands/pivot');
+    const b = new Workbook();
+    const s = b.sheet;
+    b.transact('d', () => [['Region', 'Qty'], ['East', 3], ['West', 4], ['East', 5]].forEach((row, r) => row.forEach((v, c) => s.set(r, c, { v }))));
+    const src = readSource(b, 'Sheet1!$A$1:$B$4', s);
+    if (typeof src === 'string') throw new Error(src);
+    expect(src.headers).toEqual(['Region', 'Qty']);
+    expect(src.rows.length).toBe(3);
+    expect(typeof readSource(b, 'Nope!A1', s)).toBe('string');
+    const d = def({});
+    placeField(d, 'Region', 'rows');
+    placeField(d, 'Qty', 'values');
+    placeField(d, 'Region', 'cols', { from: 'rows' });
+    expect(d.rows).toEqual([]);
+    expect(d.cols).toEqual(['Region']);
+    expect(d.values).toEqual([{ field: 'Qty', fn: 'sum' }]);
+    placeField(d, 'Qty', null);
+    expect(d.values).toEqual([]);
+    const recs = recommendPivots(src);
+    expect(recs[0].title).toBe('Sum of Qty by Region');
+    expect(grid(computePivot({ ...def({}), ...recs[0].def } as PivotDef, src).cells).pop()).toEqual(['Grand Total', 12]);
+  });
+});

@@ -349,22 +349,19 @@ export async function openAiSettings(app: App): Promise<void> {
   const r = await openDialog({
     title: 'AI Settings', wide: true, fields: [
       { key: 'enabled', label: 'AI features are on', type: 'checkbox', value: s.enabled },
-      { key: 'trackAsRevisions', label: 'Insert AI edits as tracked changes (author "AI (model)") so every change can be reviewed', type: 'checkbox', value: s.trackAsRevisions },
-      { key: 'confirmDocument', label: 'Ask before sending a whole document to a cloud service', type: 'checkbox', value: s.confirmDocument },
-      { key: 'alternatives', label: 'Versions offered by Rewrite', type: 'number', min: 1, max: 5, value: s.alternatives, half: true },
+      { key: 'confirmDocument', label: 'Ask before sending a large range (about 5,000 cells or more) to a cloud service', type: 'checkbox', value: s.confirmDocument },
+      { key: 'info', type: 'info', html: '<p class="ql-help">AI output that changes cells is always previewed first and applied as one step you can undo.</p>' },
       { key: 'language', label: 'Language for generated text', type: 'combo', options: ['auto', 'English', 'English (American)', 'English (British)', 'English (Canadian)', 'English (Australian)', 'English (Indian)', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Dutch', 'Chinese (Simplified)', 'Japanese', 'Korean'], value: s.language, half: true },
       { key: 'clipboardWatch', label: 'During setup, look for a copied API key when I return to the app', type: 'checkbox', value: s.clipboardWatch },
       { key: 'clearClipboard', label: 'Remove a recognized key from the clipboard after saving it', type: 'checkbox', value: s.clearClipboard },
-      { key: 'voiceProfile', label: 'My writing voice (used by Match My Voice)', type: 'textarea', rows: 3, value: s.voiceProfile, placeholder: 'e.g. Warm, plain-spoken, short sentences, occasional dry humor, American spelling' },
-      { key: 'styleGuide', label: 'Style guide (used by Check Against Style Guide)', type: 'textarea', rows: 4, value: s.styleGuide, placeholder: 'e.g. Use the serial comma. Spell out numbers under ten. "Email", not "e-mail".' },
       { key: 'usage', type: 'info', html: `<p class="ql-help">Requests this device has sent: ${s.usage.requests.toLocaleString()} · tokens in/out (where reported): ${s.usage.tokensIn.toLocaleString()} / ${s.usage.tokensOut.toLocaleString()} · since ${new Date(s.usage.since).toLocaleDateString()}</p>` },
     ],
   });
   if (!r) return;
   saveAiSettings((x) => {
-    x.enabled = !!r.enabled; x.trackAsRevisions = !!r.trackAsRevisions; x.confirmDocument = !!r.confirmDocument;
-    x.alternatives = Math.max(1, Math.min(5, Number(r.alternatives) || 3)); x.language = String(r.language || 'auto');
-    x.clipboardWatch = !!r.clipboardWatch; x.clearClipboard = !!r.clearClipboard; x.voiceProfile = String(r.voiceProfile || ''); x.styleGuide = String(r.styleGuide || '');
+    x.enabled = !!r.enabled; x.confirmDocument = !!r.confirmDocument;
+    x.language = String(r.language || 'auto');
+    x.clipboardWatch = !!r.clipboardWatch; x.clearClipboard = !!r.clearClipboard;
   });
   app.ui.refresh?.();
 }

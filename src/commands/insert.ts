@@ -11,7 +11,7 @@ import { newId } from '../model/workbook';
 import { type Range, cellName, parseCell, rangeName, quoteSheet, keyRow, keyCol } from '../model/address';
 import { resolveRangeText, rangeRefText } from '../model/structure';
 import { isDateFormat } from '../model/numfmt';
-import { serialToDate, dateToSerial } from '../model/dates';
+import { serialToParts, partsToSerial } from '../model/dates';
 import { activeRange, clipToUsed, cellText, selRanges } from './ops';
 import { openDialog, toast, showMenu, colorMenu, promptDialog } from '../ui/dialog';
 import { h, pickFile, readFileAsDataURL, icon } from '../ui/dom';
@@ -381,14 +381,14 @@ function monthStarts(sheet: Sheet, t: import('../model/types').TableDef, col: nu
   for (let r = d.r1; r <= d.r2; r++) {
     const v = sheet.value(r, c);
     if (typeof v !== 'number') continue;
-    const dt = serialToDate(v, d1904);
-    set.add(dateToSerial(new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1)), d1904));
+    const p = serialToParts(v, d1904);
+    set.add(partsToSerial(p.y, p.m, 1, d1904));
   }
   return [...set].sort((a, b) => a - b);
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-function monthLabel(serial: number, d1904: boolean): string { const d = serialToDate(serial, d1904); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; }
+function monthLabel(serial: number, d1904: boolean): string { const p = serialToParts(serial, d1904); return `${MONTHS[p.m - 1]} ${p.y}`; }
 
 function findTableForSlicer(app: App, st: Partial<SlicerState>): { sheet: Sheet; t: import('../model/types').TableDef } | null {
   for (const sh of app.book.sheets) for (const t of sh.tables) if (t.id === st.tableId || t.name === st.table) return { sheet: sh, t };
@@ -402,8 +402,8 @@ export function applySlicer(sheet: Sheet, t: import('../model/types').TableDef, 
   let crit: FilterCriteria | null = null;
   if (st.timeline && st.from != null && st.to != null && st.months?.length) {
     const d1904 = sheet.book.calc.date1904;
-    const end = serialToDate(st.to, d1904);
-    const next = dateToSerial(new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 1)), d1904);
+    const end = serialToParts(st.to, d1904);
+    const next = end.m === 12 ? partsToSerial(end.y + 1, 1, 1, d1904) : partsToSerial(end.y, end.m + 1, 1, d1904);
     const allSel = st.from <= st.months[0] && st.to >= st.months[st.months.length - 1];
     if (!allSel) crit = { custom: [{ op: 'ge', value: String(st.from) }, { op: 'lt', value: String(next) }], and: true };
   } else if (st.selected.length && st.selected.length < st.items.length) {

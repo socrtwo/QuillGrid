@@ -584,7 +584,7 @@ export function solveLP(c: number[], A: number[][], rel: Rel[], b: number[], opt
     if (res.status !== 'optimal') continue;
     if (best && res.value <= best.value + 1e-9) continue;
     const frac = ints.find((j) => Math.abs(res.x[j] - Math.round(res.x[j])) > 1e-6);
-    if (frac == null) { best = { ...res, x: res.x.map((v, j) => (ints.includes(j) ? Math.round(v) : v)) }; continue; }
+    if (frac == null) { best = { ...res, x: res.x.map((v, j) => (ints.includes(j) ? Math.round(v) + 0 : v)) }; continue; }
     const unit = new Array(n).fill(0); unit[frac] = 1;
     const v = res.x[frac];
     stack.push({ a: [...nd.a, unit], r: [...nd.r, '>='], b: [...nd.b, Math.ceil(v)] });
@@ -724,7 +724,7 @@ export function loadSolverModel(book: Workbook, sheet: Sheet): SolverModel {
   const eng = get('solver_eng');
   return {
     objective: stripSheet(get('solver_opt') || '', sheet), goal: typ === '2' ? 'min' : typ === '3' ? 'value' : 'max', target: Number(get('solver_val') || 0),
-    vars: stripSheet(get('solver_adj') || '', sheet), cons, nonNeg: get('solver_neg') !== '2', method: eng === '2' ? 'simplex' : eng === '1' ? 'grg' : 'auto',
+    vars: stripSheet(get('solver_adj') || '', sheet), cons, nonNeg: get('solver_neg') !== '2', method: get('solver_ql_auto') === '1' || !eng ? 'auto' : eng === '2' ? 'simplex' : 'grg',
   };
 }
 
@@ -748,7 +748,8 @@ export function saveSolverModel(book: Workbook, sheet: Sheet, m: SolverModel): v
   put('solver_num', String(m.cons.length));
   m.cons.forEach((cn, i) => { put(`solver_lhs${i + 1}`, qualify(cn.lhs, sheet)); put(`solver_rel${i + 1}`, String(REL_CODES[cn.rel])); put(`solver_rhs${i + 1}`, ['int', 'bin', 'dif'].includes(cn.rel) ? `"${cn.rhs}"` : qualify(cn.rhs, sheet)); });
   put('solver_neg', m.nonNeg ? '1' : '2');
-  put('solver_eng', m.method === 'simplex' ? '2' : m.method === 'grg' ? '1' : '1');
+  put('solver_eng', m.method === 'simplex' ? '2' : '1');
+  if (m.method === 'auto') put('solver_ql_auto', '1');
 }
 
 /** Builds the numeric problem for a sheet model. */

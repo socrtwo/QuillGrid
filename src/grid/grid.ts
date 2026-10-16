@@ -10,7 +10,7 @@ import type { App, BookTab } from '../app';
 import type { Sheet } from '../model/workbook';
 import { MAX_COLS, MAX_ROWS, normRange, cellKey, type Range } from '../model/address';
 import { Axis } from './axis';
-import { paint, type PaintCache } from './render';
+import { paint, checkboxRect, type PaintCache } from './render';
 import { CellEditor } from './editor';
 import { ObjectLayer } from './objects';
 import { keyName } from '../util/keys';
@@ -287,6 +287,15 @@ export class Grid {
     return out;
   }
 
+  /** Whether (x, y) is on the in-cell checkbox of (r, c) (Insert ▸ Checkbox). */
+  checkboxAt(r: number, c: number, x: number, y: number): boolean {
+    const st = this.sheet.styleOf(r, c);
+    if (!st.checkbox || typeof this.sheet.value(r, c) !== 'boolean') return false;
+    const b = checkboxRect(this.cellRect(r, c), st, this.zoom);
+    const pad = this.touchMode ? 6 : 2;
+    return x >= b.x - pad && x <= b.x + b.s + pad && y >= b.y - pad && y <= b.y + b.s + pad;
+  }
+
   /** AutoFilter / table filter button for a header cell. */
   filterButtonAt(r: number, c: number): { col: number; source: 'filter' | 'table'; tableId?: string } | null {
     const f = this.sheet.filter;
@@ -477,6 +486,7 @@ export class Grid {
       case 'cell': {
         if (hit.filter) { this.app.exec('data.filterMenu', { r: hit.r, c: hit.c }); return; }
         if (hit.dropdown) { this.app.exec('data.validationList', { r: hit.r, c: hit.c }); return; }
+        if (this.checkboxAt(hit.r, hit.c, x, y)) { this.select(hit.r, hit.c, { noScroll: true }); this.app.exec('cell.toggleCheckbox', { r: hit.r, c: hit.c }); return; }
         if (hit.fill) { this.drag = { kind: 'fill', src: { ...this.activeRange }, target: null }; return; }
         if (hit.handle) {
           const ar = this.activeRange;
@@ -648,6 +658,7 @@ export class Grid {
     if (hit.area === 'cell') {
       if (hit.filter) { this.app.exec('data.filterMenu', { r: hit.r, c: hit.c }); return; }
       if (hit.dropdown) { this.app.exec('data.validationList', { r: hit.r, c: hit.c }); return; }
+      if (this.checkboxAt(hit.r, hit.c, x, y)) { this.select(hit.r, hit.c, { noScroll: true }); this.app.exec('cell.toggleCheckbox', { r: hit.r, c: hit.c }); return; }
       const now = Date.now();
       const dbl = now - this.lastTap.t < 350 && this.lastTap.r === hit.r && this.lastTap.c === hit.c;
       this.lastTap = { t: now, r: hit.r, c: hit.c };

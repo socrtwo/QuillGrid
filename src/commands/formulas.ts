@@ -485,7 +485,10 @@ function insertIntoEditor(app: App, text: string, span?: { start: number; end: n
   const b = span ? span.end : caret ?? inp.selectionEnd ?? a;
   inp.focus();
   inp.setRangeText(text, a, b, 'end');
-  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  // Keep the in-cell editor and the formula bar in step without triggering autocomplete.
+  for (const other of [ed.ta, ed.bar]) if (other && other !== inp && other.value !== inp.value) other.value = inp.value;
+  ed.position();
+  app.grid.invalidate();
 }
 
 const fmtVal = (sheet: Sheet, v: Scalar) => formatValue(v, undefined, { date1904: sheet.book.calc.date1904 }).text;
@@ -642,6 +645,7 @@ async function insertFunction(app: App, arg: InsertArg = {}): Promise<void> {
     const update = () => {
       const call = buildCall();
       let res = '';
+      if (fnArgs.some((a, i) => isRequired(f, i) && !a.trim())) { result.textContent = 'Formula result ='; return; }
       try { const v = app.engine.evaluate(call, sheet, r, c); res = isRef(v) && v.r1 === v.r2 && v.c1 === v.c2 ? fmtVal(sheet, v.sheet.value(v.r1, v.c1)) : isMatrix(v) || isRef(v) ? valuePreview(v, 12) : fmtVal(sheet, v as Scalar); } catch { res = '#VALUE!'; }
       result.textContent = `Formula result = ${res}`;
     };

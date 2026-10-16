@@ -694,7 +694,7 @@ function exprCost(e: FFExpr): number {
   }
 }
 
-const LIT_START = 0.6, LIT_CHAR = 0.6;
+const LIT_START = 0.6, LIT_CHAR = 1.1;
 
 function candidateExprs(rows: string[][], cols: number[]): FFExpr[] {
   const out: FFExpr[] = [];
