@@ -767,6 +767,8 @@ export class Grid {
     const s = this.sel;
     const shift = e.shiftKey;
     const ctrl = e.ctrlKey || e.metaKey;
+    // Space toggles an in-cell checkbox
+    if (e.key === ' ' && !ctrl && !e.altKey && !shift && this.sheet.styleOf(s.r, s.c).checkbox) { e.preventDefault(); this.app.exec('cell.toggleCheckbox', { r: s.r, c: s.c }); return; }
     // Typing starts editing
     if (!ctrl && !e.altKey && e.key.length === 1 && !this.app.isReadOnly()) {
       e.preventDefault();

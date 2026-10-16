@@ -552,7 +552,7 @@ def([
   insertCmd('insert.chartArea', 'Area Chart', 'area_chart', ['area', 'stackedArea', 'percentArea'], 'chart graph area'),
   insertCmd('insert.chartScatter', 'Scatter Chart', 'scatter_plot', ['scatter', 'scatterLines', 'bubble'], 'chart graph scatter xy bubble'),
   insertCmd('insert.chartStatistic', 'Statistic Chart', 'equalizer', ['histogram', 'pareto', 'boxWhisker'], 'chart histogram pareto box whisker distribution'),
-  insertCmd('insert.chartWaterfall', 'Waterfall, Funnel or Stock Chart', 'waterfall_chart', ['waterfall', 'funnel', 'stock'], 'chart waterfall funnel stock high low close'),
+  insertCmd('insert.chartWaterfall', 'Waterfall Chart', 'waterfall_chart', ['waterfall', 'funnel', 'stock'], 'chart waterfall funnel stock high low close'),
   insertCmd('insert.chartHierarchy', 'Hierarchy Chart', 'grid_view', ['treemap', 'sunburst'], 'chart treemap sunburst hierarchy'),
   insertCmd('insert.chartRadar', 'Radar Chart', 'radar', ['radar', 'filledRadar'], 'chart radar spider web'),
   {

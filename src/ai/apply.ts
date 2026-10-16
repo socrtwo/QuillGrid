@@ -146,7 +146,7 @@ function formulaEnd(s: string): number {
     else if (depth === 0 && /\s/.test(ch)) {
       // A space at depth 0 ends the formula when prose follows (" - sums …", " which …").
       const rest = s.slice(i).trim();
-      if (/^([-–—:]|\(?[a-z]{3,}\b(?![(!]))/i.test(rest) && !/^[-+*/^&<>=]\s*[\w$("'.]/.test(rest)) return i;
+      if (/^[–—:]/.test(rest) || /^-\s+[a-z]{2,}\b(?![\d(!:.])/.test(rest) || (/^\(?[a-z]{3,}\b(?![\d(!:.])/i.test(rest) && !/^[A-Z]{1,3}\d/.test(rest))) return i;
     }
   }
   return s.length;

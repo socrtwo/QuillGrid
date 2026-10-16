@@ -391,7 +391,7 @@ export class Shell {
     const { r, c } = s.sel;
     if (document.activeElement !== this.nameBox) {
       const rg = s.sel.ranges[s.sel.ranges.length - 1];
-      const nm = app.book.names.find((n) => n.ref.replace(/\$/g, '').replace(/^=/, '').toLowerCase() === `${s.name.toLowerCase()}!${rangeName(rg).toLowerCase()}` || n.ref.replace(/\$/g, '').replace(/^=/, '').replace(/^'|'(?=!)/g, '').toLowerCase() === `${s.name.toLowerCase()}!${rangeName(rg).toLowerCase()}`);
+      const nm = app.book.names.find((n) => !n.hidden && (n.ref.replace(/\$/g, '').replace(/^=/, '').toLowerCase() === `${s.name.toLowerCase()}!${rangeName(rg).toLowerCase()}` || n.ref.replace(/\$/g, '').replace(/^=/, '').replace(/^'|'(?=!)/g, '').toLowerCase() === `${s.name.toLowerCase()}!${rangeName(rg).toLowerCase()}`));
       const dragSize = rg.r1 !== rg.r2 || rg.c1 !== rg.c2 ? null : null;
       this.nameBox.value = nm ? nm.name : app.prefs.r1c1 ? `R${r + 1}C${c + 1}` : cellName(r, c);
       void dragSize;

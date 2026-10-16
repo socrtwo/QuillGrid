@@ -486,7 +486,7 @@ function enter(app: App, mode: Mode): void {
 }
 
 function exitInk(app: App): void {
-  if (session) { session.close(); session = null; }
+  if (session) { session.close(); session = null; app.ui.status?.(''); }
   app.refresh();
 }
 

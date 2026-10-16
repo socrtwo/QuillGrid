@@ -716,3 +716,38 @@ body.ql-fullscreen .ql-titlebar, body.ql-fullscreen .ql-tabs, body.ql-fullscreen
 .ql-ink-replay-stop { position: absolute; right: 12px; bottom: 12px; pointer-events: auto; background: var(--surface); }
 .ql-ink svg { overflow: visible; }
 /* ===== end AI, Tools, Developer, Draw ===== */
+/* ===== Data tab (sort, filter, data tools) ===== */
+.ql-data-filtermenu { width: min(92vw, 300px); }
+.ql-data-filterbox { display: flex; flex-direction: column; gap: 6px; padding: 6px 6px 4px; border-top: 1px solid var(--border); margin-top: 4px; }
+.ql-data-search { width: 100%; box-sizing: border-box; min-height: 36px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 14px; }
+.ql-data-checklist { display: flex; flex-direction: column; max-height: 220px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; padding: 2px 0; }
+.ql-data-checkrow { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 8px; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.ql-data-checkrow:hover { background: var(--accent-soft); }
+.ql-data-checkrow input { width: 18px; height: 18px; margin: 0; flex: none; }
+.ql-data-checkrow span { overflow: hidden; text-overflow: ellipsis; }
+.ql-data-all { font-weight: 600; }
+.ql-data-filterfoot { display: flex; justify-content: flex-end; gap: 8px; }
+.ql-data-filterfoot .ql-btn { min-width: 76px; min-height: 36px; }
+.ql-data-listmenu { min-width: 160px; }
+.ql-data-sort { display: flex; flex-direction: column; gap: 8px; }
+.ql-data-sort-bar, .ql-data-sort-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ql-data-sort-bar .ql-btn { min-height: 36px; }
+.ql-data-inline { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.ql-data-level { display: grid; grid-template-columns: 70px repeat(3, minmax(0, 1fr)) auto; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); }
+.ql-data-level select { min-height: 36px; min-width: 0; width: 100%; }
+.ql-data-level-lab { font-size: 13px; color: var(--muted); }
+.ql-data-preview { max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; margin: 4px 0 10px; background: var(--surface); }
+.ql-data-table { border-collapse: collapse; font-size: 13px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.ql-data-table td, .ql-data-table th { border: 1px solid var(--border); padding: 3px 8px; white-space: pre; text-align: left; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.ql-data-table th { background: var(--surface2); position: sticky; top: 0; font-family: var(--font-ui); }
+.ql-data-table th select { min-height: 30px; font-size: 12px; }
+.ql-data-table .ql-data-skip { color: var(--muted); background: var(--surface2); text-decoration: line-through; }
+.ql-data-table .ql-data-hdr td, .ql-data-table tr.ql-data-hdr th { font-weight: 600; }
+.ql-data-steps { margin: 2px 0 8px 1.2em; padding: 0; font-size: 13px; }
+.ql-data-steps li { padding: 2px 0; }
+@media (max-width: 700px) {
+  .ql-data-level { grid-template-columns: 1fr 1fr; }
+  .ql-data-level-lab { grid-column: 1 / -1; }
+  .ql-data-inline { margin-left: 0; }
+}
+/* ===== end Data tab ===== */

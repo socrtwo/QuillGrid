@@ -121,14 +121,13 @@ export function parseTextDate(text: string, opts: DateFixOptions = {}): number |
   const order = opts.order || 'auto';
   if ((r = /^(\d{4})[-/. ](\d{1,2})[-/. ](\d{1,2})$/.exec(t))) { y = +r[1]; m = +r[2]; d = +r[3]; }
   else if ((r = /^(\d{4})(\d{2})(\d{2})$/.exec(t))) { y = +r[1]; m = +r[2]; d = +r[3]; }
+  else if (order === 'ymd' && (r = /^(\d{2})[-/. ](\d{1,2})[-/. ](\d{1,2})$/.exec(t))) { y = year2(r[1], pivot); m = +r[2]; d = +r[3]; }
   else if ((r = /^(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{2}|\d{4})$/.exec(t))) {
     const a = +r[1], b = +r[2];
     y = year2(r[3], pivot);
     let o = order === 'ymd' ? 'mdy' : order;
     if (o === 'auto') o = a > 12 && b <= 12 ? 'dmy' : 'mdy';
     if (o === 'dmy') { d = a; m = b; } else { m = a; d = b; }
-  } else if ((r = /^(\d{2})[-/. ](\d{1,2})[-/. ](\d{1,2})$/.exec(t)) && order === 'ymd') {
-    y = year2(r[1], pivot); m = +r[2]; d = +r[3];
   } else if ((r = /^(\d{1,2})[-/. ]?([a-zà-ü]{3,9})\.?[-/., ]+(\d{2}|\d{4})$/i.exec(t)) && MONTH_NAMES[r[2].toLowerCase()]) {
     d = +r[1]; m = MONTH_NAMES[r[2].toLowerCase()]; y = year2(r[3], pivot);
   } else if ((r = /^([a-zà-ü]{3,9})\.?[-/. ]?(\d{1,2}),?[-/. ]+(\d{2}|\d{4})$/i.exec(t)) && MONTH_NAMES[r[1].toLowerCase()]) {
@@ -362,7 +361,7 @@ const ORD_IRREG: Record<string, string> = { one: 'first', two: 'second', three: 
 
 export type WordsStyle = 'words' | 'check' | 'ordinal' | 'year' | 'legal';
 
-const title = (s: string) => s.replace(/(^|[\s-])([a-z])/g, (_m, a: string, b: string) => a + b.toUpperCase());
+const title = (s: string) => s.replace(/(^|[\s-])([a-z])/g, (_m, a: string, b: string) => a + b.toUpperCase()).replace(/ And /g, ' and ');
 
 /**
  * Number in words. Styles: 'words' (one hundred twenty-three point four five), 'check'

@@ -515,8 +515,9 @@ function addCf(app: App, rg: Range, rule: Omit<CFRule, 'id' | 'ranges'>, label: 
 function addTotals(app: App, rg: Range, kind: 'sum' | 'average' | 'count' | 'percent' | 'running', dir: 'rows' | 'cols'): void {
   const s = app.sheet;
   const area = numbersArea(s, rg);
-  const cells = totalsFormulas(area, kind, dir);
-  if (!cells.length) return;
+  const hasNum = (r1: number, c1: number, r2: number, c2: number) => { for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) if (typeof s.value(r, c) === 'number') return true; return false; };
+  const cells = totalsFormulas(area, kind, dir).filter((x) => (dir === 'rows' ? hasNum(area.r1, x.c, area.r2, x.c) : hasNum(x.r, area.c1, x.r, area.c2)));
+  if (!cells.length) { toast('There are no numbers to total in the selection.'); return; }
   const target = dir === 'rows' ? { r1: area.r2 + 1, c1: area.c1, r2: area.r2 + 1, c2: area.c2 } : { r1: area.r1, c1: area.c2 + 1, r2: area.r2, c2: area.c2 + 1 };
   if (!checkWritable(app, [target])) return;
   const label = { sum: 'Sum', average: 'Average', count: 'Count', percent: '% Total', running: 'Running Total' }[kind];

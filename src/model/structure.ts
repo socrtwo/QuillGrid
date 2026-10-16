@@ -112,6 +112,7 @@ export function shiftCells(sheet: Sheet, axis: Axis, at: number, n: number): voi
         s.values = adjustRefText(s.values, sh, sheet, axis, at, n);
         if (s.categories) s.categories = adjustRefText(s.categories, sh, sheet, axis, at, n);
         if (s.nameRef) s.nameRef = adjustRefText(s.nameRef, sh, sheet, axis, at, n);
+        if ((s as any).sizes) (s as any).sizes = adjustRefText((s as any).sizes, sh, sheet, axis, at, n);
       }
     }
     for (const sp of sh.sparklines) sp.data = adjustRefText(sp.data, sh, sheet, axis, at, n);

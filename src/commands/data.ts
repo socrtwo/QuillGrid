@@ -694,7 +694,7 @@ async function textToColumns(app: App): Promise<void> {
     { key: 'consecutive', type: 'checkbox', label: 'Treat consecutive delimiters as one', value: false, visibleIf: (v) => v.mode === 'delimited' },
     { key: 'qualifier', type: 'select', label: 'Text qualifier', options: [{ value: '"', label: '"' }, { value: "'", label: "'" }, { value: 'none', label: '{none}' }], value: '"', visibleIf: (v) => v.mode === 'delimited' },
     { key: 'breaks', type: 'text', label: 'Break positions (characters from the left)', value: suggestBreaks(lines.slice(0, 200)).join(', '), placeholder: 'e.g. 10, 25', visibleIf: (v) => v.mode === 'fixed' },
-    { key: 'detect', type: 'button', label: 'Detect Breaks', visibleIf: (v) => v.mode === 'fixed', onClick: (_v, ctl) => { ctl.set('breaks', suggestBreaks(lines.slice(0, 200)).join(', ')); renderPreview(ctl.values()); } },
+    { key: 'detect', type: 'button', label: 'Detect Fixed-Width Breaks', onClick: (_v, ctl) => { ctl.set('mode', 'fixed'); ctl.set('breaks', suggestBreaks(lines.slice(0, 200)).join(', ')); renderPreview(ctl.values()); } },
     { key: 'dest', type: 'text', label: 'Destination', value: cellName(sel.r1, sel.c1, true, true) },
   ];
   const res = await openDialog({ title: 'Convert Text to Columns', fields, wide: true, content: h('div', null, h('div', { class: 'ql-label' }, 'Data preview (choose a format above each column)'), preview), onChange: (v) => renderPreview(v) });

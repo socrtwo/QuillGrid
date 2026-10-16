@@ -1001,7 +1001,7 @@ def([
   {
     id: 'dev.designMode', label: 'Design Mode', icon: 'design_services', tab: D, group: 'Controls', kind: 'toggle', noRecord: true,
     tip: 'Select, move and resize controls instead of using them',
-    run: (app) => { designMode = !designMode; app.grid.objects.position(); toast(designMode ? 'Design Mode on: click a control to select it' : 'Design Mode off: controls respond to clicks'); app.grid.invalidate(); },
+    run: (app) => { designMode = !designMode; if (!designMode && app.grid.objects.selected && findControl(app, app.grid.objects.selected)) app.grid.objects.select(null); app.grid.objects.position(); toast(designMode ? 'Design Mode on: click a control to select it' : 'Design Mode off: controls respond to clicks'); app.grid.invalidate(); },
     isActive: () => designMode,
   },
   { id: 'dev.properties', label: 'Properties', icon: 'tune', tab: D, group: 'Controls', edits: true, tip: 'Cell link, input range, limits and macro of the selected control', keywords: 'format control properties link', run: (app, arg?: { id: string }) => controlProperties(app, arg?.id) },

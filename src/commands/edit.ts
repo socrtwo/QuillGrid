@@ -125,6 +125,11 @@ def([
         setInput(app, s, arg.r, arg.c, text);
         // Extend list formats and formulas: a new row at the bottom of a table grows the table.
         for (const t of s.tables) {
+          if (t.opts.header && arg.r === t.range.r1 && arg.c >= t.range.c1 && arg.c <= t.range.c2) {
+            const name = String(s.value(arg.r, arg.c) ?? '').trim();
+            const col = t.columns[arg.c - t.range.c1];
+            if (col && name && col.name !== name) { book.recordSheet(s); col.name = name; }
+          }
           if (arg.r === t.range.r2 + 1 && arg.c >= t.range.c1 && arg.c <= t.range.c2 && !t.opts.totals) {
             book.recordSheet(s);
             t.range = { ...t.range, r2: arg.r };

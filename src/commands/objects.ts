@@ -354,7 +354,8 @@ async function editText(app: App, arg: any): Promise<void> {
       { key: 'size', label: 'Size', type: 'select', options: ['', ...FONT_SIZES.map(String)].map((s) => ({ value: s, label: s || 'Auto' })), value: font.size ? String(font.size) : '', half: true },
       { key: 'bold', label: 'Bold', type: 'checkbox', value: d.kind === 'wordart' ? font.bold !== false : !!font.bold, half: true },
       { key: 'italic', label: 'Italic', type: 'checkbox', value: !!font.italic, half: true },
-      { key: 'color', label: 'Text color', type: 'color', value: font.color || (d.kind === 'textbox' ? '#000000' : d.kind === 'wordart' ? '#2f6fb0' : '#ffffff'), half: true },
+      ...(font.color && !/^#[0-9a-f]{6}$/i.test(font.color) ? [{ key: 'keepFill', label: 'Keep the current text fill (gradient)', type: 'checkbox' as const, value: true }] : []),
+      { key: 'color', label: 'Text color', type: 'color', value: /^#[0-9a-f]{6}$/i.test(font.color || '') ? font.color : /#[0-9a-f]{6}/i.exec(font.color || '')?.[0] || (d.kind === 'textbox' ? '#000000' : d.kind === 'wordart' ? '#2f6fb0' : '#ffffff'), half: true, visibleIf: (v) => !v.keepFill },
       ...(d.kind !== 'wordart' ? [
         { key: 'hAlign', label: 'Horizontal alignment', type: 'select' as const, options: [{ value: '', label: 'Default' }, { value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }], value: font.hAlign || '', half: true },
         { key: 'vAlign', label: 'Vertical alignment', type: 'select' as const, options: [{ value: '', label: 'Default' }, { value: 'top', label: 'Top' }, { value: 'middle', label: 'Middle' }, { value: 'bottom', label: 'Bottom' }], value: font.vAlign || '', half: true },
@@ -377,7 +378,7 @@ function fontFrom(v: Record<string, any>, d: DrawingObject): DrawingObject['font
   set('size', v.size ? Number(v.size) : '');
   if (d.kind === 'wordart') f.bold = !!v.bold; else set('bold', !!v.bold);
   set('italic', !!v.italic);
-  set('color', v.color);
+  if (!v.keepFill) set('color', v.color);
   if ('hAlign' in v) set('hAlign', v.hAlign);
   if ('vAlign' in v) set('vAlign', v.vAlign);
   return Object.keys(f).length ? f : undefined;
@@ -412,7 +413,7 @@ const GRADIENTS: [string, string][] = [
 function currentDrawingColor(app: App): string {
   const d = selectedDrawing(app);
   const f = d?.fill;
-  return f && /^#[0-9a-f]{6}$/i.test(f) ? f : '#2f6fb0';
+  return f && /^#[0-9a-f]{6}$/i.test(f) && !/^#(f[0-9a-f]){3}$/i.test(f) ? f : app.book.theme.colors[4] || '#2f6fb0';
 }
 
 // --------------------------------------------------------------------------------------------
