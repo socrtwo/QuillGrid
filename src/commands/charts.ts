@@ -119,7 +119,9 @@ export function chartFromRange(sheet: Sheet, rg: Range, type: ChartType, opts: {
 export function chartSourceRange(app: App): Range | null {
   const s = app.sheet;
   let rg = activeRange(app);
-  if (rg.r1 === rg.r2 && rg.c1 === rg.c2) rg = currentRegion(s, rg.r1, rg.c1);
+  const tbl = rg.r1 === rg.r2 && rg.c1 === rg.c2 ? s.tables.find((t) => rg.r1 >= t.range.r1 && rg.r1 <= t.range.r2 && rg.c1 >= t.range.c1 && rg.c1 <= t.range.c2) : null;
+  if (tbl) rg = { ...tbl.range, r2: tbl.range.r2 - (tbl.opts.totals ? 1 : 0) };
+  else if (rg.r1 === rg.r2 && rg.c1 === rg.c2) rg = currentRegion(s, rg.r1, rg.c1);
   else rg = clipToUsed(s, rg);
   let any = false;
   s.forEachIn(rg, (_r, _c, cell) => { if (cell.v != null && cell.v !== '') any = true; });

@@ -97,6 +97,8 @@ export function addDrawing(app: App, d: Omit<DrawingObject, 'id'> & { id?: strin
   const sheet = app.sheet;
   if (!canEditObjects(app, sheet)) return null;
   const obj = { ...d, id: d.id || newId(d.kind === 'image' ? 'img' : 'shp') } as DrawingObject;
+  // Cascade objects inserted at the same spot so each stays visible.
+  for (let i = 0; i < 20 && [...sheet.charts, ...sheet.drawings].some((x) => x.at.r === obj.at.r && x.at.c === obj.at.c && Math.abs(x.at.dx - obj.at.dx) < 4 && Math.abs(x.at.dy - obj.at.dy) < 4); i++) obj.at = { ...obj.at, dx: obj.at.dx + 16, dy: obj.at.dy + 16 };
   app.book.transact(label, () => {
     app.book.recordSheet(sheet);
     sheet.drawings.push(obj);

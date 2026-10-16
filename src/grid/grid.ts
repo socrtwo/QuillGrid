@@ -680,6 +680,8 @@ export class Grid {
     if (hit.area === 'cell') {
       if (hit.fill) { this.app.exec('edit.fillDown', { auto: true }); return; }
       if (hit.edge) { this.app.exec('nav.edge', { dir: edgeDir(x, y, this.rangeRect(this.activeRange)) }); return; }
+      const pv = this.sheet.pivots.find((pt) => pt.lastRange && hit.r >= pt.lastRange.r1 && hit.r <= pt.lastRange.r2 && hit.c >= pt.lastRange.c1 && hit.c <= pt.lastRange.c2);
+      if (pv) { this.app.exec('pivot.drillDown', { r: hit.r, c: hit.c }); return; }
       if (this.sheet.get(hit.r, hit.c)?.link && !this.app.prefs.editInCell) { this.app.followLink(this.sheet.get(hit.r, hit.c)!.link!); return; }
       this.startEdit({ mode: 'edit' });
     }

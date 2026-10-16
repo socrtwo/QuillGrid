@@ -145,7 +145,8 @@ export class App {
 
   /** Called after every transaction, undo and redo. */
   bookChanged(tab: BookTab): void {
-    if (this.book.calc.mode !== 'manual' || true) tab.engine.recalc();
+    // In manual mode the engine evaluates only the edited formulas; dependents wait for F9.
+    tab.engine.recalc();
     tab.cf.invalidate();
     if (!tab.dirty) { tab.dirty = true; this.ui.tabsChanged(); document.title = `${tab.displayName} • – QuillLattice`; }
     this.scheduleAutosave();
