@@ -605,15 +605,16 @@ body.ql-fullscreen .ql-titlebar, body.ql-fullscreen .ql-tabs, body.ql-fullscreen
 .ql-pvt-field input[type=checkbox] { width: 18px; height: 18px; }
 .ql-pvt-fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ql-pvt-filtered { color: var(--accent); font-size: 16px; }
-.ql-pvt-areas { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.ql-pvt-area { border: 1px solid var(--border); border-radius: 6px; padding: 4px; min-height: 84px; background: var(--surface2); }
+.ql-pvt-areas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.ql-pvt-area { border: 1px solid var(--border); border-radius: 6px; padding: 4px; min-height: 84px; min-width: 0; background: var(--surface2); }
 .ql-pvt-area.ql-drop { border-color: var(--accent); background: var(--accent-soft); }
 .ql-pvt-area-h { font-size: 12px; font-weight: 700; color: var(--muted); display: flex; align-items: center; gap: 2px; margin-bottom: 2px; }
 .ql-pvt-area-h .ql-icon { font-size: 16px; }
 .ql-pvt-chip { display: flex; align-items: center; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; margin: 2px 0; padding-left: 6px; font-size: 13px; cursor: grab; min-height: 32px; }
 .ql-pvt-chip-fixed { color: var(--muted); padding: 6px; cursor: default; }
-.ql-pvt-chip-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ql-pvt-chip .ql-iconbtn { min-width: 28px; min-height: 30px; }
+.ql-pvt-chip-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ql-pvt-chip .ql-iconbtn { min-width: 24px; width: 24px; min-height: 30px; padding: 0; flex: none; }
+.ql-pvt-chip .ql-iconbtn .ql-icon { font-size: 17px; }
 .ql-pvt-empty { padding: 8px 4px; }
 .ql-pvt-foot { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
 .ql-pvt-rec { display: grid; grid-template-columns: minmax(180px, 34%) 1fr; gap: 10px; min-height: 280px; }
@@ -623,6 +624,7 @@ body.ql-fullscreen .ql-titlebar, body.ql-fullscreen .ql-tabs, body.ql-fullscreen
 .ql-pvt-rec-preview { overflow: auto; max-height: 56vh; }
 .ql-pvt-preview { border-collapse: collapse; font-size: 12.5px; background: #fff; color: #000; }
 .ql-pvt-preview td { border: 1px solid #e3e6eb; padding: 3px 6px; white-space: nowrap; }
+.ql-pvt-preview td.ql-num { text-align: right; }
 .ql-pvt-preview td.ql-pvt-header, .ql-pvt-preview td.ql-pvt-grand { background: #dde7f3; font-weight: 700; }
 .ql-pvt-preview td.ql-pvt-total, .ql-pvt-preview td.ql-pvt-caption, .ql-pvt-preview td.ql-pvt-filter { font-weight: 700; }
 @media (max-width: 600px) { .ql-pvt-rec { grid-template-columns: 1fr; } .ql-pvt-areas { grid-template-columns: 1fr; } }

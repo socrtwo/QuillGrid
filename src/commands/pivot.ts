@@ -331,7 +331,7 @@ function previewTable(res: PivotResult, maxRows = 14): HTMLElement {
       const v = cellValue(x);
       const obj = typeof x === 'object' && x && !(x instanceof CellError) ? (x as PivotCellObj) : null;
       const text = v == null ? '' : typeof v === 'number' ? formatValue(v, obj?.pct ? '0.0%' : Number.isInteger(v) ? '#,##0' : '#,##0.00').text : String(v instanceof CellError ? v.code : v);
-      tr.appendChild(h('td', { class: obj?.s ? 'ql-pvt-' + obj.s : '', style: obj?.indent ? `padding-left:${obj.indent * 12 + 4}px` : '' }, text));
+      tr.appendChild(h('td', { class: (obj?.s ? 'ql-pvt-' + obj.s : '') + (typeof v === 'number' && obj?.vi != null ? ' ql-num' : ''), style: obj?.indent ? `padding-left:${obj.indent * 12 + 4}px` : '' }, text));
     }
     tbl.appendChild(tr);
   });
