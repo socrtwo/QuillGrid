@@ -1,8 +1,8 @@
 # QuillLattice Command Reference
 
-QuillLattice ships **659 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
+QuillLattice ships **663 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
 
-345 of them are "Commands Not in the Tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, the command search, or menus — so nothing the app can do is hidden.
+349 of them are "Commands Not in the Tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, the command search, or menus — so nothing the app can do is hidden.
 
 This file is generated from the source by `npm run catalog`.
 
@@ -496,15 +496,19 @@ This file is generated from the source by `npm run catalog`.
 | Protect Sheet | Protect |  | `review.protectSheet` |  |
 | Protect Workbook | Protect |  | `review.protectWorkbook` |  |
 
-## View (33)
+## View (37)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
+| Add All Quick Access Choices (A–Z) | Appearance |  | `view.qatAddAll` | not in tabs |
 | Collapse the Ribbon | Appearance | Ctrl+F1 | `view.collapseRibbon` | not in tabs |
 | Dark Cells | Appearance |  | `view.darkSheet` |  |
 | Full Screen | Appearance | Ctrl+Shift+F1 | `view.fullScreen` |  |
 | Navigator | Appearance |  | `view.navigator` | inspired by LibreOffice Calc Navigator |
+| Quick Access Bar at the Bottom | Appearance |  | `view.qatAtBottom` | not in tabs |
 | Search Commands | Appearance | Alt+q | `view.cmdSearch` | not in tabs |
+| Show Quick Access Bar | Appearance |  | `view.showQat` | not in tabs |
+| Touch/Mouse Mode | Appearance |  | `view.touchMode` | not in tabs |
 | Sheet View | Sheet View |  | `view.sheetViewMenu` | has options menu |
 | Formula Bar | Show |  | `view.formulaBar` |  |
 | Gridline Color… | Show |  | `view.gridColor` | not in tabs |

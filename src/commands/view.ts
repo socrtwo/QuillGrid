@@ -1,5 +1,6 @@
 /** View tab: workbook views, show/hide, zoom, freeze panes, split, windows, appearance, panes. */
-import { def } from './registry';
+import { def, getCommand } from './registry';
+import { addAllQatChoices } from '../prefs';
 import type { App, ViewMode } from '../app';
 import { activeRange, activeCell } from './ops';
 import { openDialog, toast } from '../ui/dialog';
@@ -108,6 +109,10 @@ def([
   { id: 'view.clipboardPane', label: 'Clipboard Pane', icon: 'content_paste_search', tab: 'Home', group: 'Clipboard', noRecord: true, run: (app) => app.ui.togglePane('clipboard') },
   { id: 'view.selectionPane', label: 'Selection Pane', icon: 'layers', tab: 'Page Layout', group: 'Arrange', noRecord: true, run: (app) => app.ui.togglePane('selection') },
   { id: 'view.cmdSearch', label: 'Search Commands', icon: 'search', tab: 'View', group: 'Appearance', keys: ['Alt-q'], popular: true, noRecord: true, run: (app) => app.ui.commandPalette() },
+  { id: 'view.touchMode', label: 'Touch/Mouse Mode', icon: 'touch_app', tab: 'View', group: 'Appearance', kind: 'toggle', noRecord: true, tip: 'Add space between commands for use with fingers (on) or a mouse (off)', run: (app) => { app.prefs.touchMode = !app.prefs.touchMode; app.savePrefs(); app.ui.applyPrefs(); setTimeout(() => app.grid.layout(), 50); }, isActive: (app) => app.prefs.touchMode },
+  { id: 'view.showQat', label: 'Show Quick Access Bar', icon: 'bolt', tab: 'View', group: 'Appearance', kind: 'toggle', noRecord: true, run: (app) => { app.prefs.qatHidden = !app.prefs.qatHidden; app.savePrefs(); app.ui.applyPrefs(); }, isActive: (app) => !app.prefs.qatHidden },
+  { id: 'view.qatAtBottom', label: 'Quick Access Bar at the Bottom', icon: 'swap_vert', tab: 'View', group: 'Appearance', kind: 'toggle', noRecord: true, tip: 'Show the Quick Access Bar at the bottom of the window, near the on-screen keyboard', run: (app) => { app.prefs.qatPosition = app.prefs.qatPosition === 'bottom' ? 'top' : 'bottom'; app.savePrefs(); app.ui.applyPrefs(); setTimeout(() => app.grid.layout(), 50); }, isActive: (app) => app.prefs.qatPosition === 'bottom' },
+  { id: 'view.qatAddAll', label: 'Add All Quick Access Choices (A–Z)', icon: 'sort_by_alpha', tab: 'View', group: 'Appearance', noRecord: true, tip: 'Put every choice from the Quick Access Bar menu on the bar: Save and Print first, the rest in alphabetical order', run: (app) => { app.prefs.qat = addAllQatChoices(app.prefs.qat, (id) => getCommand(id)?.label); app.prefs.qatHidden = false; app.savePrefs(); app.ui.applyPrefs(); toast('Added all Quick Access choices'); } },
   { id: 'view.collapseRibbon', label: 'Collapse the Ribbon', icon: 'expand_less', tab: 'View', group: 'Appearance', keys: ['Mod-F1'], noRecord: true, run: (app) => { app.prefs.ribbon = app.prefs.ribbon === 'full' ? 'tabs' : 'full'; app.savePrefs(); app.ui.applyPrefs(); setTimeout(() => app.grid.layout(), 50); } },
   { id: 'view.sheetViewMenu', label: 'Sheet View', icon: 'visibility', tab: 'View', group: 'Sheet View', kind: 'menu', noRecord: true, run: () => undefined, menu: () => [{ id: 'view.customViews', label: 'Custom Views…', icon: 'view_carousel' }, { id: 'view.showPageBreaks', label: 'Show Page Breaks', icon: 'insert_page_break' }, { id: 'view.showZeros', label: 'Show Zero Values', icon: 'exposure_zero' }, { id: 'view.gridColor', label: 'Gridline Color…', icon: 'border_color' }] },
 ]);

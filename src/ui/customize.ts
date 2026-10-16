@@ -1,7 +1,7 @@
 /** Customize dialogs: Quick Access Bar, Tabs (ribbon), Keyboard. Every command in the registry is available. */
 import type { App } from '../app';
 import { allCommands, getCommand, type Command } from '../commands/registry';
-import { DEFAULT_QAT, type CustomTab } from '../prefs';
+import { DEFAULT_QAT, addAllQatChoices, type CustomTab } from '../prefs';
 import { DEFAULT_TABS, idsInTabs, tabsFor } from './ribbonLayout';
 import { h, icon, clear } from './dom';
 import { openDialog, toast, promptDialog, confirmDialog } from './dialog';
@@ -65,6 +65,7 @@ export async function customizeQat(app: App): Promise<void> {
   const b = (label: string, ic: string, fn: () => void) => h('button', { class: 'ql-btn', type: 'button', onclick: fn, title: label }, icon(ic), h('span', { class: 'ql-hide-phone' }, ' ' + label));
   mid.append(b('Add', 'arrow_forward', add), b('Remove', 'arrow_back', remove), b('Up', 'arrow_upward', () => move(-1)), b('Down', 'arrow_downward', () => move(1)),
     b('Separator', 'more_vert', () => { const at = rightSel >= 0 ? rightSel + 1 : qat.length; qat.splice(at, 0, '|'); rightSel = at; draw(); }),
+    b('Add All A–Z', 'sort_by_alpha', () => { qat = addAllQatChoices(qat, (id) => getCommand(id)?.label); rightSel = -1; draw(); }),
     b('Reset', 'restart_alt', () => { qat = [...DEFAULT_QAT]; rightSel = -1; draw(); }));
   root.append(left, mid, right);
   draw();
