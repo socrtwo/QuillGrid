@@ -13,6 +13,17 @@ import { sanitizeGeneratedHtml } from '../util/sanitize';
 
 type Obj = { kind: 'chart'; def: ChartDef } | { kind: 'drawing'; def: DrawingObject };
 
+/**
+ * Extension points for command modules: custom drawing content (ink strokes, form controls) and
+ * pointer handling (a form control clicked outside design mode performs its action instead of
+ * being selected). A hook returning true has handled the event.
+ */
+export const objectHooks = {
+  render: [] as ((d: DrawingObject, g: Grid) => HTMLElement | null)[],
+  pointerdown: [] as ((g: Grid, id: string, e: PointerEvent) => boolean)[],
+  dblclick: [] as ((g: Grid, id: string, e: MouseEvent) => boolean)[],
+};
+
 export class ObjectLayer {
   private els = new Map<string, { el: HTMLElement; sig: string }>();
   selected: string | null = null;
@@ -53,7 +64,7 @@ export class ObjectLayer {
       const at = d.at;
       const x = g.colX(at.c) + at.dx * z, y = g.rowY(at.r) + at.dy * z;
       const w = at.w * z, hh = at.h * z;
-      const sig = JSON.stringify(d) + ':' + (o.kind === 'chart' ? tab.engine.evaluations + ':' + tab.book.version : '') + ':' + z;
+      const sig = JSON.stringify(d) + ':' + (o.kind === 'chart' || (o.kind === 'drawing' && o.def.control) ? tab.engine.evaluations + ':' + tab.book.version : '') + ':' + z;
       let rec = this.els.get(d.id);
       if (!rec) {
         const el = h('div', { class: `ql-object ql-object-${o.kind}`, 'data-id': d.id, 'data-kind': o.kind === 'drawing' ? o.def.kind : 'chart', tabindex: '-1' });
@@ -67,7 +78,7 @@ export class ObjectLayer {
         const body = h('div', { class: 'ql-object-body' });
         try {
           if (o.kind === 'chart') body.innerHTML = renderChartSvg(tab, o.def, at.w, at.h);
-          else body.appendChild(drawingContent(o.def));
+          else body.appendChild(objectHooks.render.reduce<HTMLElement | null>((acc, f) => acc || f(o.def, g), null) || drawingContent(o.def));
         } catch (e) { body.textContent = `Could not draw: ${(e as Error).message}`; }
         clear(rec.el);
         rec.el.appendChild(body);
@@ -97,6 +108,7 @@ export class ObjectLayer {
 
   private bind(el: HTMLElement, id: string): void {
     el.addEventListener('pointerdown', (e) => {
+      if (objectHooks.pointerdown.some((f) => f(this.g, id, e))) { e.stopPropagation(); return; }
       e.stopPropagation();
       const g = this.g;
       if (g.editing) g.commitEdit('none');
@@ -144,6 +156,7 @@ export class ObjectLayer {
       el.addEventListener('pointerup', up);
     });
     el.addEventListener('dblclick', (e) => {
+      if (objectHooks.dblclick.some((f) => f(this.g, id, e))) { e.stopPropagation(); return; }
       e.stopPropagation();
       const o = this.objects().find((x) => x.def.id === id);
       if (!o) return;

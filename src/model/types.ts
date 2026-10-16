@@ -77,6 +77,8 @@ export interface Cell {
   /** Rich text runs (for constants), each a slice of the string value with its own font overrides. */
   rich?: { t: string; s?: Partial<CellStyle> }[];
   link?: string;
+  /** ScreenTip shown for the hyperlink. */
+  linkTip?: string;
 }
 
 export interface CommentReply { author: string; text: string; time: number }
@@ -187,6 +189,28 @@ export interface DrawingObject {
   orig?: string;
   /** Effects and object settings: shadow, glow, flips, picture adjustments, slicer state, diagram colors... */
   fx?: Record<string, any>;
+  /** Form control (Developer ▸ Insert Control): a shape that acts as a button, check box, list, spinner… */
+  control?: FormControl;
+}
+
+export type FormControlType = 'button' | 'checkbox' | 'option' | 'combo' | 'list' | 'spin' | 'scroll' | 'label' | 'group';
+
+/** Form control settings. link/input are range references (e.g. "$B$2", "Sheet2!$A$1:$A$10"). */
+export interface FormControl {
+  type: FormControlType;
+  label?: string;
+  /** Macro run by a button (or after any control changes). */
+  macro?: string;
+  /** Linked cell: TRUE/FALSE for check boxes, the 1-based index for lists and option buttons, the value for spinners and scroll bars. */
+  link?: string;
+  /** Input range for combo and list boxes. */
+  input?: string;
+  min?: number; max?: number; step?: number; page?: number;
+  /** Option buttons with the same group name work together. */
+  group?: string;
+  /** State when no linked cell is set. */
+  checked?: boolean;
+  value?: number;
 }
 
 export interface Sparkline { id: string; cell: { r: number; c: number }; data: string; type: 'line' | 'column' | 'winloss'; color?: string; markers?: boolean; high?: boolean; low?: boolean; negative?: boolean }

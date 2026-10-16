@@ -235,7 +235,7 @@ export interface CalcSettings {
   recalcBeforeSave: boolean;
 }
 
-export interface ThemeDef { name: string; colors: string[]; headingFont: string; bodyFont: string }
+export interface ThemeDef { name: string; colors: string[]; headingFont: string; bodyFont: string; /** Theme effects name (stored with the theme). */ effects?: string }
 
 export const DEFAULT_THEME: ThemeDef = {
   name: 'Lattice',
