@@ -6,7 +6,7 @@ import './calc/functions';
 import './commands';
 import { App } from './app';
 import { Shell } from './ui/shell';
-import { launchFile, onFileOpened, onBackButton, isNative, isDesktop, isCapacitor } from './platform/native';
+import { launchFile, onFileOpened, onBackButton, isNative, isDesktop, isCapacitor, type OpenedFile } from './platform/native';
 import { closeMenus, inDialog, toast } from './ui/dialog';
 import { kvKeys } from './util/store';
 import { allCommands, getCommand } from './commands/registry';
@@ -46,12 +46,18 @@ async function start() {
     }
   }
   const { openBuffer } = await import('./commands/file');
+  // Listen first, so a file opened while the launch file loads is queued rather than lost.
+  let ready = false;
+  const queued: OpenedFile[] = [];
+  onFileOpened((f) => { if (ready) void openBuffer(app, f.data, f.name, f.uri); else queued.push(f); });
   const lf = await launchFile();
   if (lf) await openBuffer(app, lf.data, lf.name, lf.uri);
-  onFileOpened((f) => openBuffer(app, f.data, f.name, f.uri));
+  const openedAny = !!lf || queued.length > 0;
+  for (const f of queued.splice(0)) await openBuffer(app, f.data, f.name, f.uri);
+  ready = true;
   const drafts = await kvKeys('draft:');
   if (drafts.length) toast(`${drafts.length} unsaved workbook(s) can be recovered.`, { action: 'Recover', onAction: () => app.exec('file.recover'), ms: 8000 });
-  if (app.prefs.firstRun && !lf) setTimeout(() => app.ui.tour(), 600);
+  if (app.prefs.firstRun && !openedAny) setTimeout(() => app.ui.tour(), 600);
   app.focus();
 }
 start();

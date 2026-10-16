@@ -286,6 +286,8 @@ function renderFixed(toks: Tok[], val: number, lastDigit: number, scaleCommas: n
   const rounded = roundHalfAway(val, fracDigits);
   let [ip, fp = ''] = rounded.toFixed(fracDigits).split('.');
   if (ip === '0') ip = '';
+  // A section with no digit placeholders and no decimal point (e.g. "pos";"neg" or [Red]"x") shows only its literals.
+  if (dotIdx < 0 && !intToks.some((t) => t.t === 'digit')) return intToks.map(tokText).join('');
   const out = layoutInteger(intToks, ip, grouping);
   if (dotIdx < 0) return out;
   // Fraction part

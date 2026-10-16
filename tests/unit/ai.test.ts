@@ -202,3 +202,14 @@ describe('ribbon coverage', () => {
     expect(allCommands().filter((c) => c.tab === 'AI').length + 1).toBeGreaterThanOrEqual(40);
   });
 });
+
+describe('SSE splitting', () => {
+  it('handles every blank-line separator', async () => {
+    const { takeSseBlocks } = await import('../../src/ai/client');
+    for (const sep of ['\n\n', '\r\n\r\n', '\r\n\n', '\n\r\n']) {
+      const [blocks, rest] = takeSseBlocks(`data: {"a":1}${sep}data: {"b":2}${sep}data: {"c"`);
+      expect(blocks).toEqual(['data: {"a":1}', 'data: {"b":2}']);
+      expect(rest).toBe('data: {"c"');
+    }
+  });
+});

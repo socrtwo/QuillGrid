@@ -157,6 +157,12 @@ jobs:
           V='${{ needs.web.outputs.version }}'
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then TAG="${GITHUB_REF#refs/tags/}"; else TAG="v$V-build.${{ github.run_number }}"; fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          # Tags: prerelease when the version has a suffix (v1.0.0-beta.1). Manual runs: the checkbox.
+          # [release] commits: always a prerelease.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then [[ "$TAG" == *-* ]] && PRE=true || PRE=false
+          elif [[ "${{ github.event_name }}" == workflow_dispatch ]]; then PRE='${{ inputs.prerelease }}'
+          else PRE=true; fi
+          echo "prerelease=$PRE" >> "$GITHUB_OUTPUT"
           FAILED=""
           for j in "desktop:${{ needs.desktop.result }}" "ios:${{ needs.ios.result }}" "android:${{ needs.android.result }}"; do
             [[ "${j#*:}" == success ]] || FAILED="$FAILED ${j%%:*}"
@@ -167,7 +173,8 @@ jobs:
           tag_name: ${{ steps.meta.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: QuillLattice ${{ steps.meta.outputs.tag }}
-          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || contains(github.ref_name, '-') }}
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          make_latest: ${{ steps.meta.outputs.prerelease != 'true' }}
           generate_release_notes: true
           body: |
             Built from `${{ github.ref_name }}` at ${{ github.sha }}. Installation for each platform: docs/INSTALL.md.

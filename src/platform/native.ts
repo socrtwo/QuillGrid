@@ -214,7 +214,38 @@ export async function shareFile(blob: Blob, name: string, title?: string): Promi
   download(blob, name);
 }
 
+/**
+ * iOS has no QuillNative plugin: "Open in QuillLattice" and Share arrive as file:// URLs through the
+ * Capacitor App plugin. With LSSupportsOpeningDocumentsInPlace off, iOS copies the file into the app's
+ * Documents/Inbox first, so it can be read without a security-scoped bookmark. There is no write-back
+ * URI: Save on iOS goes through Save As / Share.
+ */
+let lastIosUrl = '';
+async function readIosUrl(url: string): Promise<OpenedFile | null> {
+  if (!/^file:/i.test(url) || url === lastIosUrl) return null;
+  lastIosUrl = url;
+  try {
+    const { Filesystem } = await import('@capacitor/filesystem');
+    const r = await Filesystem.readFile({ path: url });
+    const data = typeof r.data === 'string' ? bufferFromB64(r.data) : await (r.data as Blob).arrayBuffer();
+    let name = url.split(/[?#]/)[0].split('/').pop() || 'document';
+    try { name = decodeURIComponent(name); } catch { /* keep the raw name */ }
+    return { name, data, uri: null };
+  } catch {
+    return null;
+  }
+}
+
 export async function launchFile(): Promise<OpenedFile | null> {
+  if (isCapacitor() && isIOS() && !isNative()) {
+    try {
+      const { App } = await import('@capacitor/app');
+      const r = await App.getLaunchUrl();
+      return r?.url ? await readIosUrl(r.url) : null;
+    } catch {
+      return null;
+    }
+  }
   if (!isNative()) return null;
   try {
     const r = await Native.getLaunchFile();
@@ -226,6 +257,10 @@ export async function launchFile(): Promise<OpenedFile | null> {
 }
 
 export function onFileOpened(cb: (f: OpenedFile) => void): void {
+  if (isCapacitor() && isIOS() && !isNative()) {
+    void import('@capacitor/app').then(({ App }) => App.addListener('appUrlOpen', (e) => { void readIosUrl(e.url).then((f) => { if (f) cb(f); }); }));
+    return;
+  }
   if (!isNative()) return;
   Native.addListener('fileOpened', (r) => { if (r.data) cb({ name: r.name || 'document', data: bufferFromB64(r.data), uri: r.uri || null, mime: r.mime }); });
 }

@@ -41,11 +41,14 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: write # needed to create GitHub Releases
-    env:
-      VERSION_CODE: ${{ github.run_number }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # versionCode must only grow, whichever workflow (Android or Release) builds the APK, so it is
+      # minutes since 2024-01-01 rather than a per-workflow run number.
+      - name: Version code
+        run: echo "VERSION_CODE=$(( ($(date -u +%s) - 1704067200) / 60 ))" >> "$GITHUB_ENV"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

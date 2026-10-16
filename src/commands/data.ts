@@ -1304,7 +1304,10 @@ async function fromWeb(app: App): Promise<void> {
     else book.recordSheet(target);
     size = copySheetCells(tables[idx], target, r0, c0);
     if (res.keep) {
-      const name = `Web ${storedQueries(book).length + 1}`;
+      const taken = new Set(storedQueries(book).map((x) => x.name.toLowerCase()));
+      let n = 1;
+      while (taken.has(`web ${n}`)) n++;
+      const name = `Web ${n}`;
       saveQuery(book, { kind: 'web', name, url: url.trim(), table: wb.sheets.indexOf(tables[idx]), sheet: target.name, r: r0, c: c0, rows: size.rows, cols: size.cols, time: Date.now() }, name);
     }
   });

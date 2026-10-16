@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 // ---------------------------------------------------------------------------
 // Versioning: versionName comes from the root package.json, versionCode from
-// the VERSION_CODE environment variable (CI passes the workflow run number).
+// the VERSION_CODE environment variable (CI passes minutes since 2024-01-01, so it always increases).
 // ---------------------------------------------------------------------------
 def rootPackageJson = new groovy.json.JsonSlurper().parse(file('../../package.json'))
 def appVersionName = rootPackageJson.version.toString()

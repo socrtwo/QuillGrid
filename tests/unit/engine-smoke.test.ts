@@ -60,6 +60,11 @@ describe('engine', () => {
     expect(formatValue(1234.5, '#,##0.00').text).toBe('1,234.50');
     expect(formatValue(-1234.5, '#,##0.00').text).toBe('-1,234.50');
     expect(formatValue(0.256, '0.0%').text).toBe('25.6%');
+    // Literal-only sections show just the literal.
+    expect(formatValue(-5, '"pos";"neg"').text).toBe('neg');
+    expect(formatValue(5, '[Red]"x"').text).toBe('x');
+    expect(formatValue(5, '[>3]"big";"small"').text).toBe('big');
+    expect(formatValue(5.25, '.00').text).toBe('5.25');
     expect(formatValue(45366, 'yyyy-mm-dd').text).toBe('2024-03-15');
     expect(formatValue(45366.5, 'm/d/yyyy h:mm AM/PM').text).toBe('3/15/2024 12:00 PM');
     expect(formatValue(1.5, '# ?/?').text).toBe('1 1/2');

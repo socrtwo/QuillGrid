@@ -2,11 +2,11 @@
 
 An original, open-source spreadsheet for Android (and the web, desktop and iOS) whose goal is simple: **no missing commands**. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, on a keyboard shortcut, or in a macro, which is the full-library customization that mobile and online spreadsheet apps leave out. It is the companion to the [QuillForge](https://github.com/socrtwo/QuillForge) word processor and shares its interface and customization system.
 
-- **659 commands** across File, Home, Insert, Draw, Page Layout, Formulas, Data, Review, View, Tools, **AI**, Developer and Help, plus contextual Table Design, PivotTable Analyze, Chart Design, Picture Format and Shape Format tabs. See [docs/COMMANDS.md](docs/COMMANDS.md).
+- **663 commands** across File, Home, Insert, Draw, Page Layout, Formulas, Data, Review, View, Tools, **AI**, Developer and Help, plus contextual Table Design, PivotTable Analyze, Chart Design, Picture Format and Shape Format tabs. See [docs/COMMANDS.md](docs/COMMANDS.md).
 - **507 worksheet functions**, including dynamic arrays (FILTER, SORT, UNIQUE, SEQUENCE, XLOOKUP, TEXTSPLIT, VSTACK, GROUPBY, PIVOTBY…), LET and LAMBDA with MAP/REDUCE/SCAN/BYROW/BYCOL, and the full statistical, financial, engineering and database libraries.
 - **Opens damaged workbooks** with a recovery engine built on the author's [Word Recovery](https://github.com/socrtwo/wordrecovery-SF) / Immortal Unzipper heritage: byte-level ZIP salvage, XML repair, raw worksheet scanning, and record-level salvage of Excel 97–2003 .xls files. See [docs/RECOVERY.md](docs/RECOVERY.md).
 - **AI tab** with formula writing and explanation, data analysis, fill-by-instruction, classification, extraction and cleaning. It offers a free on-device model (no account) and a setup wizard for free and paid providers. See [docs/AI.md](docs/AI.md).
-- **Quick Access Bar chooser** with the desktop-style categories: *Popular Commands*, *Commands Not in the Tabs*, *All Commands*, each tab, and *Macros*. You can add separators, reorder, reset, and import or export the layout. Long-press any ribbon button to add it, and the bar can sit at the top or at the bottom near the keyboard.
+- **Quick Access Bar chooser** with the desktop-style categories: *Popular Commands*, *Commands Not in the Tabs*, *All Commands*, each tab, and *Macros*. You can add separators, reorder, reset, and import or export the layout. Long-press any ribbon button to add it, and the bar can sit at the top or at the bottom near the keyboard. Its drop-down has the full desktop checklist (AutoSave, New, Open, Save, Email, Quick Print, Print Preview and Print, Spelling, Undo, Redo, Sort Ascending/Descending, Touch/Mouse Mode) and **Add All Choices**, which puts Save and Print first and everything else in alphabetical order.
 - **Customize Tabs:** create tabs and groups, put any command in them, rename, reorder or hide built-in tabs.
 - **Customize Keyboard:** rebind any command, with conflict display.
 - **Command search** (Alt+Q or the 🔍 button) across the whole library.
@@ -82,7 +82,7 @@ Keys are stored encrypted on the device (Android Keystore on Android, the system
 
 ## Known limitations (0.1)
 
-- **Native builds are untested on devices.** The web build, 438 unit tests and a browser smoke test (`npm run e2e`) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
+- **Native builds are untested on devices.** The web build, 446 unit tests and a browser smoke test (`npm run e2e`) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
 - **VBA is preserved, not run.** .xlsm files keep their VBA project when saved as .xlsm; macros run only in QuillLattice's JavaScript macro language.
 - **PivotTables from other programs open as static values.** PivotTables made in QuillLattice are live, but they are written to .xlsx as values, not as pivot caches.
 - **OpenDocument charts and embedded objects** are not opened or saved; cell data, formulas, styles, merges and conditional formats are.

@@ -101,6 +101,17 @@ function networkError(def: ProviderDef, e: unknown, url = def.baseUrl, native = 
   return new AiError(`Could not reach ${def.name}: ${why}. Check the connection.`, 'network');
 }
 
+/** Splits complete server-sent-event blocks off the buffer. Events end with a blank line; servers mix \n and \r\n, so the separator is 2 to 4 characters. */
+export function takeSseBlocks(buf: string): [string[], string] {
+  const blocks: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = /\r?\n\r?\n/.exec(buf))) {
+    blocks.push(buf.slice(0, m.index));
+    buf = buf.slice(m.index + m[0].length);
+  }
+  return [blocks, buf];
+}
+
 /** Streaming SSE request; returns null if streaming is unavailable here (caller retries without). */
 async function sse(def: ProviderDef, r: HttpReq, onEvent: (data: string, event: string) => void): Promise<{ status: number; text: string } | null> {
   if (isNativeApp() && def.cors === 'no') return null;
@@ -116,24 +127,26 @@ async function sse(def: ProviderDef, r: HttpReq, onEvent: (data: string, event: 
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = '';
+  const dispatch = (block: string) => {
+    let event = 'message';
+    const data: string[] = [];
+    for (const line of block.split(/\r?\n/)) {
+      if (line.startsWith('event:')) event = line.slice(6).trim();
+      else if (line.startsWith('data:')) data.push(line.slice(5).replace(/^ /, ''));
+    }
+    if (data.length) onEvent(data.join('\n'), event);
+  };
   try {
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       buf += dec.decode(value, { stream: true });
-      let idx: number;
-      while ((idx = buf.search(/\r?\n\r?\n/)) >= 0) {
-        const block = buf.slice(0, idx);
-        buf = buf.slice(idx + (buf[idx] === '\r' ? 4 : 2));
-        let event = 'message';
-        const data: string[] = [];
-        for (const line of block.split(/\r?\n/)) {
-          if (line.startsWith('event:')) event = line.slice(6).trim();
-          else if (line.startsWith('data:')) data.push(line.slice(5).replace(/^ /, ''));
-        }
-        if (data.length) onEvent(data.join('\n'), event);
-      }
+      const [blocks, rest] = takeSseBlocks(buf);
+      buf = rest;
+      blocks.forEach(dispatch);
     }
+    buf += dec.decode();
+    if (buf.trim()) dispatch(buf);
   } catch (e: any) {
     if (e?.name === 'AbortError') throw new AiError('Stopped', 'aborted');
     void reader.cancel().catch(() => undefined);

@@ -23,7 +23,9 @@ if (!app.requestSingleInstanceLock()) app.quit();
 
 /** @type {BrowserWindow | null} */
 let win = null;
-let pendingLaunch = null; // file opened before the window was ready
+/** Files opened before the page could receive them. Flushed when the page registers its fileOpened listener. */
+const pendingFiles = [];
+let rendererReady = false;
 let wakeId = -1;
 
 // ------------------------------------------------------------------------------------------
@@ -75,9 +77,14 @@ function fileFromArgs(argv) {
 }
 function openExternalFile(p) {
   grant(p);
-  if (win && !win.webContents.isLoading()) win.webContents.send('ql:fileOpened', fileResult(p));
-  else pendingLaunch = p;
+  if (win && rendererReady) win.webContents.send('ql:fileOpened', fileResult(p));
+  else pendingFiles.push(p);
+  // macOS keeps running with no window: opening a file from Finder must bring one back.
+  if (!win && app.isReady()) createWindow();
   if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
+}
+function flushPendingFiles() {
+  while (win && rendererReady && pendingFiles.length) win.webContents.send('ql:fileOpened', fileResult(pendingFiles.shift()));
 }
 
 // ------------------------------------------------------------------------------------------
@@ -148,10 +155,11 @@ function registerIpc() {
     if (!r.canceled && r.filePath) { fs.writeFileSync(r.filePath, Buffer.from(String(data || ''), 'base64')); grant(r.filePath); }
   });
   handle('getLaunchFile', async () => {
-    const p = pendingLaunch;
-    pendingLaunch = null;
+    const p = pendingFiles.shift();
     return p ? fileResult(p) : {};
   });
+  // Sent by the preload script once the page listens for fileOpened: deliver anything that arrived earlier.
+  ipcMain.on('ql:fileListenerReady', (e) => { if (win && e.sender === win.webContents) { rendererReady = true; flushPendingFiles(); } });
   handle('keepAwake', async ({ on }) => {
     if (on && wakeId < 0) wakeId = powerSaveBlocker.start('prevent-display-sleep');
     if (!on && wakeId >= 0) { powerSaveBlocker.stop(wakeId); wakeId = -1; }
@@ -258,7 +266,9 @@ function createWindow() {
     const choice = dialog.showMessageBoxSync(win, { type: 'question', buttons: ['Close without saving', 'Cancel'], defaultId: 1, cancelId: 1, title: 'Unsaved changes', message: 'Some workbooks have unsaved changes. Close QuillLattice anyway?' });
     if (choice === 0) e.preventDefault();
   });
-  win.on('closed', () => { win = null; });
+  // A reload or navigation drops the page's listeners until it registers them again.
+  win.webContents.on('did-start-loading', () => { rendererReady = false; });
+  win.on('closed', () => { win = null; rendererReady = false; });
   void win.loadURL(`${ORIGIN}/index.html`);
 }
 
@@ -268,12 +278,13 @@ app.on('second-instance', (_e, argv) => {
   else if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
 });
 // macOS: files opened from Finder (before or after launch).
-app.on('open-file', (e, p) => { e.preventDefault(); if (app.isReady()) openExternalFile(p); else pendingLaunch = p; });
+app.on('open-file', (e, p) => { e.preventDefault(); if (app.isReady()) openExternalFile(p); else pendingFiles.push(p); });
 
 app.whenReady().then(() => {
   loadGrants();
-  const p = pendingLaunch || fileFromArgs(process.argv);
-  if (p) { grant(p); pendingLaunch = p; }
+  const p = fileFromArgs(process.argv);
+  if (p) pendingFiles.unshift(p);
+  for (const f of pendingFiles) grant(f);
   serveApp();
   registerIpc();
   buildMenu();

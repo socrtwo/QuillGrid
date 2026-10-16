@@ -12,6 +12,7 @@ api.addListener = (event, cb) => {
   if (event !== 'fileOpened' && event !== 'oauthCallback') return Promise.reject(new Error('Unknown event'));
   const listener = (_e, data) => cb(data);
   ipcRenderer.on('ql:' + event, listener);
+  if (event === 'fileOpened') ipcRenderer.send('ql:fileListenerReady');
   return Promise.resolve({ remove: () => ipcRenderer.removeListener('ql:' + event, listener) });
 };
 

@@ -116,6 +116,14 @@ export function shiftCells(sheet: Sheet, axis: Axis, at: number, n: number): voi
       }
     }
     for (const sp of sh.sparklines) sp.data = adjustRefText(sp.data, sh, sheet, axis, at, n);
+    for (const pv of sh.pivots) {
+      if (/[!:]|^\$?[A-Z]{1,3}\$?\d/i.test(pv.source)) pv.source = adjustRefText(pv.source, sh, sheet, axis, at, n);
+      if (pv.target.sheet === sheet.name) {
+        const v = axis === 'row' ? pv.target.r : pv.target.c;
+        const nv = v < at ? v : n < 0 && v < at - n ? at : v + n;
+        if (axis === 'row') pv.target.r = nv; else pv.target.c = nv;
+      }
+    }
   }
   for (const nm of book.names) {
     const home = (nm.sheet && book.sheetByName(nm.sheet)) || book.sheets[0];
@@ -235,8 +243,8 @@ function clearBlock(sheet: Sheet, rg: Range): void {
  */
 export function moveBlock(sheet: Sheet, src: Range, dr: number, dc: number, dest: Sheet = sheet): void {
   const book = sheet.book;
-  book.recordSheet(sheet);
-  if (dest !== sheet) book.recordSheet(dest);
+  // Formulas, names and objects on every sheet can point into the block, so the whole book is recorded.
+  book.recordBook();
   const moved: [number, number, Cell][] = [];
   for (const [k, cell] of [...sheet.cells]) {
     const r = keyRow(k), c = keyCol(k);
@@ -267,6 +275,24 @@ export function moveBlock(sheet: Sheet, src: Range, dr: number, dc: number, dest
     const home = (nm.sheet && book.sheetByName(nm.sheet)) || book.sheets[0];
     const lead = nm.ref.startsWith('=') ? '=' : '';
     nm.ref = lead + rewriteMoved(nm.ref.slice(lead.length), home, dest, src, dr, dc, false, sheet);
+  }
+  // Charts, sparklines, PivotTable sources, rule formulas and print areas that point into the block follow it.
+  const mv = (text: string, home: Sheet) => rewriteMoved(text, home, dest, src, dr, dc, false, sheet);
+  for (const sh of book.sheets) {
+    for (const ch of sh.charts) for (const se of ch.series) {
+      se.values = mv(se.values, sh);
+      if (se.categories) se.categories = mv(se.categories, sh);
+      if (se.nameRef) se.nameRef = mv(se.nameRef, sh);
+      if ((se as any).sizes) (se as any).sizes = mv((se as any).sizes, sh);
+    }
+    for (const sp of sh.sparklines) sp.data = mv(sp.data, sh);
+    for (const pv of sh.pivots) if (/[!:]|^\$?[A-Z]{1,3}\$?\d/i.test(pv.source)) pv.source = mv(pv.source, sh);
+    for (const cf of sh.cf) if (cf.formulas) cf.formulas = cf.formulas.map((f) => mv(f, sh));
+    for (const dv of sh.validations) {
+      if (dv.formula1) dv.formula1 = mv(dv.formula1, sh);
+      if (dv.formula2) dv.formula2 = mv(dv.formula2, sh);
+    }
+    if (sh.print.area) sh.print.area = mv(sh.print.area, sh);
   }
   // Comments, merges, validation and formats inside the block move too.
   const movedComments: [number, any][] = [];
@@ -314,13 +340,17 @@ export function renameSheet(book: Workbook, sheet: Sheet, newName: string): void
     void home;
     return changed ? nr : null;
   });
-  const fixNames = (f: string) => f.replace(new RegExp(`(^|[^\\w.'])(${escapeRe(quoteSheet(old))})!`, 'gi'), (_m, pre) => `${pre}${quoteSheet(newName)}!`);
+  // Catches sheet-qualified text the tokenizer leaves alone (3-D ranges, reference text); never inside "string literals".
+  const re = new RegExp(`(^|[^\\w.'])(${escapeRe(quoteSheet(old))})!`, 'gi');
+  const fixNames = (f: string) => f.split(/("(?:[^"]|"")*"?)/).map((part, i) => (i % 2 ? part : part.replace(re, (_m, pre) => `${pre}${quoteSheet(newName)}!`))).join('');
   for (const sh of book.sheets) {
     for (const [k, cell] of sh.cells) if (cell.f != null) { const nf = fixNames(fix(cell.f, sh)); if (nf !== cell.f) sh.cells.set(k, { ...cell, f: nf }); }
     for (const ch of sh.charts) for (const s of ch.series) { s.values = fixNames(s.values); if (s.categories) s.categories = fixNames(s.categories); if (s.nameRef) s.nameRef = fixNames(s.nameRef); }
     for (const sp of sh.sparklines) sp.data = fixNames(sp.data);
     for (const dv of sh.validations) { if (dv.formula1) dv.formula1 = fixNames(fix(dv.formula1, sh)); if (dv.formula2) dv.formula2 = fixNames(fix(dv.formula2, sh)); }
     for (const pv of sh.pivots) { pv.source = fixNames(pv.source); if (pv.target.sheet === old) pv.target.sheet = newName; }
+    for (const cf of sh.cf) if (cf.formulas) cf.formulas = cf.formulas.map((f) => fixNames(fix(f, sh)));
+    if (sh.print.area) sh.print.area = fixNames(sh.print.area);
   }
   for (const nm of book.names) { nm.ref = fixNames(fix(nm.ref.replace(/^=/, ''), sheet)); if (nm.sheet === old) nm.sheet = newName; }
   sheet.name = newName;
