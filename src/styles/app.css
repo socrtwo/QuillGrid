@@ -4,6 +4,12 @@
   --accent: #1e5f3a; --accent-2: #f0c25a; --accent-soft: #dcebe2; --on: #c4dfcf; --danger: #b3261e;
   --canvas: #d9dde3; --page: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.08);
   --ql-ui-scale: 1; --btn: calc(40px * var(--ql-ui-scale)); --ico: calc(22px * var(--ql-ui-scale));
+  /* System bars and cutouts. Android (Capacitor edge-to-edge) reports them as --safe-area-inset-*, iOS and
+     newer Android WebViews as env(); take whichever is larger so nothing sits under a status or navigation bar. */
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --sal: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+  --sar: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
   color-scheme: light;
 }
@@ -25,7 +31,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
 .ql-hidden-tab { display: none !important; }
 
 /* App frame -------------------------------------------------------------------------- */
-.ql-app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+.ql-app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding: var(--sat) var(--sar) var(--sab) var(--sal); }
 .ql-titlebar { display: flex; align-items: center; gap: 2px; background: var(--accent); color: #fff; min-height: calc(46px * var(--ql-ui-scale)); padding: 0 4px; flex: none; }
 :root[data-theme=dark] .ql-titlebar { background: #17402a; }
 .ql-titlebar .ql-iconbtn { color: #fff; }
@@ -144,7 +150,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
 .ql-zoom { min-width: 44px; text-align: center; }
 
 /* Menus ------------------------------------------------------------------------------ */
-.ql-menu { position: fixed; z-index: 1000; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.22); padding: 4px; min-width: 200px; max-width: min(92vw, 380px); max-height: min(72vh, 560px); overflow: auto; }
+.ql-menu { position: fixed; z-index: 1000; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.22); padding: 4px; min-width: 200px; max-width: min(92vw, 380px); max-height: min(72vh, 560px, calc(100dvh - var(--sat) - var(--sab) - 16px)); overflow: auto; }
 .ql-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; background: transparent; border: 0; text-align: left; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; min-height: 38px; }
 .ql-menu-item:hover, .ql-menu-item:focus { background: var(--accent-soft); outline: none; }
 .ql-menu-item.ql-checked { font-weight: 600; }
@@ -168,12 +174,12 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
 .ql-full { width: 100%; }
 
 /* Dialogs */
-.ql-overlay { position: fixed; inset: 0; z-index: 900; background: rgba(15,20,30,.42); display: flex; align-items: center; justify-content: center; padding: 12px; animation: ql-fade .12s ease-out; }
+.ql-overlay { position: fixed; inset: 0; z-index: 900; background: rgba(15,20,30,.42); display: flex; align-items: center; justify-content: center; padding: calc(12px + var(--sat)) calc(12px + var(--sar)) calc(12px + var(--sab)) calc(12px + var(--sal)); animation: ql-fade .12s ease-out; }
 .ql-overlay.ql-out { opacity: 0; transition: opacity .12s; }
 @keyframes ql-fade { from { opacity: 0; } }
-.ql-dialog { background: var(--surface); color: var(--text); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.35); width: min(480px, 100%); max-height: calc(100dvh - 24px); display: flex; flex-direction: column; }
+.ql-dialog { background: var(--surface); color: var(--text); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.35); width: min(480px, 100%); max-height: calc(100dvh - 24px - var(--sat) - var(--sab)); display: flex; flex-direction: column; }
 .ql-dialog.ql-wide { width: min(760px, 100%); }
-.ql-dialog.ql-full { width: min(1080px, 100%); height: calc(100dvh - 24px); }
+.ql-dialog.ql-full { width: min(1080px, 100%); height: calc(100dvh - 24px - var(--sat) - var(--sab)); }
 .ql-dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 6px 18px; }
 .ql-dialog-head h2 { font-size: 17px; margin: 0; }
 .ql-dialog-body { padding: 4px 18px 10px; overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
@@ -218,7 +224,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
 .ql-ink-canvas { width: 100%; aspect-ratio: 5 / 3; background: #fff; border: 1px solid var(--border); border-radius: 6px; touch-action: none; }
 
 /* Toasts */
-.ql-toasts { position: fixed; left: 50%; bottom: calc(46px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1100; display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: max-content; max-width: 92vw; }
+.ql-toasts { position: fixed; left: 50%; bottom: calc(46px + var(--sab)); transform: translateX(-50%); z-index: 1100; display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: max-content; max-width: 92vw; }
 .ql-toast { background: #2a2f3a; color: #fff; padding: 9px 14px; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.3); font-size: 13.5px; display: flex; gap: 10px; align-items: center; pointer-events: auto; transition: opacity .3s; }
 .ql-toast.ql-out { opacity: 0; }
 .ql-toast .ql-link { color: #ffd38a; }
@@ -302,7 +308,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
 .ql-key-capture { font-family: ui-monospace, monospace; text-align: center; }
 
 /* Backstage */
-.ql-backstage { position: fixed; inset: 0; z-index: 700; background: var(--surface); display: none; padding-top: env(safe-area-inset-top); }
+.ql-backstage { position: fixed; inset: 0; z-index: 700; background: var(--surface); display: none; padding: var(--sat) var(--sar) var(--sab) var(--sal); }
 .ql-backstage-open .ql-backstage { display: flex; }
 .ql-bs-nav { width: 210px; background: var(--accent); color: #fff; display: flex; flex-direction: column; padding: 8px 0; overflow: auto; flex: none; }
 :root[data-theme=dark] .ql-bs-nav { background: #17402a; }
@@ -331,10 +337,10 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
   .ql-pane-head { position: relative; padding-top: 12px; }
   .ql-ribbon .ql-cmd { min-width: calc(50px * var(--ql-ui-scale)); }
   .ql-group-label { font-size: 10px; }
-  .ql-dialog { border-radius: 16px 16px 0 0; align-self: flex-end; width: 100%; max-height: 92dvh; }
-  .ql-dialog.ql-full { height: 92dvh; }
-  .ql-overlay { padding: 0; align-items: flex-end; }
-  .ql-palette-overlay { align-items: flex-start; padding: 8px; }
+  .ql-dialog { border-radius: 16px 16px 0 0; align-self: flex-end; width: 100%; max-height: calc(92dvh - var(--sat)); padding-bottom: var(--sab); }
+  .ql-dialog.ql-full { height: calc(92dvh - var(--sat)); }
+  .ql-overlay { padding: var(--sat) var(--sar) 0 var(--sal); align-items: flex-end; }
+  .ql-palette-overlay { align-items: flex-start; padding: calc(8px + var(--sat)) calc(8px + var(--sar)) calc(8px + var(--sab)) calc(8px + var(--sal)); }
   .ql-row2 { grid-template-columns: 1fr; }
   .ql-customize { grid-template-columns: 1fr; }
   .ql-cust-mid { flex-direction: row; flex-wrap: wrap; }
@@ -349,7 +355,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
   .ql-status-view:not(.ql-on) { display: none; }
 }
 body.ql-zen .ql-titlebar, body.ql-zen .ql-tabs, body.ql-zen .ql-ribbon, body.ql-zen .ql-status, body.ql-zen .ql-doctabs, body.ql-zen .ql-qat-bottom { display: none !important; }
-.ql-zen-exit { display: none !important; position: fixed; top: calc(6px + env(safe-area-inset-top)); right: 8px; z-index: 650; background: var(--surface); color: var(--text); box-shadow: var(--shadow); opacity: .6; }
+.ql-zen-exit { display: none !important; position: fixed; top: calc(6px + var(--sat)); right: calc(8px + var(--sar)); z-index: 650; background: var(--surface); color: var(--text); box-shadow: var(--shadow); opacity: .6; }
 .ql-zen-exit:hover, .ql-zen-exit:focus-visible { opacity: 1; }
 body.ql-zen .ql-zen-exit { display: inline-flex !important; }
 
@@ -425,7 +431,7 @@ body.ql-zen .ql-zen-exit { display: inline-flex !important; }
 .ql-ai-msg-actions { margin-top: 6px; flex-wrap: wrap; gap: 4px; }
 .ql-ai-compose { border-top: 1px solid var(--ql-border, #ddd); padding-top: 6px; display: flex; flex-direction: column; gap: 6px; }
 .ql-ai-compose textarea { width: 100%; box-sizing: border-box; resize: vertical; }
-.ql-ai-busy { position: fixed; left: 50%; bottom: 56px; transform: translateX(-50%); z-index: 9000; display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 20px; background: #263238; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.25); font-size: 13px; }
+.ql-ai-busy { position: fixed; left: 50%; bottom: calc(56px + var(--sab)); transform: translateX(-50%); z-index: 9000; display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 20px; background: #263238; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.25); font-size: 13px; }
 .ql-ai-busy .ql-link { color: #90caf9; }
 .ql-spin { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: ql-spin .8s linear infinite; }
 @keyframes ql-spin { to { transform: rotate(360deg); } }
