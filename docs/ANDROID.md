@@ -186,14 +186,18 @@ Notes:
 
 ## App icon
 
-The launcher icon (a mint quill with a gold nib writing into the active cell of a cream worksheet,
-on deep green `#1E5F3A`) is generated from one set of vector shapes by
-`node scripts/gen-android-icons.mjs`, which writes:
+The launcher icon is the Quill suite icon for this app: a white worksheet card and a white quill on a
+green tile. Its sources are `resources/icon.svg` (the full tile), `resources/icon-foreground.svg` (the
+adaptive-icon foreground, artwork inside the safe zone) and `resources/icon-background.txt` (the
+adaptive background color, `#1E7A46`). `node scripts/gen-android-icons.mjs` writes from them:
 
-- `resources/icon.svg`, `resources/icon-square.svg`, `resources/icon-foreground.svg`, `resources/icon-512.png`, `public/favicon.svg`
-- adaptive icon vectors `res/drawable/ic_launcher_{foreground,background,monochrome}.xml`
+- `resources/icon-square.svg` (full bleed), `resources/icon-512.png`, `public/favicon.svg`
+- the adaptive icon layers: `res/drawable/ic_launcher_background.xml` (solid color) and the bitmaps
+  `res/drawable-*dpi/ic_launcher_{foreground,monochrome}.png` (the monochrome layer is the artwork as a
+  white silhouette for Android 13+ themed icons)
 - the background color `res/values/ic_launcher_background.xml` (also the splash color)
 - legacy PNGs `res/mipmap-*/ic_launcher{,_round}.png` (for Android 7.x) rendered with Playwright Chromium
 
-Edit the shapes in the script and run `npm run icons` (it also renders the iOS, desktop and web icons); do not hand-edit the generated files. The launch screen
-(`res/drawable/splash.xml`) is the same deep green.
+Replace the three source files and run `npm run icons` (it also renders the iOS, desktop and web icons);
+do not hand-edit the generated files. The launch screen (`res/drawable/splash.xml`) shows the foreground
+on the background color.

@@ -127,7 +127,7 @@ xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sd
 
 ## Icons
 
-`npm run icons` regenerates every icon from the vector shapes in `scripts/gen-android-icons.mjs`: the Android launcher icons, `public/favicon.svg`, and (through `scripts/gen-platform-icons.mjs`) the desktop, iOS and web-app PNGs. Rendering uses Playwright's Chromium.
+`npm run icons` regenerates every icon from the sources `resources/icon.svg`, `resources/icon-foreground.svg` and `resources/icon-background.txt` (the Quill suite icon family): `scripts/gen-android-icons.mjs` writes the Android launcher icons, `resources/icon-square.svg` and `public/favicon.svg`, and `scripts/gen-platform-icons.mjs` the desktop, iOS and web-app PNGs. Rendering uses Playwright's Chromium.
 
 ## Command reference
 
