@@ -14,6 +14,7 @@ import { formatValue, formatGeneral } from '../model/numfmt';
 import { tableCellLook } from '../model/tableStyles';
 import { ICON_SETS, type CFResult } from './cf';
 import { fontFamilyCss } from '../fonts';
+import { cellKind, MAP_STYLE } from '../heritage/audit';
 
 export interface PaintCache { text: Map<string, number>; version: number }
 
@@ -182,9 +183,11 @@ function paintCells(g: Grid, ctx: CanvasRenderingContext2D, t: Theme, r1: number
   }
   // Pass 2: text (with overflow into empty neighbors)
   const occupied = (r: number, c: number) => { const x = s.cells.get(cellKey(r, c)); return !!x && (x.v != null && x.v !== '' || x.f != null); };
+  const mapView = g.tab.mapView;
   for (const row of rowsInfo) {
     for (const p of row) {
       const cell = p.cell;
+      if (mapView) { paintMapCell(g, ctx, t, p); continue; }
       if (!cell || (cell.v == null && cell.f == null)) {
         if (cell?.v == null && cell?.f == null) { paintSparkline(g, ctx, p); }
         continue;
@@ -194,7 +197,7 @@ function paintCells(g: Grid, ctx: CanvasRenderingContext2D, t: Theme, r1: number
     }
   }
   // Text that overflows in from the left of the painted area.
-  if (c1 > 0) {
+  if (c1 > 0 && !mapView) {
     for (let r = r1; r <= r2; r++) {
       if (!g.rowH(r)) continue;
       for (let c = Math.max(0, c1 - 15); c < c1; c++) {
@@ -292,6 +295,20 @@ function paintIcon(ctx: CanvasRenderingContext2D, p: CellPaint, icon: { set: str
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillText(name, p.x + 2, p.y + p.h / 2);
+}
+
+/** Map View: a tinted box and a glyph for the cell's kind (" label, # number, + formula, ≠ odd formula). */
+function paintMapCell(g: Grid, ctx: CanvasRenderingContext2D, t: Theme, p: CellPaint): void {
+  const kind = cellKind(g.sheet, p.r, p.c, p.cell);
+  if (kind === 'empty') return;
+  const look = MAP_STYLE[kind];
+  ctx.fillStyle = t.dark ? look.dark : look.fill;
+  ctx.fillRect(Math.floor(p.x) + 1, Math.floor(p.y) + 1, Math.ceil(p.w) - 2, Math.ceil(p.h) - 2);
+  ctx.fillStyle = t.dark ? '#f0f0f0' : '#222';
+  ctx.font = `700 ${Math.max(8, Math.round(13 * g.zoom))}px ui-monospace, Cousine, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(look.glyph, p.x + p.w / 2, p.y + p.h / 2 + 1);
 }
 
 function displayText(g: Grid, cell: Cell, st: CellStyle, widthPx: number, z: number): { text: string; color?: string; isNumber: boolean; fill?: string } {

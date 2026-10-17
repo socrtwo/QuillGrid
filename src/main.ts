@@ -25,7 +25,7 @@ installScrollCues({
     '.ql-spell-context', '.ql-dict-list', '.ql-pp-side', '.ql-pp-view', '.ql-fx-args', '.ql-namemgr-list',
     '.ql-cfmgr-list', '.ql-pvt-fields', '.ql-pvt-rec-list', '.ql-pvt-rec-preview', '.ql-objgal', '.ql-ai-log',
     '.ql-ai-diff-wrap', '.ql-ai-chips', '.ql-ai-result', '.ql-macro-mods', '.ql-macro-out', '.ql-data-checklist',
-    '.ql-data-preview',
+    '.ql-data-preview', '.ql-slash-items', '.ql-depgraph', '.ql-ai-delib-text',
   ].join(', '),
 });
 

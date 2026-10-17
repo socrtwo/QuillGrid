@@ -20,8 +20,8 @@ src/
     parser.ts             tokenizer and parser (precedence, ranges, intersections, unions, structured refs, arrays)
     values.ts             runtime values, coercion rules and helpers used by functions
     engine.ts             evaluator, dynamic dependency tracking, incremental recalculation, spilling, iteration
-    functions/            ~490 worksheet functions by category (math, stats, text, date, lookup, dynamic arrays,
-                          logical/LAMBDA, financial, engineering, database, information, web)
+    functions/            ~520 worksheet functions by category (math, stats, text, date, lookup, dynamic arrays,
+                          logical/LAMBDA, financial, engineering, database, information, web, heritage)
   grid/
     grid.ts               canvas grid: virtual scrolling, frozen panes, selection, fill handle, drag-move, touch
     render.ts             painter: fills, gridlines, text with overflow, borders, merges, data bars, icons, headers
@@ -34,7 +34,10 @@ src/
     registry.ts           Command interface and registry (the single source for QAT, tabs, keys, macros, search)
     ops.ts                shared editing helpers (selection, styles, input parsing, fill series, clipboard text)
     *.ts                  command modules by area (file, edit, format, cells, view, insert, charts, table,
-                          formulas, pivot, conditional, data, page layout, review, tools, ai, developer, draw)
+                          formulas, pivot, conditional, data, page layout, review, tools, ai, developer, draw,
+                          heritage: features from earlier spreadsheets, see docs/HERITAGE.md)
+  heritage/               logic behind the heritage commands: 1-2-3 formula translation, R1C1 and formula
+                          rules, explain/dependency graphs, cell history, matrices, Monte Carlo, code export
   io/                     format converters: xlsx/xlsm/xltx, ods/fods, csv/tsv, html, sylk, dif, xml 2003, native
     recover/              recovery engine (ZIP salvage, ImmortalInflate, XML repair, BIFF reader and salvage)
   print/                  page breaks, print rendering and preview

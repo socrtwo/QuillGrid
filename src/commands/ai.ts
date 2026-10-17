@@ -16,9 +16,10 @@ import { rangeRefText } from '../model/structure';
 import { FEATURES, BASE_SYSTEM, type AiFeature } from '../ai/features';
 import { aiSettings, saveAiSettings, resolveProvider } from '../ai/store';
 import { providerById } from '../ai/providers';
-import { chat, AiError, type ChatMessage } from '../ai/client';
+import { chat, activeEnsemble, AiError, type ChatMessage } from '../ai/client';
+import type { EnsembleMode } from '../ai/ensemble';
 import { tableText, cellContext, cleanOutput, extractFormula, validateFormula, parseJsonLoose, parseTable, runRowJob, chartFromSpec, cfRulesFromSpec, validationFromSpec, writeTable, answerValue, type TableContext, type RowAnswer } from '../ai/apply';
-import { aiBusy, aiIdle, paneResult, showFormulaPreview, showChangesPreview, showTablePreview, insertTableAtCursor, stopAi, aiModelName, type ChangeRow, type PaneAction } from '../ui/aiPane';
+import { aiBusy, aiIdle, paneResult, paneDeliberation, showFormulaPreview, showChangesPreview, showTablePreview, insertTableAtCursor, stopAi, aiModelName, type ChangeRow, type PaneAction } from '../ui/aiPane';
 import { openDialog, toast, confirmDialog, promptDialog } from '../ui/dialog';
 import { h, icon } from '../ui/dom';
 import { activeRange, clipToUsed, dataRegion, hasHeaderRow, currentRegion, cellText, setInput } from './ops';
@@ -28,7 +29,18 @@ import { Sheet as SheetClass, newId } from '../model/workbook';
 // ============================================================================================
 // Shared plumbing
 
-const isCloud = () => { const p = providerById(aiSettings().active || ''); return !!p && p.kind !== 'local' && p.kind !== 'builtin'; };
+const cloudId = (id: string) => { const p = providerById(id); return !!p && p.kind !== 'local' && p.kind !== 'builtin'; };
+
+/** Every service a normal AI command sends to: the active provider, or, with several AIs, every member and the master or clerk. */
+export function aiRecipients(): string[] {
+  const plan = activeEnsemble();
+  if (!plan) { const a = aiSettings().active; return a ? [a] : []; }
+  return [...new Set([...plan.members.map((m) => m.provider), plan.master.provider])];
+}
+
+const isCloud = () => aiRecipients().some(cloudId);
+const anyLocal = () => aiRecipients().some((id) => providerById(id)?.kind === 'local');
+const names = (ids: string[]) => { const n = ids.map((id) => providerById(id)?.name || id); return n.length < 2 ? n.join('') : `${n.slice(0, -1).join(', ')} and ${n[n.length - 1]}`; };
 
 /** Makes sure a provider is set up (offering the setup wizard) and, for cloud services, that the user knows where data goes. */
 export async function ensureAiReady(app: App, sendsData: boolean, reason = 'This command needs an AI provider. Choose one below; free options, including one that runs on this device, are at the top.'): Promise<boolean> {
@@ -39,19 +51,23 @@ export async function ensureAiReady(app: App, sendsData: boolean, reason = 'This
     if (!(await openAiSetup(app, { reason }))) return false;
   }
   if (!sendsData || !isCloud()) return true;
-  const id = aiSettings().active!;
-  if (aiSettings().privacyAck.includes(id)) return true;
-  const p = providerById(id)!;
-  const ok = await confirmDialog('Sending Data to an AI Service',
-    `AI commands send the cells they need directly from this device to ${p.name}. QuillLattice has no server and keeps no copy. ${p.name}'s terms and privacy policy apply${p.free === 'free' ? ', and free tiers may use what you send to improve their models' : ''}. For confidential data, use the on-device model. Continue?`, 'Continue', 'Cancel');
-  if (ok) saveAiSettings((x) => { x.privacyAck.push(id); });
+  const ids = aiRecipients().filter((id) => cloudId(id) && !aiSettings().privacyAck.includes(id));
+  if (!ids.length) return true;
+  const free = ids.some((id) => providerById(id)?.free === 'free');
+  const ok = ids.length === 1
+    ? await confirmDialog('Sending Data to an AI Service',
+      `AI commands send the cells they need directly from this device to ${names(ids)}. QuillLattice has no server and keeps no copy. ${names(ids)}'s terms and privacy policy apply${free ? ', and free tiers may use what you send to improve their models' : ''}. For confidential data, use the on-device model. Continue?`, 'Continue', 'Cancel')
+    : await confirmDialog('Sending Data to Several AI Services',
+      `Several AIs are on (AI ▸ Several AIs), so AI commands send the cells they need directly from this device to each of these services: ${names(aiRecipients())}. QuillLattice has no server and keeps no copy. Each service's terms and privacy policy apply${free ? ', and free tiers may use what you send to improve their models' : ''}. For confidential data, use the on-device model. Continue?`, 'Continue', 'Cancel');
+  if (ok) saveAiSettings((x) => { for (const id of ids) if (!x.privacyAck.includes(id)) x.privacyAck.push(id); });
   return ok;
 }
 
 async function confirmLargeSend(cells: number): Promise<boolean> {
   const s = aiSettings();
   if (!s.confirmDocument || !isCloud() || cells < 5000) return true;
-  return confirmDialog('Send This Much Data?', `This sends about ${cells.toLocaleString()} cells to ${providerById(s.active!)?.name}. Select a smaller range to send less.`, 'Send', 'Cancel');
+  const to = aiRecipients().filter(cloudId);
+  return confirmDialog('Send This Much Data?', `This sends about ${cells.toLocaleString()} cells to ${names(to)}${to.length > 1 ? ' (each receives it)' : ''}. Select a smaller range to send less.`, 'Send', 'Cancel');
 }
 
 function systemPrompt(f?: AiFeature): string {
@@ -70,7 +86,7 @@ function fail(e: unknown, app: App): void {
   console.warn('AI:', e);
 }
 
-const localLimit = () => (providerById(aiSettings().active || '')?.kind === 'local' ? 4000 : 14000);
+const localLimit = () => (anyLocal() ? 4000 : 14000);
 
 /** The data region an AI command reads, with header detection. */
 function regionContext(app: App, f?: AiFeature): TableContext | null {
@@ -146,16 +162,19 @@ export async function runFeature(app: App, f: AiFeature, arg?: string): Promise<
         const original = f.input === 'cell' ? '=' + s.get(r, c)!.f : undefined;
         await showFormulaPreview(app, {
           title, sheet: s, r, c, original,
-          generate: async (onToken, signal) => {
-            const first = await chat({ ...base, signal, onToken: (_d, full) => onToken(full) });
+          generate: async (onToken, signal, more) => {
+            const first = await chat({ ...base, signal, onToken: (_d, full) => onToken(full), onStatus: more.status });
+            more.ensemble(first.ensemble);
             const fx = extractFormula(first.text);
             const check = fx ? validateFormula(tab.engine, s, r, c, fx.formula) : null;
             if (fx && check?.ok && !(f.id === 'ai.fixFormula' && check.resultError)) return first.text;
             // One retry with the problem explained.
             const problem = !fx ? 'No formula starting with "=" was found in your answer.' : check && !check.ok ? `That formula is not valid here: ${check.error}.` : `That formula still returns ${check?.resultError}.`;
             onToken(`${first.text}\n\n(Checking… ${problem} Asking again.)`);
-            const second = await chat({ ...base, signal, messages: [...messages, { role: 'assistant', content: first.text }, { role: 'user', content: `${problem} Write a corrected formula. ${'Respond with the formula on the first line, starting with "=".'}` }] });
-            return extractFormula(second.text) ? second.text : first.text;
+            const second = await chat({ ...base, signal, onStatus: more.status, messages: [...messages, { role: 'assistant', content: first.text }, { role: 'user', content: `${problem} Write a corrected formula. ${'Respond with the formula on the first line, starting with "=".'}` }] });
+            if (!extractFormula(second.text)) return first.text;
+            if (second.ensemble) more.ensemble(second.ensemble);
+            return second.text;
           },
         });
         return;
@@ -164,8 +183,9 @@ export async function runFeature(app: App, f: AiFeature, arg?: string): Promise<
         const out = paneResult(app, title);
         const b = aiBusy(`${plainLabel(f)}…`);
         try {
-          const res = await chat({ ...base, signal: b.signal, onToken: (_d, full) => out.update(full) });
+          const res = await chat({ ...base, signal: b.signal, onToken: (_d, full) => out.update(full), onStatus: (t) => { b.label(t); out.status(t); } });
           out.done(cleanOutput(res.text));
+          out.ensemble(res.ensemble);
           if (res.truncated) toast('The answer was cut off (length limit); check its end.');
         } catch (e) { out.fail(e instanceof AiError && e.code === 'aborted' ? 'Stopped' : (e as Error).message); throw e; } finally { aiIdle(b); }
         return;
@@ -173,8 +193,11 @@ export async function runFeature(app: App, f: AiFeature, arg?: string): Promise<
       default: {
         const b = aiBusy(`${plainLabel(f)}…`);
         let raw = '';
-        try { raw = (await chat({ ...base, signal: b.signal })).text; } finally { aiIdle(b); }
+        let res: Awaited<ReturnType<typeof chat>> | null = null;
+        try { res = await chat({ ...base, signal: b.signal, onStatus: (t) => b.label(t) }); raw = res.text; } finally { aiIdle(b); }
         if (!app.docs.includes(tab)) { toast('The workbook was closed before the answer arrived.'); return; }
+        // Only the final answer is applied; the discussion goes to the AI pane.
+        if (res?.ensemble) paneDeliberation(app, `${title}: how the AIs answered`, res.ensemble);
         await applyStructured(app, f, raw, ctx, title);
       }
     }
@@ -430,7 +453,7 @@ async function runRows(app: App, f: AiFeature, arg?: string, custom?: { instruct
   try {
     answers = await runRowJob({
       chat, items: items.map((x) => x.text), instruction, system: systemPrompt(f), keys, examples, tier: f.tier, temperature: f.temperature, signal: b.signal,
-      batchSize: providerById(aiSettings().active || '')?.kind === 'local' ? 5 : 20,
+      batchSize: anyLocal() ? 5 : 20,
       onProgress: (done, total) => { b.label(`${plainLabel(f)}… ${done} of ${total}`); b.progress(done, total); },
     });
   } catch (e) {
@@ -715,6 +738,37 @@ async function runSavedPrompt(app: App, id?: string): Promise<void> {
 }
 
 // ============================================================================================
+// Several AIs
+
+const ENSEMBLE_MODES: { value: EnsembleMode; label: string }[] = [
+  { value: 'single', label: 'Single AI' },
+  { value: 'master', label: 'Master Combines Answers' },
+  { value: 'consensus', label: 'Quaker Consensus' },
+];
+
+async function setEnsembleMode(app: App, mode?: string): Promise<void> {
+  const pick = ENSEMBLE_MODES.find((o) => o.value === mode);
+  const { openAiSettings } = await import('../ui/aiWizard');
+  if (!pick) { await openAiSettings(app, { section: 'ensemble' }); return; }
+  if (pick.value === 'single') {
+    saveAiSettings((s) => { s.ensemble.mode = 'single'; });
+    app.ui.refresh?.();
+    toast('AI: one AI answers (the active provider)');
+    return;
+  }
+  const s = aiSettings();
+  if (Object.keys(s.providers).length < 2) {
+    toast('Set up at least two AI providers to use several AIs.', { action: 'Set Up AI', onAction: () => app.exec('ai.setup'), ms: 7000 });
+    return;
+  }
+  const usable = s.ensemble.members.filter((m) => s.providers[m.provider]).length;
+  if (usable < 2) { await openAiSettings(app, { section: 'ensemble', mode: pick.value }); return; }
+  saveAiSettings((x) => { x.ensemble.mode = pick.value; if (!x.providers[x.ensemble.master]) x.ensemble.master = x.ensemble.members.find((m) => x.providers[m.provider])!.provider; });
+  app.ui.refresh?.();
+  toast(`AI: ${pick.label} (${names(aiRecipients())})`);
+}
+
+// ============================================================================================
 // Registration
 
 const featureCommands = FEATURES.map((f) => ({
@@ -762,6 +816,38 @@ def([
     menu: () => { const s = aiSettings(); const items: MenuEntry[] = Object.keys(s.providers).map((id) => ({ id: 'ai.chooseProvider', arg: id, label: `${providerById(id)?.name || id} · ${s.providers[id].model}`, checked: s.active === id })); return [...items, ...(items.length ? [{ separator: true }] : []), { id: 'ai.setup', label: 'Add a Provider…' }]; },
   },
   { id: 'ai.settings', label: 'AI Settings', icon: 'settings_suggest', tab: 'AI', group: 'Setup', noRecord: true, edits: false, tip: 'Turn AI on or off, privacy prompts, language for generated text, usage', run: async (app) => { const { openAiSettings } = await import('../ui/aiWizard'); await openAiSettings(app); } },
+  {
+    id: 'ai.ensembleMode', label: 'Several AIs', icon: 'groups', tab: 'AI', group: 'Providers', kind: 'menu', edits: false,
+    tip: 'Ask one AI, or several at once: one AI combines their answers (master), or they deliberate until they agree (Quaker consensus)',
+    keywords: 'ensemble several multiple ai master combine synthesize quaker consensus deliberate providers',
+    run: (app, mode?: string) => setEnsembleMode(app, mode),
+    menu: () => {
+      const e = aiSettings().ensemble;
+      return [
+        ...ENSEMBLE_MODES.map((o) => ({ id: 'ai.ensembleMode', arg: o.value, label: o.label, checked: e.mode === o.value })),
+        { separator: true },
+        { id: 'ai.ensembleMembers', label: 'Choose AIs…' },
+        { id: 'ai.showDeliberation', label: 'Show AI Discussion', checked: e.showDeliberation },
+      ];
+    },
+    isActive: () => aiSettings().ensemble.mode !== 'single',
+  },
+  {
+    id: 'ai.ensembleMembers', label: 'Choose AIs…', icon: 'checklist', tab: 'AI', group: 'Providers', noRecord: true, edits: false,
+    tip: 'Choose which AIs answer together, which one is the master or clerk, and how many rounds of discussion',
+    keywords: 'ensemble several multiple ai members master clerk consensus',
+    run: async (app) => { const { openAiSettings } = await import('../ui/aiWizard'); await openAiSettings(app, { section: 'ensemble' }); },
+  },
+  {
+    id: 'ai.showDeliberation', label: 'Show AI Discussion', icon: 'forum', tab: 'AI', group: 'Providers', kind: 'toggle', edits: false,
+    tip: 'Show each AI\'s answer and the rounds of discussion below answers from several AIs',
+    keywords: 'ensemble deliberation discussion consensus rounds several ai',
+    run: (app, on?: boolean) => {
+      saveAiSettings((s) => { s.ensemble.showDeliberation = typeof on === 'boolean' ? on : !s.ensemble.showDeliberation; });
+      app.ui.refresh?.();
+    },
+    isActive: () => aiSettings().ensemble.showDeliberation,
+  },
   { id: 'ai.stop', label: 'Stop AI', icon: 'stop_circle', tab: 'AI', group: 'Assistant', noRecord: true, edits: false, tip: 'Stop the AI request in progress', run: () => stopAi() },
   {
     id: 'ai.privacy', label: 'AI & Privacy', icon: 'shield', tab: 'AI', group: 'Setup', noRecord: true, edits: false, tip: 'Where your data goes when you use AI',
@@ -772,6 +858,7 @@ def([
       await openDialog({ title: 'AI & Privacy', ok: 'Close', cancel: false, fields: [{ key: 'i', type: 'info', html: [
         '<p><b>QuillLattice has no server.</b> AI requests go directly from this device to the provider you choose, using your own key. Nothing is sent until you run an AI command or ask in the AI pane.</p>',
         `<p><b>Active provider:</b> ${p ? esc(p.name) : 'none'}${p && (p.kind === 'local' || p.kind === 'builtin') ? ' — runs on this device; your data does not leave it.' : p ? ' — the cells a command needs (the selection, the data around it, or the sheet when you ask) are sent to this service; its terms apply.' : ''}</p>`,
+        activeEnsemble() ? `<p><b>Several AIs are on.</b> Each AI command sends the same cells to every one of these services: ${esc(names(aiRecipients()))}. Each service's terms apply, and paid services charge for each request.</p>` : '',
         '<p><b>Keys</b> are stored on this device only (the Android Keystore-encrypted store in the app, or this browser\'s IndexedDB on the web). They are never placed in workbooks, drafts or exported settings.</p>',
         '<p><b>Changes are previewed.</b> AI output that changes cells is shown first and applied as one step you can undo.</p>',
         '<p><b>Free tiers</b> of some services may use prompts to improve their models. Use the on-device model for confidential data.</p>',

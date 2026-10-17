@@ -8,8 +8,10 @@
  */
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { desktopHttp } from '../platform/native';
-import { resolveProvider, recordUsage, type ResolvedProvider } from './store';
-import type { ProviderDef } from './providers';
+import { aiSettings, resolveProvider, recordUsage, type ResolvedProvider } from './store';
+import { providerById, type ProviderDef } from './providers';
+import { AiError } from './errors';
+import { planEnsemble, runEnsemble, type EnsembleInfo, type EnsemblePlan } from './ensemble';
 
 export type ContentPart = { type: 'text'; text: string } | { type: 'image'; dataUrl: string };
 export interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string | ContentPart[] }
@@ -23,20 +25,24 @@ export interface ChatRequest {
   maxTokens?: number;
   signal?: AbortSignal;
   onToken?: (delta: string, full: string) => void;
-  /** Use a specific provider instead of the active one. */
+  /** Use a specific provider instead of the active one (never uses several AIs). */
   provider?: string;
+  /** Progress lines while several AIs work on the request ("Asking 3 AIs…", "Round 2 of 3: 1 objection"). */
+  onStatus?: (text: string) => void;
 }
 
 /** `truncated`: the answer stopped early (length limit, content filter), so it is not the whole text asked for. */
-export interface ChatResult { text: string; model: string; provider: string; providerName: string; usage?: { in: number; out: number }; truncated?: boolean }
+export interface ChatResult {
+  text: string; model: string; provider: string; providerName: string; usage?: { in: number; out: number }; truncated?: boolean;
+  /** Set when several AIs answered: each member's answer, the rounds and the outcome. model/provider then name the master or clerk. */
+  ensemble?: EnsembleInfo;
+}
 
 /** Finish reasons (OpenAI, Anthropic, Gemini) meaning the model did not end the answer itself. */
 const CUT = new Set(['length', 'content_filter', 'max_tokens', 'refusal', 'model_context_window_exceeded', 'MAX_TOKENS', 'SAFETY', 'RECITATION', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'LANGUAGE']);
 const cutShort = (reason: unknown) => typeof reason === 'string' && CUT.has(reason);
 
-export class AiError extends Error {
-  constructor(message: string, public code: 'no-provider' | 'auth' | 'quota' | 'model' | 'network' | 'cors' | 'aborted' | 'unsupported' | 'other' = 'other', public status?: number) { super(message); }
-}
+export { AiError };
 
 /** Native HTTP (no CORS) exists: the Android or iOS app, or the desktop app. */
 const isNativeApp = () => Capacitor.isNativePlatform() || !!desktopHttp;
@@ -364,7 +370,30 @@ async function builtinChat(model: string, req: ChatRequest): Promise<ChatResult>
 // ------------------------------------------------------------------------------------------
 // Public API
 
+/** The ensemble plan for normal commands (no provider named), or null for a single AI. */
+export function activeEnsemble(req: Pick<ChatRequest, 'provider'> = {}): EnsemblePlan | null {
+  const s = aiSettings();
+  return planEnsemble(req, s.ensemble, (id) => {
+    const def = providerById(id);
+    const cfg = s.providers[id];
+    return def && cfg ? { model: cfg.model || def.models.quality, sequential: def.kind === 'local' } : null;
+  });
+}
+
+/**
+ * Sends a request. Normal commands go to the active provider, or to several AIs when AI Settings ▸
+ * "Use several AIs" is on; a request that names a provider (key tests, "Try it") always goes to
+ * that provider alone.
+ */
 export async function chat(req: ChatRequest): Promise<ChatResult> {
+  const plan = activeEnsemble(req);
+  if (plan) {
+    return runEnsemble(req, plan, (provider, model, r) => chatOne({ ...r, provider, model }), { name: (id) => providerById(id)?.name || id });
+  }
+  return chatOne(req);
+}
+
+async function chatOne(req: ChatRequest): Promise<ChatResult> {
   const rp = await resolveProvider(req.provider);
   if (!rp) throw new AiError('No AI provider is set up yet.', 'no-provider');
   const { def, cfg } = rp;

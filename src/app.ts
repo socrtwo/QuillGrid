@@ -42,6 +42,8 @@ export class BookTab {
   arrows: { from: { sheet: Sheet; r: number; c: number }; to: { sheet: Sheet; r: number; c: number } }[] = [];
   /** Circled invalid data. */
   circles: { r: number; c: number }[] = [];
+  /** Map View (1-2-3 Release 3): cells drawn as their kind (label, number, formula) instead of their values. */
+  mapView = false;
   constructor(public app: App, public book: Workbook) {
     this.engine = new Engine(book);
     this.cf = new CFEvaluator(this.engine);
