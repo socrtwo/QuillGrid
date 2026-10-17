@@ -656,3 +656,54 @@ describe('HTML tables from spreadsheet programs', () => {
     expect([val(s, 'A1'), val(s, 'B1'), fml(s, 'B1'), val(s, 'C1'), val(s, 'D1')]).toEqual([4, 8, 'A1*2', '007', true]);
   });
 });
+
+describe('Legacy interchange formats written by other programs', () => {
+  const fruit = (s: Sheet) => {
+    expect([val(s, 'A2'), val(s, 'B2'), val(s, 'C2'), val(s, 'D2'), val(s, 'E2')]).toEqual(['Apple', 3, 1.25, 3.75, 45366]);
+    expect(val(s, 'E5')).toBe('line one\nline  two');
+  };
+  it('reads LibreOffice XML Spreadsheet 2003 (ODF formulas)', async () => {
+    const { book } = await importFile(fixture('lo-fruit-2003.xml'), 'fruit.xml');
+    const s = book.sheets[0];
+    fruit(s);
+    expect([fml(s, 'D2'), fml(s, 'D5')]).toEqual(['B2*C2', 'SUM(D2:D4)']);
+    expect(fml(book.sheets[1], 'A3')).toBe('IF(Fruit!B2>2,"many","few")');
+    expect(recalcDiffs(book)).toEqual([]);
+  });
+  it('reads LibreOffice SYLK (A1 formulas, line breaks) and DIF (dates as text, multi-line strings)', async () => {
+    const slk = (await importFile(fixture('lo-fruit.slk'), 'fruit.slk')).book;
+    fruit(slk.sheets[0]);
+    expect(fml(slk.sheets[0], 'D5')).toBe('SUM(D2:D4)');
+    const dif = (await importFile(fixture('lo-fruit.dif'), 'fruit.dif')).book;
+    expect(dif.sheets[0].name).toBe('Fruit');
+    fruit(dif.sheets[0]);
+  });
+  it('reads Excel SYLK formats, fonts, borders and accented letters', async () => {
+    const t = ['ID;PWXL;N;E', 'P;PGeneral', 'P;P0.00', 'P;EArial;M200', 'P;EArial;M240;SB', 'F;P0;DG0G8;M255', 'F;W1 1 20', 'B;Y3;X2;D0 0 2 1',
+      'C;Y1;X1;K"Caf\x1bNBe"', 'F;P1;FF2R;SDM2TB;Y2;X1', 'C;Y2;X1;K1.5', 'C;Y2;X2;K3;ERC[-1]*2+R1C1', 'C;Y3;X1;K"a\x1b :b"', 'E'].join('\r\n');
+    const { book } = await importFile(txt(t), 'x.slk');
+    const s = book.sheets[0];
+    expect(val(s, 'A1')).toBe('Café');
+    expect(sty(s, 'A2')).toMatchObject({ numFmt: '0.00', hAlign: 'right', bold: true, size: 12, bt: { style: 'thin' }, bb: { style: 'thin' } });
+    expect(fml(s, 'B2')).toBe('A2*2+$A$1');
+    expect(val(s, 'A3')).toBe('a\nb');
+    expect(s.colW.get(0)).toBe(145);
+  });
+  it('reads Excel XML Spreadsheet 2003 conditional formats, validation and screen tips', async () => {
+    const x = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<Worksheet ss:Name="S"><Table><Row><Cell ss:HRef="https://example.com/" x:HRefScreenTip="Go"><Data ss:Type="String">site</Data></Cell><Cell><Data ss:Type="Number">5</Data></Cell></Row>
+<Row><Cell><Data ss:Type="String">b</Data></Cell><Cell><Data ss:Type="Number">20</Data></Cell></Row></Table>
+<ConditionalFormatting xmlns="urn:schemas-microsoft-com:office:excel"><Range>R1C2:R2C2</Range><Condition><Qualifier>Greater</Qualifier><Value1>10</Value1><Format Style='color:#9C0006;background:#FFC7CE;font-weight:700'/></Condition>
+<Condition><Value1>RC=5</Value1><Format Style='font-style:italic'/></Condition></ConditionalFormatting>
+<DataValidation xmlns="urn:schemas-microsoft-com:office:excel"><Range>R1C2:R2C2</Range><Type>Whole</Type><Min>1</Min><Max>100</Max><ErrorStyle>Warn</ErrorStyle><ErrorMessage>1-100</ErrorMessage></DataValidation>
+<DataValidation xmlns="urn:schemas-microsoft-com:office:excel"><Range>R1C1:R2C1</Range><Type>List</Type><Value>&quot;a,b&quot;</Value><InputMessage>Pick</InputMessage></DataValidation>
+</Worksheet></Workbook>`;
+    const s = (await importFile(txt(x), 'x.xml')).book.sheets[0];
+    expect(s.cells.get(K('A1'))).toMatchObject({ link: 'https://example.com/', linkTip: 'Go' });
+    expect(s.cf[0]).toMatchObject({ type: 'cellIs', operator: 'greaterThan', formulas: ['10'], ranges: [{ r1: 0, c1: 1, r2: 1, c2: 1 }], style: { color: '#9c0006', fill: '#ffc7ce', bold: true } });
+    expect(s.cf[1]).toMatchObject({ type: 'expression', formulas: ['B1=5'], style: { italic: true } });
+    expect(s.validations[0]).toMatchObject({ type: 'whole', operator: 'between', formula1: '1', formula2: '100', errorStyle: 'warning', errorMessage: '1-100' });
+    expect(s.validations[1]).toMatchObject({ type: 'list', formula1: '"a,b"', inputMessage: 'Pick' });
+  });
+});
