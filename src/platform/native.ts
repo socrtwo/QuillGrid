@@ -288,7 +288,7 @@ export async function onBackButton(cb: () => boolean): Promise<void> {
   App.addListener('backButton', () => { if (!cb()) App.minimizeApp(); });
 }
 
-export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qgw,.qgwe,.qlw,.qlwe,.json'; // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qgw,.qgwe,.qlw,.qlwe,.json,.xlsb,.sxc,.stc,.gnumeric,.gnm,.ksp,.numbers,.uos,.uof,.ndjson,.jsonl,.sqlite,.sqlite3,.db,.db3,.mht,.mhtml,.gz,.sylk'; // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
 export const OPEN_MIMES = [
   'application/x-quilllattice', 'application/x-quilllattice-encrypted', // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -296,6 +296,8 @@ export const OPEN_MIMES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
   'application/vnd.ms-excel', 'application/vnd.oasis.opendocument.spreadsheet',
   'text/csv', 'text/comma-separated-values', 'text/tab-separated-values', 'text/html', 'text/plain', 'application/xml', 'text/xml', 'application/json', 'application/octet-stream', '*/*',
+  'application/vnd.ms-excel.sheet.binary.macroEnabled.12', 'application/vnd.sun.xml.calc', 'application/x-gnumeric', 'application/x-kspread', 'application/vnd.apple.numbers', 'application/x-iwork-numbers-sffnumbers',
+  'application/x-ndjson', 'application/vnd.sqlite3', 'application/x-sqlite3', 'multipart/related', 'message/rfc822', 'application/gzip', 'application/x-gzip',
 ];
 
 // ------------------------------------------------------------------------------------------
