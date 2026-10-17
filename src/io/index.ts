@@ -6,6 +6,7 @@
  */
 import type { Workbook } from '../model/workbook';
 import type { Range } from '../model/address';
+import { sniffB } from './sniff-b';
 
 // --------------------------------------------------------------------------------------------
 // Registry
@@ -45,7 +46,7 @@ export const FORMATS: FormatDef[] = [
   { id: 'fods', label: 'Flat OpenDocument Spreadsheet (.fods)', ext: ['fods'], mime: 'application/vnd.oasis.opendocument.spreadsheet-flat-xml', canImport: true, canExport: true, binary: false },
   { id: 'csv', label: 'CSV (Comma delimited) (.csv)', ext: ['csv'], mime: 'text/csv', canImport: true, canExport: true, binary: false },
   { id: 'tsv', label: 'Tab-separated values (.tsv)', ext: ['tsv', 'tab'], mime: 'text/tab-separated-values', canImport: true, canExport: true, binary: false },
-  { id: 'txt', label: 'Text (Tab delimited) (.txt)', ext: ['txt', 'text', 'prn'], mime: 'text/plain', canImport: true, canExport: true, binary: false },
+  { id: 'txt', label: 'Text (Tab delimited) (.txt)', ext: ['txt', 'text'], mime: 'text/plain', canImport: true, canExport: true, binary: false },
   { id: 'html', label: 'Web Page (.html)', ext: ['html', 'htm', 'xhtml'], mime: 'text/html', canImport: true, canExport: true, binary: false },
   { id: 'json', label: 'QuillGrid JSON (.json)', ext: ['json'], mime: 'application/json', canImport: true, canExport: true, binary: false },
   { id: 'qgw', label: 'QuillGrid Workbook (.qgw)', ext: ['qgw', 'qlw'], mime: 'application/x-quillgrid', canImport: true, canExport: true, binary: true }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
@@ -54,6 +55,18 @@ export const FORMATS: FormatDef[] = [
   { id: 'sylk', label: 'SYLK (.slk)', ext: ['slk', 'sylk'], mime: 'application/x-sylk', canImport: true, canExport: false, binary: false },
   { id: 'dif', label: 'Data Interchange Format (.dif)', ext: ['dif'], mime: 'application/x-dif', canImport: true, canExport: false, binary: false },
   { id: 'xml', label: 'XML Spreadsheet 2003 (.xml)', ext: ['xml'], mime: 'application/xml', canImport: true, canExport: false, binary: false },
+  // Modern, XML and text spreadsheet formats (import only); detection in sniff-b.ts.
+  { id: 'xlsb', label: 'Excel Binary Workbook (.xlsb)', ext: ['xlsb'], mime: 'application/vnd.ms-excel.sheet.binary.macroEnabled.12', canImport: true, canExport: false, binary: true },
+  { id: 'sxc', label: 'OpenOffice.org 1.0 Spreadsheet (.sxc)', ext: ['sxc', 'stc'], mime: 'application/vnd.sun.xml.calc', canImport: true, canExport: false, binary: true },
+  { id: 'gnumeric', label: 'Gnumeric Spreadsheet (.gnumeric)', ext: ['gnumeric', 'gnm'], mime: 'application/x-gnumeric', canImport: true, canExport: false, binary: true },
+  { id: 'ksp', label: 'KSpread / Calligra Sheets (.ksp)', ext: ['ksp'], mime: 'application/x-kspread', canImport: true, canExport: false, binary: true },
+  { id: 'numbers', label: 'Apple Numbers (.numbers)', ext: ['numbers'], mime: 'application/vnd.apple.numbers', canImport: true, canExport: false, binary: true },
+  { id: 'uos', label: 'Uniform Office Format Spreadsheet (.uos)', ext: ['uos', 'uof'], mime: 'application/vnd.uof.spreadsheet', canImport: true, canExport: false, binary: false },
+  { id: 'ndjson', label: 'JSON Lines (.ndjson, .jsonl)', ext: ['ndjson', 'jsonl'], mime: 'application/x-ndjson', canImport: true, canExport: false, binary: false },
+  { id: 'prn', label: 'Formatted Text (Space delimited) (.prn)', ext: ['prn'], mime: 'text/plain', canImport: true, canExport: false, binary: false },
+  { id: 'sqlite', label: 'SQLite database (.sqlite, .db)', ext: ['sqlite', 'sqlite3', 'db3', 'db'], mime: 'application/vnd.sqlite3', canImport: true, canExport: false, binary: true, note: 'Tables open read-only as sheets' },
+  { id: 'mht', label: 'Single File Web Page (.mht)', ext: ['mht', 'mhtml'], mime: 'multipart/related', canImport: true, canExport: false, binary: false },
+  { id: 'gz', label: 'Gzip-compressed file (.gz)', ext: ['gz', 'gzip'], mime: 'application/gzip', canImport: true, canExport: false, binary: true },
   { id: 'md', label: 'Markdown table (.md)', ext: ['md', 'markdown'], mime: 'text/markdown', canImport: false, canExport: true, binary: false },
 ];
 
@@ -75,6 +88,8 @@ const QLWE_MAGIC = 'QFDE1';
 export function sniffFormat(data: ArrayBuffer, name: string): FormatDef | undefined {
   const u8 = new Uint8Array(data);
   const byName = formatForName(name);
+  const b = sniffB(u8, name, zipNames);
+  if (b && formatById(b)) return formatById(b);
   if (u8.length >= 4 && u8[0] === 0x50 && u8[1] === 0x4b && (u8[2] === 3 || u8[2] === 5 || u8[2] === 7)) {
     const head = latin1(u8.subarray(0, 120));
     if (head.includes('mimetypeapplication/vnd.oasis.opendocument.spreadsheet')) return formatById('ods');
@@ -183,7 +198,11 @@ async function importAs(id: string, data: ArrayBuffer, name: string, opts: { pas
       return csv.importCsv(data, name, o);
     }
     case 'html': return (await import('./html')).importHtml(decodeText(data), warnings);
-    case 'json': return (await import('./native')).importJson(decodeText(data));
+    case 'json': {
+      const text = decodeText(data);
+      if (/"format"\s*:\s*"quillgrid"|"qgw"\s*:/.test(text.slice(0, 4096))) return (await import('./native')).importJson(text);
+      return (await import('./json-records')).importJsonRecords(text, name, warnings);
+    }
     case 'qgw': return (await import('./native')).importQlw(data);
     case 'qgwe': {
       if (!opts.password) throw new PasswordError('This workbook is protected with a password.');
@@ -198,6 +217,23 @@ async function importAs(id: string, data: ArrayBuffer, name: string, opts: { pas
     case 'sylk': return (await import('./other')).importSylk(decodeText(data));
     case 'dif': return (await import('./other')).importDif(decodeText(data));
     case 'xml': return (await import('./other')).importXml2003(decodeText(data), warnings);
+    case 'xlsb': return (await import('./xlsb')).importXlsb(data, warnings);
+    case 'sxc': return (await import('./sxc')).importSxc(data, warnings);
+    case 'gnumeric': return (await import('./gnumeric')).importGnumeric(data, warnings);
+    case 'ksp': return (await import('./kspread')).importKspread(data, warnings);
+    case 'numbers': return (await import('./numbers')).importNumbers(data, warnings);
+    case 'uos': return (await import('./uof')).importUof(decodeText(data), warnings);
+    case 'ndjson': return (await import('./json-records')).importNdjson(decodeText(data), name, warnings);
+    case 'prn': return (await import('./fixedwidth')).importFixedWidth(data, name, opts.csv || {}, warnings);
+    case 'sqlite': return (await import('./sqlite')).importSqlite(data, warnings);
+    case 'mht': return (await import('./mhtml')).importMhtml(data, warnings);
+    case 'gz': {
+      const inner = await (await import('./gzip')).gunzip(data);
+      const innerName = name.replace(/\.(gz|gzip)$/i, '') || 'file';
+      const fmt = sniffFormat(inner.slice().buffer, innerName);
+      if (!fmt || fmt.id === 'gz') throw new Error('The compressed file does not contain a spreadsheet.');
+      return importAs(fmt.id, inner.slice().buffer, innerName, opts, warnings);
+    }
   }
   throw new Error(`Cannot open ${formatById(id)?.label || id} files.`);
 }

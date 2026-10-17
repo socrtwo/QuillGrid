@@ -7,7 +7,8 @@ import { CellError, errorFromCode, type Cell, type Scalar } from '../model/types
 import { cellKey, type Range } from '../model/address';
 import { formatValue, parseNumberInput } from '../model/numfmt';
 import { parseDateTime } from '../model/dates';
-import { decodeText, type CsvOptions } from './index';
+import { type CsvOptions } from './index';
+import { decodeAuto } from './encoding';
 
 const CANDIDATES = [',', ';', '\t', '|'];
 
@@ -104,13 +105,16 @@ export function convertField(s: string, opts: CsvOptions = {}, colType: 'general
   let numText = t;
   const dec = opts.decimal || '.';
   const thousands = opts.thousands ?? (dec === ',' ? '.' : ',');
+  // Group separators are removed only where they group digits in threes ("1.234.567,8"), so
+  // dates such as 15.03.2024 are not read as numbers.
+  const grouped = (sep: string) => numText.split(sep).slice(1).every((g) => /^\d{3}/.test(g)) && /\d$/.test(numText.split(sep)[0]);
   if (dec === ',') {
-    if (thousands) numText = numText.split(thousands).join('');
-    numText = numText.replace(/[\s  ]/g, '');
+    numText = numText.replace(/(\d)[\s  ](?=\d{3}(?!\d))/g, '$1');
+    if (thousands && numText.includes(thousands)) numText = grouped(thousands) ? numText.split(thousands).join('') : '\u0000';
     if (/^[^,]*,[^,]*$/.test(numText)) numText = numText.replace(',', '.');
     else if (numText.includes(',')) numText = '\u0000';
-  } else if (thousands && thousands !== ',') {
-    numText = numText.split(thousands).join('');
+  } else if (thousands && thousands !== ',' && numText.includes(thousands)) {
+    numText = grouped(thousands) ? numText.split(thousands).join('') : '\u0000';
   }
   if (/[\d]/.test(numText)) {
     const n = parseNumberInput(numText);
@@ -170,10 +174,50 @@ export function fillSheet(sheet: Sheet, rows: string[][], opts: CsvOptions = {},
 }
 
 export function importCsv(data: ArrayBuffer, name: string, opts: CsvOptions = {}): Workbook {
-  const text = decodeText(data, opts.encoding);
-  const rows = parseCsv(text, opts);
+  let { text } = decodeAuto(new Uint8Array(data), opts.encoding);
+  const o: CsvOptions = { ...opts };
+  // Excel's "sep=;" first line names the delimiter.
+  const sep = /^﻿?sep=(.)\r?\n/i.exec(text);
+  if (sep) { text = text.slice(sep[0].length); if (!o.delimiter) o.delimiter = sep[1]; }
+  if (!o.delimiter) o.delimiter = detectDelimiter(text);
+  const rows = parseCsv(text, o);
+  if (o.decimal == null || o.dateOrder == null) {
+    const loc = detectLocale(rows, o.delimiter);
+    if (o.decimal == null) { o.decimal = loc.decimal; if (o.thousands == null) o.thousands = loc.thousands; }
+    if (o.dateOrder == null && loc.dateOrder) o.dateOrder = loc.dateOrder;
+  }
   const base = name.replace(/^.*[\\/]/, '').replace(/\.[^.]*$/, '') || 'Sheet1';
-  return rowsToBook(rows, opts, base);
+  return rowsToBook(rows, o, base);
+}
+
+/**
+ * Guesses the number and date conventions of delimited data: decimal comma ("1.234,56", or
+ * "3,5" in a file not delimited by commas) versus decimal point, and day-month versus month-day
+ * dates (a first part above 12 means day first; dotted dates are day first).
+ */
+export function detectLocale(rows: string[][], delimiter = ','): { decimal: '.' | ','; thousands: string; dateOrder?: 'mdy' | 'dmy' } {
+  let commaDec = 0, pointDec = 0, dmy = 0, mdy = 0, dotted = 0;
+  const lim = Math.min(rows.length, 2000);
+  for (let i = 0; i < lim; i++) {
+    for (const f of rows[i]) {
+      const t = f.trim();
+      if (!t || t.length > 40) continue;
+      let m: RegExpExecArray | null;
+      if (/^[-+]?[$€£¥]?\s?\d{1,3}(\.\d{3})+,\d+\s?[€$£%]?$/.test(t) || (delimiter !== ',' && /^[-+]?\d+,\d+\s?[€%]?$/.test(t) && !/^\d{1,3},\d{3}$/.test(t))) commaDec++;
+      else if (/^[-+]?[$€£¥]?\d{1,3}(,\d{3})+\.\d+%?$/.test(t) || (/^[-+]?\d+\.\d+%?$/.test(t) && !/^\d{1,3}\.\d{3}$/.test(t))) pointDec++;
+      if ((m = /^(\d{1,2})([./-])(\d{1,2})\2(\d{2}|\d{4})(?:\s|$)/.exec(t))) {
+        if (+m[1] > 12 && +m[3] <= 12) dmy++;
+        else if (+m[3] > 12 && +m[1] <= 12) mdy++;
+        if (m[2] === '.') dotted++;
+      }
+    }
+  }
+  const decimal: '.' | ',' = commaDec > pointDec ? ',' : '.';
+  let dateOrder: 'mdy' | 'dmy' | undefined;
+  if (dmy > mdy) dateOrder = 'dmy';
+  else if (mdy > dmy) dateOrder = 'mdy';
+  else if (dotted || decimal === ',') dateOrder = 'dmy';
+  return { decimal, thousands: decimal === ',' ? '.' : ',', dateOrder };
 }
 
 // --------------------------------------------------------------------------------------------
