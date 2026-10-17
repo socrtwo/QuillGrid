@@ -575,3 +575,41 @@ describe('OpenDocument and .xlsx fidelity (files written by LibreOffice)', () =>
     check((await importFile(fixture('lo-rich.xlsx'), 'rich.xlsx')).book, 'xlsx');
   });
 });
+
+describe('.xlsx fidelity details', () => {
+  it('reads Excel 2010 conditional formats, hyperlink tips and header/footer variants', async () => {
+    const { Workbook } = await import('../../src/model/workbook');
+    const { exportXlsx } = await import('../../src/io/xlsx-export');
+    const b = new Workbook();
+    const s0 = b.sheets[0];
+    for (let r = 1; r <= 5; r++) s0.cells.set(K(`A${r}`), { v: r * 10 });
+    s0.cells.set(K('B1'), { v: 'site', link: 'https://example.com/' });
+    s0.cells.set(K('C1'), { v: 'x' });
+    const zip = await JSZip.loadAsync(await (await exportXlsx(b)).arrayBuffer());
+    let xml = await zip.file('xl/worksheets/sheet1.xml')!.async('string');
+    const X14 = 'xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main" xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main"';
+    const main = '<conditionalFormatting sqref="A1:A5"><cfRule type="dataBar" priority="1"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF638EC6"/></dataBar>'
+      + `<extLst><ext uri="{B025F937-C7B1-47D3-B67F-A62EFF666E3E}" ${X14}><x14:id>{11111111-0000-0000-0000-000000000001}</x14:id></ext></extLst></cfRule></conditionalFormatting>`;
+    const ext = `<extLst><ext uri="{78C0D931-6437-407d-A8EE-F0AAD7539E65}" ${X14}><x14:conditionalFormattings>`
+      + '<x14:conditionalFormatting><x14:cfRule type="dataBar" id="{11111111-0000-0000-0000-000000000001}"><x14:dataBar minLength="0" maxLength="100" gradient="0"><x14:cfvo type="autoMin"/><x14:cfvo type="autoMax"/><x14:negativeFillColor rgb="FFFF0000"/></x14:dataBar></x14:cfRule><xm:sqref>A1:A5</xm:sqref></x14:conditionalFormatting>'
+      + '<x14:conditionalFormatting><x14:cfRule type="cellIs" priority="2" operator="greaterThan" id="{2}"><xm:f>Sheet1!$A$3</xm:f><x14:dxf><font><b/></font><fill><patternFill><bgColor rgb="FFFFFF00"/></patternFill></fill></x14:dxf></x14:cfRule><xm:sqref>A1:A5</xm:sqref></x14:conditionalFormatting>'
+      + '<x14:conditionalFormatting><x14:cfRule type="iconSet" priority="3" id="{3}"><x14:iconSet iconSet="3Triangles"><x14:cfvo type="percent"><xm:f>0</xm:f></x14:cfvo><x14:cfvo type="percent"><xm:f>33</xm:f></x14:cfvo><x14:cfvo type="percent"><xm:f>67</xm:f></x14:cfvo></x14:iconSet></x14:cfRule><xm:sqref>A1:A5</xm:sqref></x14:conditionalFormatting>'
+      + '</x14:conditionalFormattings></ext></extLst>';
+    xml = xml.replace(/(<\/sheetData>(?:<mergeCells[\s\S]*?<\/mergeCells>)?)/, `$1${main}`);
+    xml = xml.replace(/<hyperlink /, '<hyperlink tooltip="Open the site" ');
+    xml = xml.replace(/<headerFooter[\s\S]*?<\/headerFooter>|<headerFooter[^>]*\/>/, '');
+    xml = xml.replace(/<\/worksheet>$/, '') + '<headerFooter differentOddEven="1" differentFirst="1"><oddHeader>&amp;CPage &amp;P</oddHeader><evenHeader>&amp;LEven</evenHeader><firstHeader>&amp;RFirst</firstHeader></headerFooter>' + ext + '</worksheet>';
+    xml = xml.replace(/(<headerFooter[\s\S]*<\/headerFooter>)([\s\S]*)(<drawing[^>]*\/>)/, '$1$3$2');
+    zip.file('xl/worksheets/sheet1.xml', xml);
+    const { book } = await importFile(await zip.generateAsync({ type: 'arraybuffer' }), 'x14.xlsx');
+    const s = book.sheets[0];
+    const bar = s.cf.find((r) => r.type === 'dataBar')!;
+    expect(bar).toMatchObject({ barColor: '#638ec6', gradientBar: false });
+    expect(s.cf.filter((r) => r.type === 'dataBar')).toHaveLength(1);
+    expect(s.cf.find((r) => r.type === 'cellIs')).toMatchObject({ operator: 'greaterThan', formulas: ['Sheet1!$A$3'], style: { bold: true, fill: '#ffff00' } });
+    expect(s.cf.find((r) => r.type === 'iconSet')).toMatchObject({ iconSet: '3Triangles', stops: [{ type: 'percent', value: 0 }, { type: 'percent', value: 33 }, { type: 'percent', value: 67 }] });
+    expect(s.cells.get(K('B1'))).toMatchObject({ link: 'https://example.com/', linkTip: 'Open the site' });
+    expect(s.print).toMatchObject({ differentOddEven: true, differentFirst: true, header: { center: 'Page &[Page]' }, evenHeader: { left: 'Even' }, firstHeader: { right: 'First' } });
+    expect(s.cf.some((r) => 'extId' in r)).toBe(false);
+  });
+});
