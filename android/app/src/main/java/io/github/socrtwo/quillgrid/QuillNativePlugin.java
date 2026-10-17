@@ -61,6 +61,8 @@ import java.util.concurrent.Executors;
  *   <li>secureSet({key, value}) / secureGet({key}) -> {value} / secureRemove({key}): Keystore-encrypted secrets</li>
  *   <li>readClipboard() -> {text} / writeClipboard({text, sensitive})</li>
  *   <li>startLoopback({timeoutMs, successHtml, path}) -> {port}; event "oauthCallback" {url} (requests for path only); stopLoopback()</li>
+ *   <li>openInApp({packageName, name, mime, data}) -> {opened: true} | {opened: false, reason: "not-installed"}:
+ *       hands a document to a sibling Quill app (QuillPen, QuillPost, QuillStage) with ACTION_VIEW</li>
  * </ul>
  */
 @CapacitorPlugin(name = "QuillNative")
@@ -442,6 +444,63 @@ public class QuillNativePlugin extends Plugin {
                 });
             } catch (Throwable e) {
                 call.reject("Could not share workbook: " + e.getMessage(), asException(e));
+            }
+        });
+    }
+
+    /** Sibling apps that may receive a document; any other package is refused. */
+    private static final java.util.Set<String> SIBLING_APPS = new java.util.HashSet<>(java.util.Arrays.asList(
+        "io.github.socrtwo.quillpen", "io.github.socrtwo.quillpost", "io.github.socrtwo.quillstage"));
+
+    @PluginMethod
+    public void openInApp(PluginCall call) {
+        final String pkg = call.getString("packageName", "");
+        final String name = sanitizeFileName(call.getString("name", "document"));
+        final String mime = call.getString("mime", "application/octet-stream");
+        final String data = call.getString("data");
+        if (!SIBLING_APPS.contains(pkg)) {
+            call.reject("openInApp only opens the Quill apps");
+            return;
+        }
+        if (data == null) {
+            call.reject("openInApp requires 'data'");
+            return;
+        }
+        io.execute(() -> {
+            try {
+                Context context = getContext();
+                File dir = new File(context.getCacheDir(), SHARE_DIR);
+                if (!dir.isDirectory() && !dir.mkdirs()) {
+                    throw new IOException("Cannot create " + dir.getAbsolutePath());
+                }
+                pruneOldShares(dir);
+                File file = new File(dir, name);
+                try (FileOutputStream out = new FileOutputStream(file)) {
+                    out.write(decodeBase64(data));
+                }
+                Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", file);
+                final Intent view = new Intent(Intent.ACTION_VIEW);
+                view.setDataAndType(uri, mime == null || mime.isEmpty() ? "application/octet-stream" : mime);
+                view.setPackage(pkg);
+                view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                final Activity activity = getActivity();
+                if (activity == null) {
+                    call.reject("The app is not in the foreground");
+                    return;
+                }
+                activity.runOnUiThread(() -> {
+                    JSObject ret = new JSObject();
+                    try {
+                        activity.startActivity(view);
+                        ret.put("opened", true);
+                    } catch (ActivityNotFoundException e) {
+                        ret.put("opened", false);
+                        ret.put("reason", "not-installed");
+                    }
+                    call.resolve(ret);
+                });
+            } catch (Throwable e) {
+                call.reject("Could not open the document: " + e.getMessage(), asException(e));
             }
         });
     }

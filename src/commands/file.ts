@@ -2,8 +2,9 @@
 import { def, commandCount } from './registry';
 import type { App, BookTab } from '../app';
 import { Workbook } from '../model/workbook';
-import { FORMATS, formatById, formatForName, importFile, exportFile, PasswordError } from '../io';
-import { openDocument, saveAs, writeBack, printDocument, shareFile, readUri, openExternal, OPEN_ACCEPT, OPEN_MIMES } from '../platform/native';
+import { FORMATS, formatById, formatForName, importFile, exportFile, PasswordError, sniff, type SniffResult } from '../io';
+import { article } from '../io/sniff';
+import { openDocument, saveAs, writeBack, printDocument, shareFile, readUri, openExternal, OPEN_ACCEPT, OPEN_MIMES, openInQuillApp, isIOS, type QuillApp } from '../platform/native';
 import { openDialog, toast, confirmDialog, choiceDialog, alertDialog, promptDialog } from '../ui/dialog';
 import { kvGet, kvSet, kvKeys, kvDel } from '../util/store';
 import { TEMPLATES } from '../templates';
@@ -40,9 +41,47 @@ function isPristine(tab: BookTab): boolean {
   return !tab.dirty && !tab.uri && tab.book.sheets.length <= 1 && tab.book.sheet.cells.size === 0 && !tab.book.undoStack.length;
 }
 
-export async function openBuffer(app: App, data: ArrayBuffer, name: string, uri: string | null, opts: { repair?: boolean; key?: string; password?: string } = {}): Promise<BookTab | null> {
+const SIBLING: Record<string, { app: QuillApp; what: string }> = {
+  document: { app: 'QuillPen', what: 'its tables (one sheet each) and its text' },
+  presentation: { app: 'QuillStage', what: 'a sheet per slide with its text and tables' },
+  email: { app: 'QuillPost', what: 'the message headers and body, and its spreadsheet and CSV attachments as sheets' },
+};
+
+/**
+ * A document, presentation or message was opened: offer the Quill app made for it, and always
+ * offer to import it here. Resolves 'import', 'opened' (handed to the other app) or 'cancel'.
+ */
+async function chooseForeignOpen(sn: SniffResult, data: ArrayBuffer, name: string): Promise<'import' | 'opened' | 'cancel'> {
+  const sib = SIBLING[sn.category];
+  if (!sib) return 'import';
+  const short = name.replace(/^.*[\\/]/, '');
+  const canImport = !!formatById(sn.format)?.canImport;
+  const choices = [`Open in ${sib.app}`, ...(canImport ? ['Import into QuillGrid'] : [])];
+  const c = await choiceDialog(`Open ${sn.label}`, `${short} is ${article(sn.label)} ${sn.label}. ${sib.app} is the Quill app for it.${canImport ? ` QuillGrid can also import ${sib.what} into a new workbook.` : ''}`, choices);
+  if (c === 1) return 'import';
+  if (c !== 0) return 'cancel';
+  const mime = formatById(sn.format)?.mime || 'application/octet-stream';
+  const r = await openInQuillApp(sib.app, data, short, mime);
+  if (r.opened) { toast(`Opened ${short} in ${sib.app}`); return 'opened'; }
+  const why = r.reason === 'unsupported'
+    ? (isIOS() ? `On iPhone and iPad, apps cannot hand files to each other. Open ${short} from the Files app in ${sib.app}.` : `A web page cannot hand files to other apps. Open ${short} in ${sib.app} yourself (install it from the Quill suite if you do not have it).`)
+    : r.reason === 'not-installed' ? `${sib.app} does not seem to be installed${r.message ? ` (${r.message})` : ''}. Install it from the Quill suite to open ${short} there.`
+      : `${short} could not be handed to ${sib.app}${r.message ? `: ${r.message}` : '.'}`;
+  if (!canImport) { await alertDialog(`${sib.app} is not available`, why); return 'cancel'; }
+  const again = await choiceDialog(`${sib.app} is not available`, `${why} You can import it into QuillGrid instead.`, ['Import into QuillGrid']);
+  return again === 0 ? 'import' : 'cancel';
+}
+
+export async function openBuffer(app: App, data: ArrayBuffer, name: string, uri: string | null, opts: { repair?: boolean; key?: string; password?: string; importDocuments?: boolean } = {}): Promise<BookTab | null> {
   try {
     if (opts.repair) toast(`Repairing ${name}…`);
+    if (!opts.repair && !opts.password && !opts.importDocuments) {
+      const sn = sniff(data, name);
+      if (sn.category === 'document' || sn.category === 'presentation' || sn.category === 'email') {
+        const how = await chooseForeignOpen(sn, data, name);
+        if (how !== 'import') return null;
+      }
+    }
     let res;
     try {
       res = await importFile(data, name, { repair: opts.repair, password: opts.password });
@@ -54,7 +93,7 @@ export async function openBuffer(app: App, data: ArrayBuffer, name: string, uri:
       }
       throw e;
     }
-    const { book, format, recovery, warnings } = res;
+    const { book, format, recovery, warnings, note } = res;
     const fmt = formatById(format) || formatForName(name);
     const cur = app.tab;
     const base = name.replace(/\.[^.]+$/, '');
@@ -78,9 +117,12 @@ export async function openBuffer(app: App, data: ArrayBuffer, name: string, uri:
       await kvSet('file:' + docKey(tab), { name, data, uri, when: Date.now() });
     }
     app.activate(tab);
+    const lead = note ? `${note} ` : '';
+    const details = () => alertDialog('Import Notes', [note, ...(warnings || [])].filter(Boolean).join('\n'));
     if (recovery) toast(`${name} was damaged. ${recoverySummary(recovery)}`, { action: 'Details', onAction: () => app.exec('file.recoveryReport'), ms: 9000 });
-    else if (format === 'xls') toast(`Opened ${name}. Save as .xlsx to keep everything QuillGrid can edit.`, { ms: 6000 });
-    else if (warnings?.length) toast(`Opened ${name} (${warnings.length} note${warnings.length > 1 ? 's' : ''})`, { action: 'Details', onAction: () => alertDialog('Import Notes', warnings.join('\n')), ms: 7000 });
+    else if (warnings?.length) toast(`${lead}Opened ${name} (${warnings.length} note${warnings.length > 1 ? 's' : ''})`, { action: 'Details', onAction: details, ms: 9000 });
+    else if (format === 'xls' || (fmt && !fmt.canExport)) toast(`${lead}Opened ${name}. Save as .xlsx to keep your changes.`, { ms: note ? 9000 : 6000 });
+    else if (note) toast(`${lead}`, { ms: 8000 });
     else toast(`Opened ${name}`);
     return tab;
   } catch (e: any) {

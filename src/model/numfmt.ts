@@ -94,7 +94,7 @@ function parseSection(src: string): Section {
   let i = 0;
   const lower = src.toLowerCase();
   if (lower.trim() === 'general' || lower.trim() === '') { sec.kind = 'general'; tokens.push({ t: 'general' }); return sec; }
-  let hasDate = false, hasText = false, hasDigit = false;
+  let hasDate = false, hasText = false, hasDigit = false, hasGeneral = false;
   while (i < src.length) {
     const ch = src[i];
     const rest = lower.slice(i);
@@ -120,6 +120,8 @@ function parseSection(src: string): Section {
       else if (inner.startsWith('$')) { const sym = inner.slice(1).split('-')[0]; if (sym) tokens.push({ t: 'lit', v: sym }); }
       continue;
     }
+    // "General" with literal text around it, e.g. \(General\) written by Excel 4.0.
+    if (rest.startsWith('general')) { tokens.push({ t: 'general' }); i += 7; hasGeneral = true; continue; }
     if (rest.startsWith('am/pm')) { tokens.push({ t: 'ampm', v: src.slice(i, i + 5) }); i += 5; hasDate = true; continue; }
     if (rest.startsWith('a/p')) { tokens.push({ t: 'ampm', v: src.slice(i, i + 3) }); i += 3; hasDate = true; continue; }
     if ('ymdhsge'.includes(rest[0]) && /^(y+|m+|d+|h+|s+|e+|g+)/.test(rest) && !(rest[0] === 'e' && /^e[+-]/.test(rest))) {
@@ -141,6 +143,7 @@ function parseSection(src: string): Section {
     tokens.push({ t: 'lit', v: ch }); i++;
   }
   if (hasDate) sec.kind = 'date';
+  else if (hasGeneral && !hasDigit) sec.kind = 'general';
   else if (hasText && !hasDigit) sec.kind = 'text';
   sec.hasNeg = tokens.some((t) => t.t === 'lit' && /[-(]/.test(t.v));
   // Resolve m/mm as minutes when after h or before s.
@@ -208,7 +211,7 @@ export function formatValue(v: Scalar, fmt: string | undefined, opts: { date1904
   const { sec, abs } = pickSection(secs, v);
   const x = abs ? Math.abs(v) : v;
   let text: string;
-  if (sec.kind === 'general') text = formatGeneral(x, opts.width);
+  if (sec.kind === 'general') text = sec.tokens.length > 1 ? renderText(sec, formatGeneral(x, opts.width)) : formatGeneral(x, opts.width);
   else if (sec.kind === 'date') {
     if (x < 0 || x > 2958465.99999) return { text: '#'.repeat(Math.max(1, Math.min(opts.width ?? 8, 20))), isNumber: true };
     text = renderDate(sec, x, !!opts.date1904);

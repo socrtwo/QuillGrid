@@ -367,6 +367,8 @@ class Reader {
 
   color(i: number): string | undefined {
     if (i === 0x7fff || i === 64 || i === 65 || i === 0x51 || i < 0) return undefined;
+    // BIFF3-4 use 5-bit indexes: 24 and 25 are the system text and window colors (automatic).
+    if (this.ver < 5 && (i === 24 || i === 25 || i === 31)) return undefined;
     const idx = i < 8 ? i : i - 8;
     const hex = this.palette[idx];
     return hex ? `#${hex.toLowerCase()}` : undefined;
@@ -396,7 +398,7 @@ class Reader {
         if (col && col !== '#000000') st.color = col;
       }
       const fmt = this.formats.get(xf.fmt) ?? BUILTIN_FORMATS[xf.fmt] ?? EXTRA_BUILTIN_FORMATS[xf.fmt];
-      if (fmt && fmt !== 'General') st.numFmt = fmt;
+      if (fmt && fmt.toLowerCase() !== 'general') st.numFmt = fmt;
       if (xf.h > 0 && H_ALIGN[xf.h]) st.hAlign = H_ALIGN[xf.h];
       if (xf.v !== 2 && V_ALIGN[xf.v]) st.vAlign = V_ALIGN[xf.v];
       if (xf.wrap) st.wrap = true;
@@ -417,6 +419,23 @@ class Reader {
       id = Object.keys(st).length ? this.book.styleId(st) : 0;
     }
     this.xfStyle.set(ixfe, id);
+    return id;
+  }
+
+  attrCache = new Map<number, number>();
+  /** Style from BIFF2 cell attributes: XF index (or font, format and alignment given directly). */
+  attrStyle(b0: number, b1: number, b2: number): number {
+    const key = (b0 << 16) | (b1 << 8) | b2;
+    const hit = this.attrCache.get(key);
+    if (hit != null) return hit;
+    const xf: Xf = { font: (b1 >> 6) & 3, fmt: b1 & 0x3f, locked: !(b0 & 0x40), hidden: !!(b0 & 0x80), h: b2 & 7, v: 2, wrap: false, shrink: false, indent: 0, rot: 0,
+      bl: b2 & 0x08 ? 1 : 0, br: b2 & 0x10 ? 1 : 0, bt: b2 & 0x20 ? 1 : 0, bb: b2 & 0x40 ? 1 : 0, cl: 0x7fff, cr: 0x7fff, ct: 0x7fff, cb: 0x7fff,
+      pattern: b2 & 0x80 ? 17 : 0, fore: 0x7fff, back: 0x7fff };
+    const ix = 0x100000 + key;
+    this.xfs[ix] = xf;
+    const id = this.styleFor(ix);
+    delete this.xfs[ix];
+    this.attrCache.set(key, id);
     return id;
   }
 
@@ -464,7 +483,7 @@ class Reader {
         else if (this.ver === 4) { idx = this.formatSeq++; code = this.dec8(d.subarray(3, 3 + d[2])); }
         else { idx = this.formatSeq++; code = this.dec8(d.subarray(1, 1 + d[0])); }
         this.formats.set(idx, code);
-        if (!Object.values(BUILTIN_FORMATS).includes(code) && !this.book.customFormats.includes(code) && code !== 'General') this.book.customFormats.push(code);
+        if (!Object.values(BUILTIN_FORMATS).includes(code) && !this.book.customFormats.includes(code) && code.toLowerCase() !== 'general') this.book.customFormats.push(code);
         break;
       }
       case R.XF: case R.XF2: case R.XF3: case R.XF4: this.xfs.push(this.parseXf(rec)); break;
@@ -551,9 +570,19 @@ class Reader {
       xf.bt = b & 7; xf.bl = (b >>> 3) & 7; xf.br = (b >>> 6) & 7; xf.ct = (b >>> 9) & 0x7f; xf.cl = (b >>> 16) & 0x7f; xf.cr = (b >>> 23) & 0x7f;
     } else if (this.ver >= 3) {
       xf.font = d[0]; xf.fmt = d[1];
+      xf.locked = !!(d[2] & 1); xf.hidden = !!(d[2] & 2);
       const al = this.ver === 4 ? d[4] : u16(d, 4);
       xf.h = al & 7; xf.wrap = !!(al & 8);
-      if (this.ver === 4) xf.v = (al >> 4) & 3;
+      if (this.ver === 4) { xf.v = (al >> 4) & 3; const ori = (al >> 6) & 3; xf.rot = ori === 1 ? 255 : ori === 2 ? 90 : ori === 3 ? 180 : 0; }
+      if (d.length >= 12) {
+        // Background: pattern (6 bits), foreground and background colors (5 bits each).
+        const bg = u16(d, 6);
+        xf.pattern = bg & 0x3f; xf.fore = (bg >> 6) & 0x1f; xf.back = (bg >> 11) & 0x1f;
+        // Borders: style (3 bits) and color (5 bits) for top, left, bottom, right.
+        const bd = u32(d, 8);
+        xf.bt = bd & 7; xf.ct = (bd >>> 3) & 0x1f; xf.bl = (bd >>> 8) & 7; xf.cl = (bd >>> 11) & 0x1f;
+        xf.bb = (bd >>> 16) & 7; xf.cb = (bd >>> 19) & 0x1f; xf.br = (bd >>> 24) & 7; xf.cr = (bd >>> 27) & 0x1f;
+      }
     } else {
       xf.font = d[0]; xf.fmt = d[2] & 0x3f; xf.h = d[3] & 7;
       xf.locked = !(d[2] & 0x40); xf.hidden = !!(d[2] & 0x80);
@@ -825,6 +854,8 @@ function processSheetRec(rd: Reader, ctx: SheetCtx, rec: Rec): void {
     if (cell.v != null || cell.f != null) rd.cells++;
   };
   const sid = (ixfe: number) => rd.styleFor(ixfe);
+  /** BIFF2 cells carry 3 attribute bytes (XF index, font and format, alignment and borders) instead of an XF number. */
+  const a2 = (o = 4) => rd.attrStyle(d[o], d[o + 1], d[o + 2]);
   switch (rec.id) {
     case R.LABELSST: {
       const idx = u32(d, 6);
@@ -838,10 +869,11 @@ function processSheetRec(rd: Reader, ctx: SheetCtx, rec: Rec): void {
       put(u16(d, 0), u16(d, 2), { v: s, s: sid(u16(d, 4)) });
       break;
     }
-    case R.LABEL2: put(u16(d, 0), u16(d, 2), { v: rd.dec8(d.subarray(8, 8 + d[7])) }); break;
+    case R.LABEL2: put(u16(d, 0), u16(d, 2), { v: rd.dec8(d.subarray(8, 8 + d[7])), s: a2() }); break;
+    case R.BLANK2: { const s = a2(); if (s) put(u16(d, 0), u16(d, 2), { s }); break; }
     case R.NUMBER: put(u16(d, 0), u16(d, 2), { v: f64(d, 6), s: sid(u16(d, 4)) }); break;
-    case R.NUMBER2: put(u16(d, 0), u16(d, 2), { v: f64(d, 7) }); break;
-    case R.INTEGER2: put(u16(d, 0), u16(d, 2), { v: u16(d, 7) }); break;
+    case R.NUMBER2: put(u16(d, 0), u16(d, 2), { v: f64(d, 7), s: a2() }); break;
+    case R.INTEGER2: put(u16(d, 0), u16(d, 2), { v: u16(d, 7), s: a2() }); break;
     case R.RK: put(u16(d, 0), u16(d, 2), { v: rk(u32(d, 6)), s: sid(u16(d, 4)) }); break;
     case R.MULRK: {
       const r = u16(d, 0), c0 = u16(d, 2);
@@ -852,7 +884,7 @@ function processSheetRec(rd: Reader, ctx: SheetCtx, rec: Rec): void {
     case R.BOOLERR: case R.BOOLERR2: {
       const o = rec.id === R.BOOLERR2 ? 7 : 6;
       const val: Scalar = d[o + 1] ? errValue(d[o]) : !!d[o];
-      put(u16(d, 0), u16(d, 2), { v: val, ...(b2 ? {} : { s: sid(u16(d, 4)) }) });
+      put(u16(d, 0), u16(d, 2), { v: val, s: b2 ? a2() : sid(u16(d, 4)) });
       break;
     }
     case R.BLANK: { const s = sid(u16(d, 4)); if (s) put(u16(d, 0), u16(d, 2), { s }); break; }
@@ -879,7 +911,7 @@ function processSheetRec(rd: Reader, ctx: SheetCtx, rec: Rec): void {
       else if (v >= 5) { cce = u16(d, 20); off = 22; }
       else { cce = u16(d, 16); off = 18; }
       const rgce = d.subarray(off, off + cce), extra = d.subarray(off + cce);
-      const cell: Cell = { v: val, ...(b2 ? {} : { s: sid(u16(d, 4)) }) };
+      const cell: Cell = { v: val, s: b2 ? a2() : sid(u16(d, 4)) };
       rd.formulas++;
       if (rgce[0] === 0x01 && rgce.length === 5) {
         ctx.pendingExp.push({ r, c, br: u16(rgce, 1), bc: v >= 8 ? u16(rgce, 3) : rgce[3], cell });
@@ -1091,6 +1123,11 @@ function findStream(u8: Uint8Array, warnings: string[]): { s: Uint8Array; source
     let hint = 8;
     if (!key) { key = [...cfb.streams.keys()].find((k) => k.toLowerCase() === 'book'); hint = 5; }
     if (!key) {
+      // Works 6-9 (.xlr) and other programs keep the BIFF stream under another name.
+      key = [...cfb.streams.keys()].find((k) => { const st = cfb.streams.get(k)!; return isBofId(u16(st, 0)) && u16(st, 2) >= 4 && u16(st, 2) <= 20; });
+      hint = 8;
+    }
+    if (!key) {
       if ([...cfb.streams.keys()].some((k) => k === 'EncryptedPackage' || k === 'EncryptionInfo')) throw new Error(XLS_ENCRYPTED_MSG);
       return null;
     }
@@ -1139,7 +1176,7 @@ function parseStream(s: Uint8Array, lenient: boolean, hint: number): { rd: Reade
     rd.ver = vers === 0x0600 ? 8 : vers === 0x0500 ? 5 : bof.data.length >= 16 ? 8 : hint || 5;
   }
   if (rd.ver === 8) rd.dec8 = makeDecoder(1252);
-  const firstDt = rd.ver >= 5 ? u16(bof.data, 2) : 0x0010;
+  const firstDt = bof.data.length >= 4 ? u16(bof.data, 2) : 0x0010;
   const sheets: { ctx: SheetCtx; bound: number }[] = [];
   const newCtx = (name: string): SheetCtx => {
     const sheet = new Sheet(rd.book, name);
@@ -1154,7 +1191,39 @@ function parseStream(s: Uint8Array, lenient: boolean, hint: number): { rd: Reade
     }
   };
 
-  if (rd.ver < 5 || firstDt === 0x0010 || firstDt === 0x0040) {
+  if (rd.ver === 4 && firstDt === 0x0100) {
+    // Excel 4.0 workbook (BIFF4W): a globals substream lists the sheets (BUNDLESHEET), then each sheet
+    // follows as a complete BIFF4 stream with its own fonts, formats and cell styles.
+    const bundles: { pos: number; name: string }[] = [];
+    for (i = i + 1; i < recs.length && recs[i].id !== R.EOF; i++) {
+      const rec = recs[i], d = rec.data;
+      if (rec.id === 0x008f && d.length >= 7) {
+        const name = 7 + d[6] <= d.length ? rd.dec8(d.subarray(7, 7 + d[6])) : rd.dec8(d.subarray(5, 5 + d[4]));
+        bundles.push({ pos: u32(d, 0), name });
+      } else guard(() => rd.globals(rec));
+    }
+    let k = 0;
+    for (i = i + 1; i < recs.length; i++) {
+      if (!isBofId(recs[i].id)) continue;
+      const bofRec = recs[i];
+      const dt = u16(bofRec.data, 2);
+      const bundle = bundles.find((b) => b.pos === bofRec.off) || bundles[k];
+      k++;
+      // Each sheet has its own style tables.
+      rd.fonts = []; rd.xfs = []; rd.formats = new Map(); rd.formatSeq = 0; rd.xfStyle.clear(); rd.attrCache.clear();
+      const ctx = dt === 0x0010 || dt === 0x0040 ? newCtx(bundle?.name || `Sheet${sheets.length + 1}`) : null;
+      let depth = 1;
+      for (i = i + 1; i < recs.length; i++) {
+        const rec = recs[i];
+        if (isBofId(rec.id)) { depth++; continue; }
+        if (rec.id === R.EOF) { depth--; if (!depth) break; continue; }
+        if (depth > 1 || !ctx) continue;
+        guard(() => rd.globals(rec));
+        guard(() => processSheetRec(rd, ctx, rec));
+      }
+      if (ctx) { finishSheet(rd, ctx); sheets.push({ ctx, bound: -1 }); }
+    }
+  } else if (rd.ver < 5 || firstDt === 0x0010 || firstDt === 0x0040) {
     // Single-sheet file (BIFF2-4, or a stream that starts at a worksheet): globals and cells share one substream.
     const ctx = newCtx('Sheet1');
     for (i = i + 1; i < recs.length && recs[i].id !== R.EOF; i++) {
@@ -1314,8 +1383,9 @@ export function readBiff(u8: Uint8Array, opts: { lenient?: boolean } = {}): Biff
 }
 
 /** Normal .xls import (strict). */
-export async function importXls(data: ArrayBuffer, name: string): Promise<Workbook> {
-  const { book } = readBiff(new Uint8Array(data), { lenient: false });
+export async function importXls(data: ArrayBuffer, name: string, warnings?: string[]): Promise<Workbook> {
+  const { book, warnings: w } = readBiff(new Uint8Array(data), { lenient: false });
+  if (warnings) warnings.push(...w);
   if (name && !book.props.title) book.props.title = name.replace(/\.[^.]+$/, '');
   return book;
 }

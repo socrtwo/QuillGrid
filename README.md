@@ -26,7 +26,7 @@ Each [release](../../releases) has builds for:
 
 [docs/INSTALL.md](docs/INSTALL.md) has the steps for each. To build it yourself, including the APK on the phone itself with Termux, see [docs/BUILD.md](docs/BUILD.md).
 
-On Android, QuillGrid registers for *Open with* and *Share to* on .xlsx, .xlsm, .xls, .ods, .csv, .tsv and .txt files. It uses the Android system file picker, so files on the device, SD card, Google Drive, Dropbox and similar providers all work. **Save** writes back to the same file.
+On Android, QuillGrid registers for *Open with* and *Share to* on .xlsx, .xlsm, .xls, .ods, .csv, .tsv and .txt files, and for *Open with* on Lotus, Quattro, Works, dBASE, SYLK and DIF files. It uses the Android system file picker, so files on the device, SD card, Google Drive, Dropbox and similar providers all work. **Save** writes back to the same file.
 
 ## Features
 
@@ -55,7 +55,9 @@ Recalculation is incremental: dependencies are recorded as formulas are evaluate
 
 **Developer.** Macro recorder (records commands, selections and typing; relative or absolute), a JavaScript macro editor with a workbook API, form controls (buttons, check boxes, lists, spin buttons) linked to cells, and JSON import/export.
 
-**Files.** Open and save .xlsx, .xlsm (macros kept, not run) and .xltx, OpenDocument .ods and .fods, CSV/TSV/text (with a Text Import Wizard for delimiters, encodings and column types), HTML, and the native .qgw format. Excel 97–2003 .xls files open with values, formulas and formatting. SYLK, DIF and XML Spreadsheet 2003 files open too. AES-256 encrypted .qgwe is also supported. Autosave drafts with crash recovery, version history snapshots, a document inspector, templates, and several open workbooks in tabs.
+**Files.** Open and save .xlsx, .xlsm (macros kept, not run) and .xltx, OpenDocument .ods and .fods, CSV/TSV/text (with a Text Import Wizard for delimiters, encodings and column types), HTML, and the native .qgw format. Excel 97–2003 .xls files open with values, formulas and formatting. SYLK, DIF and XML Spreadsheet 2003 files open too. AES-256 encrypted .qgwe is also supported.
+
+**Older spreadsheets, documents and mail.** Files are recognized by their contents, so a wrong or missing extension does not matter (a short note says when that happened). Spreadsheets from earlier programs open with their values and formulas, translated to keep their original meaning: Excel 2.x, 3.0, 4.0 (including 4.0 workbooks) and 5.0/95, Lotus 1-2-3 (.wks, .wk1, .wk3, .wk4, .123) and Symphony, Quattro and Quattro Pro (.wq1, .wq2, .wb1-.wb3), Microsoft Works (.wks, .xlr), dBASE/FoxPro/Clipper tables (.dbf) and VisiCalc; AppleWorks, SuperCalc, binary Multiplan and Quattro Pro .qpw files give up their values or text. Word-processor documents (.docx, .doc, .odt, .rtf, WordPerfect and more), presentations (.pptx, .ppt, .odp) and e-mail (.eml, .mbox, .msg) can be handed to QuillPen, QuillStage or QuillPost, or imported: each table becomes a sheet, slides become sheets, and a message becomes its header fields and body, with CSV and spreadsheet attachments as extra sheets. See [docs/FORMATS.md](docs/FORMATS.md) for every format, version and fidelity level. Autosave drafts with crash recovery, version history snapshots, a document inspector, templates, and several open workbooks in tabs.
 
 ### Innovations from other spreadsheets
 
@@ -98,6 +100,7 @@ Keys are stored encrypted on the device (Android Keystore on Android, the system
 - **PivotTables from other programs open as static values.** PivotTables made in QuillGrid are live, but they are written to .xlsx as values, not as pivot caches.
 - **OpenDocument charts and embedded objects** are not opened or saved; cell data, formulas, styles, merges and conditional formats are.
 - **.xls is import-only.** Excel 97–2003 files open with values, formulas and formatting; save them as .xlsx.
+- **Legacy formats are import-only**, and some open with less than everything: Lotus 1-2-3 Release 4+ files keep values and formulas but not number formats; .qpw, AppleWorks, SuperCalc and binary Multiplan files give text or values only. See [docs/FORMATS.md](docs/FORMATS.md).
 - **No network functions in cells.** WEBSERVICE returns #VALUE!; STOCKHISTORY and linked data types have no data source. ENCODEURL and FILTERXML work.
 - **External workbook links** are kept as their last values; they are not refreshed from the other file.
 - **Solver** uses simplex with branch and bound for linear models (integer and binary constraints supported) and a penalty Nelder–Mead search for nonlinear ones, which finds local optima only; the AllDifferent constraint is not supported.

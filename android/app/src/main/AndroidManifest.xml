@@ -42,6 +42,15 @@
                 <data android:mimeType="text/plain" />
                 <data android:mimeType="application/x-quillgrid" />
                 <data android:mimeType="application/x-quillgrid-encrypted" />
+                <!-- Legacy spreadsheets -->
+                <data android:mimeType="application/vnd.lotus-1-2-3" />
+                <data android:mimeType="application/x-123" />
+                <data android:mimeType="application/x-quattro-pro" />
+                <data android:mimeType="application/vnd.ms-works" />
+                <data android:mimeType="application/x-dbf" />
+                <data android:mimeType="application/dbase" />
+                <data android:mimeType="application/x-dbase" />
+                <data android:mimeType="application/x-sylk" />
             </intent-filter>
 
             <!-- Files whose provider reports a generic MIME type: match on extension.
@@ -103,6 +112,51 @@
                 <data android:pathPattern=".*\\.qlwe" />
                 <data android:pathPattern=".*\\..*\\.qlwe" />
                 <data android:pathPattern=".*\\..*\\..*\\.qlwe" />
+                            <data android:pathPattern=".*\\.wk1" />
+                <data android:pathPattern=".*\\..*\\.wk1" />
+                <data android:pathPattern=".*\\.WK1" />
+                <data android:pathPattern=".*\\.wks" />
+                <data android:pathPattern=".*\\..*\\.wks" />
+                <data android:pathPattern=".*\\.WKS" />
+                <data android:pathPattern=".*\\.wk3" />
+                <data android:pathPattern=".*\\..*\\.wk3" />
+                <data android:pathPattern=".*\\.WK3" />
+                <data android:pathPattern=".*\\.wk4" />
+                <data android:pathPattern=".*\\..*\\.wk4" />
+                <data android:pathPattern=".*\\.WK4" />
+                <data android:pathPattern=".*\\.123" />
+                <data android:pathPattern=".*\\..*\\.123" />
+                <data android:pathPattern=".*\\.123" />
+                <data android:pathPattern=".*\\.wq1" />
+                <data android:pathPattern=".*\\..*\\.wq1" />
+                <data android:pathPattern=".*\\.WQ1" />
+                <data android:pathPattern=".*\\.wq2" />
+                <data android:pathPattern=".*\\..*\\.wq2" />
+                <data android:pathPattern=".*\\.WQ2" />
+                <data android:pathPattern=".*\\.wb1" />
+                <data android:pathPattern=".*\\..*\\.wb1" />
+                <data android:pathPattern=".*\\.WB1" />
+                <data android:pathPattern=".*\\.wb2" />
+                <data android:pathPattern=".*\\..*\\.wb2" />
+                <data android:pathPattern=".*\\.WB2" />
+                <data android:pathPattern=".*\\.wb3" />
+                <data android:pathPattern=".*\\..*\\.wb3" />
+                <data android:pathPattern=".*\\.WB3" />
+                <data android:pathPattern=".*\\.qpw" />
+                <data android:pathPattern=".*\\..*\\.qpw" />
+                <data android:pathPattern=".*\\.QPW" />
+                <data android:pathPattern=".*\\.xlr" />
+                <data android:pathPattern=".*\\..*\\.xlr" />
+                <data android:pathPattern=".*\\.XLR" />
+                <data android:pathPattern=".*\\.dbf" />
+                <data android:pathPattern=".*\\..*\\.dbf" />
+                <data android:pathPattern=".*\\.DBF" />
+                <data android:pathPattern=".*\\.slk" />
+                <data android:pathPattern=".*\\..*\\.slk" />
+                <data android:pathPattern=".*\\.SLK" />
+                <data android:pathPattern=".*\\.dif" />
+                <data android:pathPattern=".*\\..*\\.dif" />
+                <data android:pathPattern=".*\\.DIF" />
             </intent-filter>
 
             <!-- Receive workbooks and text shared from other apps. -->
@@ -135,6 +189,13 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
     </application>
+
+    <!-- The Quill apps this one can hand documents to (Android 11+ package visibility). -->
+    <queries>
+        <package android:name="io.github.socrtwo.quillpen" />
+        <package android:name="io.github.socrtwo.quillpost" />
+        <package android:name="io.github.socrtwo.quillstage" />
+    </queries>
 
     <!-- Permissions -->
 

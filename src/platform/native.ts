@@ -42,6 +42,8 @@ interface QuillNativePlugin {
   /** One-shot http://127.0.0.1:<port>/ listener for OAuth redirects (OpenRouter PKCE); only requests for `path` count. */
   startLoopback(opts: { timeoutMs: number; successHtml?: string; path?: string }): Promise<{ port: number }>;
   stopLoopback(): Promise<void>;
+  /** Android: hand a document to a sibling Quill app (ACTION_VIEW with its package). */
+  openInApp?(opts: { packageName: string; name: string; mime: string; data: string }): Promise<{ opened: boolean; reason?: string }>;
 }
 
 /** The desktop bridge adds what Android gets from Capacitor itself. */
@@ -51,6 +53,8 @@ interface DesktopBridge extends QuillNativePlugin {
   openExternal(opts: { url: string }): Promise<void>;
   /** HTTP from the main process (no CORS), for AI providers that block browsers. */
   http(opts: { url: string; method: string; headers: Record<string, string>; data?: unknown }): Promise<{ status: number; text: string }>;
+  /** Write the document to a temporary file and open it with the program registered for its type. */
+  openWith?(opts: { name: string; data: string }): Promise<{ ok: boolean; error?: string }>;
 }
 
 const desktop: DesktopBridge | undefined = typeof window !== 'undefined' ? (window as any).quillDesktop : undefined;
@@ -288,7 +292,11 @@ export async function onBackButton(cb: () => boolean): Promise<void> {
   App.addListener('backButton', () => { if (!cb()) App.minimizeApp(); });
 }
 
-export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qgw,.qgwe,.qlw,.qlwe,.json'; // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qgw,.qgwe,.qlw,.qlwe,.json,.xlsb,.sxc,.stc,.gnumeric,.gnm,.ksp,.numbers,.uos,.uof,.ndjson,.jsonl,.sqlite,.sqlite3,.db,.db3,.mht,.mhtml,.gz,.sylk' // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+  // legacy spreadsheets
+  + ',.wk1,.wks,.wk3,.wk4,.123,.wrk,.wr1,.wq1,.wq2,.wb1,.wb2,.wb3,.qpw,.xlr,.dbf,.vc,.cwk'
+  // documents, presentations and mail (their tables and text are imported)
+  + ',.docx,.docm,.doc,.odt,.fodt,.rtf,.wpd,.wps,.wri,.epub,.pdf,.pptx,.ppt,.pps,.ppsx,.odp,.fodp,.eml,.emlx,.msg,.mbox';
 export const OPEN_MIMES = [
   'application/x-quilllattice', 'application/x-quilllattice-encrypted', // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -296,7 +304,37 @@ export const OPEN_MIMES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
   'application/vnd.ms-excel', 'application/vnd.oasis.opendocument.spreadsheet',
   'text/csv', 'text/comma-separated-values', 'text/tab-separated-values', 'text/html', 'text/plain', 'application/xml', 'text/xml', 'application/json', 'application/octet-stream', '*/*',
+  'application/vnd.ms-excel.sheet.binary.macroEnabled.12', 'application/vnd.sun.xml.calc', 'application/x-gnumeric', 'application/x-kspread', 'application/vnd.apple.numbers', 'application/x-iwork-numbers-sffnumbers',
+  'application/x-ndjson', 'application/vnd.sqlite3', 'application/x-sqlite3', 'multipart/related', 'message/rfc822', 'application/gzip', 'application/x-gzip',
 ];
+
+// ------------------------------------------------------------------------------------------
+// Sibling Quill apps
+
+export type QuillApp = 'QuillPen' | 'QuillPost' | 'QuillStage';
+export const QUILL_APP_IDS: Record<QuillApp, string> = {
+  QuillPen: 'io.github.socrtwo.quillpen', QuillPost: 'io.github.socrtwo.quillpost', QuillStage: 'io.github.socrtwo.quillstage',
+};
+
+/**
+ * Opens a document in a sibling app: on Android the app itself (by package), on the desktop the
+ * program registered for the file type. Browsers and iOS cannot hand files to other apps.
+ */
+export async function openInQuillApp(app: QuillApp, data: ArrayBuffer, name: string, mime: string): Promise<{ opened: boolean; reason: 'not-installed' | 'unsupported' | 'error' | ''; message?: string }> {
+  try {
+    if (desktop?.openWith) {
+      const r = await desktop.openWith({ name, data: b64FromBuffer(data) });
+      return r.ok ? { opened: true, reason: '' } : { opened: false, reason: 'not-installed', message: r.error };
+    }
+    if (isNative() && Native.openInApp) {
+      const r = await Native.openInApp({ packageName: QUILL_APP_IDS[app], name, mime, data: b64FromBuffer(data) });
+      return r.opened ? { opened: true, reason: '' } : { opened: false, reason: 'not-installed' };
+    }
+  } catch (e: any) {
+    return { opened: false, reason: 'error', message: e?.message || String(e) };
+  }
+  return { opened: false, reason: 'unsupported' };
+}
 
 // ------------------------------------------------------------------------------------------
 // Secure storage, clipboard, OAuth loopback, app resume (AI setup)

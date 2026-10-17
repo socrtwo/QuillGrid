@@ -1,0 +1,27 @@
+ID;PCALCOOO32
+C;X1;Y1;K"Name"
+C;X2;Y1;K"Qty"
+C;X3;Y1;K"Price"
+C;X4;Y1;K"Total"
+C;X1;Y2;K"Apple"
+C;X2;Y2;K3
+C;X3;Y2;K1.25
+C;X4;Y2;K3.75;EB2*C2
+C;X5;Y2;K45366
+C;X1;Y3;K"Pear"
+C;X2;Y3;K5
+C;X3;Y3;K2.5
+C;X4;Y3;K12.5;EB3*C3
+C;X5;Y3;K0.5625
+C;X1;Y4;K"Plum"
+C;X2;Y4;K12
+C;X3;Y4;K0.75
+C;X4;Y4;K9;EB4*C4
+C;X5;Y4;K1
+C;X1;Y5;K"Sum"
+C;X4;Y5;K25.25;ESUM(D2:D4)
+C;X5;Y5;K"line one :line  two"
+C;X1;Y6;K"Merged title"
+C;X4;Y6;K"site"
+C;X1;Y7;K"hidden row"
+E

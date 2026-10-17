@@ -1,0 +1,3 @@
+Name;Stadt;Größe
+Müller;Köln;1,85
+Renée;Café;2,5
