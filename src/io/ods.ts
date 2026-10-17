@@ -665,7 +665,13 @@ async function readRow(book: Workbook, sheet: Sheet, r: number, cells: Element[]
       const isErr = a(el, 'calcext', 'value-type') === 'error' || (vt === 'string' && /^(#[A-Z/0!?]+|Err:\d+)$/.test(text));
       if (isErr) cell.v = errorFromCode(text.trim()) || new CellError('#VALUE!');
     }
-    const effSid = sid || colDefault[c] || 0;
+    let effSid = sid || colDefault[c] || 0;
+    // Dates, times and percentages without a data style still display as such.
+    if ((vt === 'time' || vt === 'date' || vt === 'percentage') && cell.v != null && !book.styles[effSid]?.numFmt) {
+      const fmt = vt === 'time' ? (typeof cell.v === 'number' && cell.v >= 1 ? '[h]:mm:ss' : 'h:mm:ss') : vt === 'date' ? (typeof cell.v === 'number' && cell.v % 1 ? 'yyyy-mm-dd hh:mm:ss' : 'yyyy-mm-dd') : '0%';
+      effSid = book.derivedStyle(effSid, { numFmt: fmt });
+      if (effSid !== colDefault[c]) cell.s = effSid;
+    }
     if (effSid && effSid !== colDefault[c]) cell.s = effSid;
     else if (effSid && (cell.v != null || cell.f)) cell.s = effSid;
     const link = desc(el, 'a').find((x) => x.localName === 'a' && a(x, 'xlink', 'href'));

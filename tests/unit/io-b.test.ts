@@ -257,6 +257,7 @@ describe('OpenOffice.org 1.x Calc (.sxc)', () => {
     expect(val(s, 'E2')).toBe(45366);
     expect(val(s, 'E3')).toBeCloseTo(13.5 / 24, 9);
     expect(val(s, 'E4')).toBe(true);
+    expect(sty(s, 'E3').numFmt).toBe('h:mm:ss');
     expect(val(s, 'E5')).toBe('line one\nline  two');
     expect(sty(s, 'A1')).toMatchObject({ bold: true, fill: '#ffff00', hAlign: 'center', bb: { style: 'thin' } });
     expect(sty(s, 'C2')).toMatchObject({ numFmt: '0.00', italic: true, color: '#0000ff' });
