@@ -347,3 +347,13 @@ describe('best-effort formats', () => {
     for (const sh of b.sheets) for (const c of sh.cells.values()) if (c.f != null) expect(c.v === null || c.v instanceof CellError || typeof c.v !== 'undefined').toBe(true);
   });
 });
+
+describe('sniffer with the modern-format rules', () => {
+  it('tells Numbers from Pages and keeps both rule sets in one detector', () => {
+    const numbers = readFileSync('tests/fixtures/io/b/third-party/tika-testNumbers2013.numbers');
+    expect(sniff(numbers, 'x')).toMatchObject({ format: 'numbers', category: 'spreadsheet' });
+    expect(sniff(new TextEncoder().encode('SQLite format 3\0' + '\0'.repeat(100)), 'data')).toMatchObject({ format: 'sqlite' });
+    expect(sniff(new TextEncoder().encode('{"a":1}\n{"a":2}\n{"a":3}\n'), 'rows')).toMatchObject({ format: 'ndjson' });
+    expect(sniff(new TextEncoder().encode('a b c\n1 22 333\n'), 'x.prn')).toMatchObject({ format: 'prn' });
+  });
+});

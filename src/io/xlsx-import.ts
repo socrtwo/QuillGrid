@@ -385,7 +385,7 @@ function parseStyles(doc: Document | null, book: Workbook, ctx: ColorCtx): Style
 // --------------------------------------------------------------------------------------------
 // Theme
 
-function parseTheme(doc: Document | null, book: Workbook): string[] {
+export function parseTheme(doc: Document | null, book: Workbook): string[] {
   const colors = [...book.theme.colors];
   if (!doc) return colors;
   const scheme = desc(doc, 'clrScheme')[0];
@@ -558,7 +558,7 @@ function splitTopLevel(s: string): string[] {
   return out;
 }
 
-async function parseDocProps(pkg: Pkg, rootRels: Rel[], book: Workbook): Promise<void> {
+export async function parseDocProps(pkg: Pkg, rootRels: Rel[], book: Workbook): Promise<void> {
   const p = book.props;
   try {
     const core = await pkg.xml(relOf(rootRels, 'core-properties')?.target || 'docProps/core.xml');
@@ -672,9 +672,10 @@ async function parseSheet(ctx: Ctx, sheet: Sheet, partPath: string): Promise<voi
     const loc = attr(h, 'location');
     if (loc) link = (link ? link : '') + '#' + loc;
     if (!link) continue;
+    const tip = attr(h, 'tooltip');
     for (let r = rg.r1; r <= Math.min(rg.r2, rg.r1 + 1000); r++) for (let c = rg.c1; c <= Math.min(rg.c2, rg.c1 + 100); c++) {
       const k = cellKey(r, c);
-      sheet.cells.set(k, { ...(sheet.cells.get(k) || {}), link });
+      sheet.cells.set(k, { ...(sheet.cells.get(k) || {}), link, ...(tip ? { linkTip: tip } : {}) });
     }
   }
 }
@@ -886,6 +887,8 @@ function parseSheetParts(ctx: Ctx, sheet: Sheet, root: Element, _rels: Rel[]): v
     if (!ranges.length) continue;
     for (const rule of kids(cf, 'cfRule')) {
       const r = parseCfRule(ctx, rule, ranges);
+      const extId = desc(rule, 'id').find((e) => e.parentElement?.localName === 'ext')?.textContent?.trim();
+      if (r && extId) (r as { extId?: string }).extId = extId;
       if (r) { r.priority = r.priority ?? ++prio; sheet.cf.push(r); }
     }
   }
@@ -928,11 +931,53 @@ function parseSheetParts(ctx: Ctx, sheet: Sheet, root: Element, _rels: Rel[]): v
   if (hf) {
     sheet.print.header = splitHeaderFooter(txt(kid(hf, 'oddHeader')));
     sheet.print.footer = splitHeaderFooter(txt(kid(hf, 'oddFooter')));
+    if (boolAttr(hf, 'differentOddEven')) {
+      sheet.print.differentOddEven = true;
+      if (kid(hf, 'evenHeader')) sheet.print.evenHeader = splitHeaderFooter(txt(kid(hf, 'evenHeader')));
+      if (kid(hf, 'evenFooter')) sheet.print.evenFooter = splitHeaderFooter(txt(kid(hf, 'evenFooter')));
+    }
+    if (boolAttr(hf, 'differentFirst')) {
+      sheet.print.differentFirst = true;
+      if (kid(hf, 'firstHeader')) sheet.print.firstHeader = splitHeaderFooter(txt(kid(hf, 'firstHeader')));
+      if (kid(hf, 'firstFooter')) sheet.print.firstFooter = splitHeaderFooter(txt(kid(hf, 'firstFooter')));
+    }
+    if (attr(hf, 'scaleWithDoc') === '0' || attr(hf, 'scaleWithDoc') === 'false') sheet.print.scaleWithDoc = false;
+    if (attr(hf, 'alignWithMargins') === '0' || attr(hf, 'alignWithMargins') === 'false') sheet.print.alignWithMargins = false;
   }
   sheet.rowBreaks = kids(kid(root, 'rowBreaks'), 'brk').map((b) => numAttr(b, 'id') || 0).filter((x) => x > 0);
   sheet.colBreaks = kids(kid(root, 'colBreaks'), 'brk').map((b) => numAttr(b, 'id') || 0).filter((x) => x > 0);
   // Extensions: x14 data validations, sparklines
   for (const ext of kids(kid(root, 'extLst'), 'ext')) {
+    // Excel 2010 conditional formats (data bar details, icon sets, rules that refer to other sheets).
+    for (const cfx of desc(ext, 'conditionalFormatting')) {
+      const ranges = parseSqref(txt(kid(cfx, 'sqref')).trim());
+      if (!ranges.length) continue;
+      for (const rule of kids(cfx, 'cfRule')) {
+        const id = attr(rule, 'id');
+        const existing = id ? sheet.cf.find((x) => (x as { extId?: string }).extId === id) : undefined;
+        const dbx = kid(rule, 'dataBar');
+        if (existing) {
+          if (dbx && attr(dbx, 'gradient') === '0') existing.gradientBar = false;
+          delete (existing as { extId?: string }).extId;
+          continue;
+        }
+        const r = parseCfRule(ctx, rule, ranges);
+        if (!r) continue;
+        const fs = kids(rule, 'f').map((f) => stripXlfn((f.textContent || '').trim()));
+        if (fs.length && !r.formulas) r.formulas = fs;
+        if (dbx) { r.stops = kids(dbx, 'cfvo').map((v) => ({ type: (attr(v, 'type') || 'min').replace(/^auto/, '').toLowerCase() as 'min' })); r.barColor = elColor(kid(dbx, 'fillColor'), ctx) || r.barColor || '#638ec6'; r.gradientBar = attr(dbx, 'gradient') !== '0'; }
+        const dxf = kid(rule, 'dxf');
+        if (dxf && !r.style) {
+          const st: Partial<CellStyle> = {};
+          const f = kid(dxf, 'font'); if (f) Object.assign(st, fontFromProps(domProps(f), ctx));
+          const fill = kid(dxf, 'fill'); if (fill) Object.assign(st, parseFill(fill, ctx, true));
+          r.style = st;
+        }
+        r.priority = r.priority ?? sheet.cf.length + 1;
+        sheet.cf.push(r);
+      }
+    }
+    for (const r of sheet.cf) delete (r as { extId?: string }).extId;
     for (const dv of desc(ext, 'dataValidation')) {
       const f1 = kid(dv, 'formula1'), f2 = kid(dv, 'formula2');
       const v = parseDv(dv, parseSqref(txt(kid(dv, 'sqref'))), f1 ? txt(desc(f1, 'f')[0] || f1) : '', f2 ? txt(desc(f2, 'f')[0] || f2) : '');
@@ -958,7 +1003,7 @@ function parseSheetParts(ctx: Ctx, sheet: Sheet, root: Element, _rels: Rel[]): v
 
 export const PROTECT_ACTIONS = ['formatCells', 'formatColumns', 'formatRows', 'insertColumns', 'insertRows', 'insertHyperlinks', 'deleteColumns', 'deleteRows', 'sort', 'autoFilter', 'pivotTables', 'objects', 'scenarios'];
 
-export const PAPER: Record<number, string> = { 1: 'Letter', 3: 'Tabloid', 5: 'Legal', 7: 'Executive', 8: 'A3', 9: 'A4', 11: 'A5', 12: 'B4', 13: 'B5', 20: 'Envelope #10', 27: 'Envelope DL', 28: 'Envelope C5', 34: 'Envelope B5', 37: 'Envelope Monarch' };
+export const PAPER: Record<number, string> = { 1: 'Letter', 2: 'Letter', 3: 'Tabloid', 4: 'Ledger', 5: 'Legal', 6: 'Statement', 7: 'Executive', 8: 'A3', 9: 'A4', 10: 'A4', 11: 'A5', 12: 'B4', 13: 'B5', 14: 'Folio', 20: 'Envelope #10', 27: 'Envelope DL', 28: 'Envelope C5', 34: 'Envelope B5', 37: 'Envelope Monarch', 66: 'A2', 70: 'A6' };
 
 const HF_CODES: [string, string][] = [['&P', '&[Page]'], ['&N', '&[Pages]'], ['&D', '&[Date]'], ['&T', '&[Time]'], ['&Z', '&[Path]'], ['&F', '&[File]'], ['&A', '&[Tab]'], ['&G', '&[Picture]']];
 
@@ -1484,3 +1529,19 @@ function parseChart(doc: Document, ctx: Ctx): Partial<ChartDef> | null {
 }
 
 export { colIndex };
+
+// --------------------------------------------------------------------------------------------
+// Shared with the Excel binary workbook reader (xlsb.ts), whose drawings, charts, threaded
+// comments and theme are XML parts like in .xlsx.
+
+/** Reads a sheet's drawing part (pictures, shapes, charts) into the sheet. */
+export async function readSheetDrawing(pkg: Pkg, sheet: Sheet, drawingPath: string, theme: string[], warnings: string[], persons = new Map<string, string>()): Promise<void> {
+  const ctx: Ctx = { pkg, book: sheet.book, sst: [], styles: { numFmts: new Map(), fonts: [], fills: [], borders: [], xfMap: [0], dxfs: [] }, date1904: sheet.book.calc.date1904, warnings, persons, theme, indexed: [...INDEXED] };
+  await parseDrawing(ctx, sheet, drawingPath, false);
+}
+
+/** Reads a threaded comments part into the sheet (persons: person id -> display name). */
+export async function readThreadedComments(pkg: Pkg, sheet: Sheet, partPath: string, persons: Map<string, string>, warnings: string[]): Promise<void> {
+  const ctx: Ctx = { pkg, book: sheet.book, sst: [], styles: { numFmts: new Map(), fonts: [], fills: [], borders: [], xfMap: [0], dxfs: [] }, date1904: false, warnings, persons, theme: sheet.book.theme.colors, indexed: [...INDEXED] };
+  await parseThreaded(ctx, sheet, partPath);
+}

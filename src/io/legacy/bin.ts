@@ -4,6 +4,7 @@
  * the "type, length, body" layout that Lotus, Quattro and Works files share.
  */
 import { cp1252 } from '../recover/salvage';
+import { decodeWith } from '../encoding';
 
 export const u16 = (b: Uint8Array, o: number): number => (o + 2 <= b.length ? b[o] | (b[o + 1] << 8) : 0);
 export const i16 = (b: Uint8Array, o: number): number => { const v = u16(b, o); return v & 0x8000 ? v - 0x10000 : v; };
@@ -65,30 +66,20 @@ export function lnum(v: number): number {
 // ------------------------------------------------------------------------------------------
 // Code pages
 
-const CP437_HI =
-  'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ';
-const CP850_HI =
-  'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»░▒▓│┤ÁÂÀ©╣║╗╝¢¥┐└┴┬├─┼ãÃ╚╔╩╦╠═╬¤ðÐÊËÈıÍÎÏ┘┌█▄¦Ì▀ÓßÔÒõÕµþÞÚÛÙýÝ¯´­±‗¾¶§÷¸°¨·¹³²■ ';
-const MAC_HI =
-  'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü†°¢£§•¶ß®©™´¨≠ÆØ∞±≤≥¥µ∂∑∏π∫ªºΩæø¿¡¬√ƒ≈∆«»… ÀÃÕŒœ–—“”‘’÷◊ÿŸ⁄€‹›ﬁﬂ‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔÒÚÛÙıˆ˜¯˘˙˚¸˝˛ˇ';
-
 export type Decoder = (b: Uint8Array) => string;
-
-function tableDecoder(hi: string): Decoder {
-  return (b) => { let s = ''; for (let i = 0; i < b.length; i++) { const x = b[i]; s += x < 0x80 ? String.fromCharCode(x) : hi[x - 0x80] ?? '?'; } return s; };
-}
 
 const WIN_PAGES: Record<number, string> = {
   874: 'windows-874', 932: 'shift_jis', 936: 'gbk', 949: 'euc-kr', 950: 'big5', 1250: 'windows-1250', 1251: 'windows-1251',
   1253: 'windows-1253', 1254: 'windows-1254', 1255: 'windows-1255', 1256: 'windows-1256', 1257: 'windows-1257', 1258: 'windows-1258',
-  866: 'ibm866', 65001: 'utf-8',
+  852: 'ibm852', 866: 'ibm866', 65001: 'utf-8',
 };
 
 /** A decoder for a code page number (437, 850, 1252, 10000 = Mac Roman, ...). Unknown pages fall back to Windows-1252. */
 export function codepage(cp: number): Decoder {
-  if (cp === 437) return tableDecoder(CP437_HI);
-  if (cp === 850 || cp === 852 || cp === 865 || cp === 863 || cp === 860 || cp === 861) return tableDecoder(CP850_HI);
-  if (cp === 10000 || cp === 32768) return tableDecoder(MAC_HI);
+  // The DOS code pages and Mac OS Roman come from the shared text-encoding module.
+  if (cp === 437) return (b) => decodeWith(b, 'cp437');
+  if (cp === 850 || cp === 865 || cp === 863 || cp === 860 || cp === 861) return (b) => decodeWith(b, 'cp850');
+  if (cp === 10000 || cp === 32768) return (b) => decodeWith(b, 'macintosh');
   const label = WIN_PAGES[cp];
   if (label) {
     try { const d = new TextDecoder(label); return (b) => d.decode(b); } catch { /* unsupported in this runtime */ }

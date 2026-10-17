@@ -1180,12 +1180,14 @@ async function chooseDestination(app: App, title: string, extra: Field[] = []): 
 
 async function fromText(app: App): Promise<void> {
   const { openDocument } = await import('../platform/native');
-  const { parseCsv, detectDelimiter, decodeText } = await import('../io/index');
+  const { parseCsv, detectDelimiter } = await import('../io/index');
   const { fillSheet } = await import('../io/csv');
   const f = await openDocument('.csv,.tsv,.txt,.tab,.prn,.dat', ['text/csv', 'text/plain', 'text/tab-separated-values']);
   if (!f) return;
-  const encs = [{ value: 'utf-8', label: 'Unicode (UTF-8)' }, { value: 'windows-1252', label: 'Western European (Windows)' }, { value: 'iso-8859-1', label: 'Western European (ISO)' }, { value: 'utf-16le', label: 'Unicode (UTF-16 LE)' }, { value: 'utf-16be', label: 'Unicode (UTF-16 BE)' }, { value: 'shift_jis', label: 'Japanese (Shift-JIS)' }, { value: 'gbk', label: 'Chinese Simplified (GBK)' }, { value: 'macintosh', label: 'Western European (Mac)' }];
-  let text = decodeText(f.data);
+  const { detectEncoding, decodeAuto } = await import('../io/encoding');
+  const encs = [{ value: 'utf-8', label: 'Unicode (UTF-8)' }, { value: 'windows-1252', label: 'Western European (Windows)' }, { value: 'iso-8859-1', label: 'Western European (ISO)' }, { value: 'utf-16le', label: 'Unicode (UTF-16 LE)' }, { value: 'utf-16be', label: 'Unicode (UTF-16 BE)' }, { value: 'shift_jis', label: 'Japanese (Shift-JIS)' }, { value: 'euc-jp', label: 'Japanese (EUC-JP)' }, { value: 'gbk', label: 'Chinese Simplified (GBK)' }, { value: 'big5', label: 'Chinese Traditional (Big5)' }, { value: 'euc-kr', label: 'Korean (EUC-KR)' }, { value: 'macintosh', label: 'Western European (Mac)' }, { value: 'windows-1250', label: 'Central European (Windows)' }, { value: 'windows-1251', label: 'Cyrillic (Windows)' }, { value: 'koi8-r', label: 'Cyrillic (KOI8-R)' }, { value: 'windows-1253', label: 'Greek (Windows)' }, { value: 'windows-1254', label: 'Turkish (Windows)' }, { value: 'windows-1255', label: 'Hebrew (Windows)' }, { value: 'windows-1256', label: 'Arabic (Windows)' }, { value: 'windows-1257', label: 'Baltic (Windows)' }, { value: 'windows-1258', label: 'Vietnamese (Windows)' }, { value: 'cp437', label: 'OEM United States (DOS 437)' }, { value: 'cp850', label: 'Western European (DOS 850)' }];
+  const detected = detectEncoding(new Uint8Array(f.data)).encoding;
+  let text = decodeAuto(new Uint8Array(f.data)).text;
   const det = detectDelimiter(text);
   const delimOpts = [{ value: ',', label: 'Comma' }, { value: ';', label: 'Semicolon' }, { value: '\t', label: 'Tab' }, { value: '|', label: 'Pipe' }, { value: ' ', label: 'Space' }, { value: 'other', label: 'Other…' }];
   const types: string[] = [];
@@ -1218,7 +1220,7 @@ async function fromText(app: App): Promise<void> {
   const res = await openDialog({
     title: `Import ${f.name}`, wide: true,
     fields: [
-      { key: 'enc', type: 'select', label: 'File origin (encoding)', options: encs, value: 'utf-8', half: true },
+      { key: 'enc', type: 'select', label: 'File origin (encoding)', options: encs.some((e) => e.value === detected) ? encs : [{ value: detected, label: detected }, ...encs], value: detected, half: true },
       { key: 'delim', type: 'select', label: 'Delimiter', options: delimOpts, value: delimOpts.some((o) => o.value === det) ? det : ',', half: true },
       { key: 'other', type: 'text', label: 'Other delimiter', value: '', visibleIf: (v) => v.delim === 'other', width: '4em' },
       { key: 'quote', type: 'select', label: 'Text qualifier', options: [{ value: '"', label: '"' }, { value: "'", label: "'" }, { value: 'none', label: '{none}' }], value: '"', half: true },
@@ -1228,7 +1230,7 @@ async function fromText(app: App): Promise<void> {
       { key: 'where', type: 'radio', label: 'Put the data in', options: [{ value: 'new', label: 'New worksheet' }, { value: 'here', label: 'Existing worksheet at the active cell' }], value: 'new' },
     ],
     content: h('div', null, h('div', { class: 'ql-label' }, 'Preview (choose a type above each column)'), preview),
-    onChange: (v, _ctl, key) => { if (key === 'enc') text = decodeText(f.data, v.enc); render(v); },
+    onChange: (v, _ctl, key) => { if (key === 'enc') text = decodeAuto(new Uint8Array(f.data), v.enc).text; render(v); },
   });
   if (!res) return;
   const rows = parse(res);

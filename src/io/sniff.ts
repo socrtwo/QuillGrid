@@ -11,6 +11,9 @@
  */
 import { lotusVariant, LOTUS_VARIANT_LABEL } from './legacy/signatures';
 import { isOle2, readCfb } from './recover/doc97';
+import { SNIFF_RULES_B } from './sniff-b';
+import { unframeIwa, indexArchives, type IwaObject } from './iwa';
+import { immortalInflate } from './recover/inflate';
 
 export type SniffCategory = 'spreadsheet' | 'document' | 'presentation' | 'email' | 'unknown';
 
@@ -177,6 +180,13 @@ export function sniff(data: ArrayBuffer | Uint8Array, name = ''): SniffResult {
     const extHit = near.find((s) => s.rule.ext.includes(ext));
     if (extHit) best = extHit;
   }
+  // Plain text that only the generic text rules matched: a name that says which text format it is
+  // (fixed width .prn, .csv, .slk ...) decides.
+  const TEXTISH = ['prn', 'csv', 'tsv', 'txt', 'json', 'ndjson', 'dif', 'sylk', 'html'];
+  if (best && best.c < 0.5 && ['txt', 'csv', 'tsv'].includes(best.rule.id)) {
+    const er = byExt.find((r) => TEXTISH.includes(r.format) && r.format !== best!.format);
+    if (er) return { format: er.format, label: er.label, confidence: best.c, category: er.category, byExtension: true, rule: er.id };
+  }
   if (!best || best.c < 0.25) {
     const er = byExt[0];
     if (er) return { format: er.format, label: er.label, confidence: 0.2, category: er.category, byExtension: true, rule: er.id, note: bytes.length ? undefined : 'The file is empty.' };
@@ -206,6 +216,36 @@ function result(best: { rule: SniffRule; c: number; label: string; format: strin
 /** "a" or "an" for a format label. */
 export function article(label: string): string { return /^[AEIOU]/i.test(label) && !/^(Uniform|Unicode)/.test(label) ? 'an' : 'a'; }
 
+
+/**
+ * iWork 2013+ packages (Numbers, Pages, Keynote) share their layout; the type of the document
+ * object (id 1) in Index/Document.iwa tells them apart: 1 for Numbers and Keynote, 10000 for Pages.
+ */
+function iworkDocumentType(b: Uint8Array): number | null {
+  const want = 'Index/Document.iwa';
+  for (let p = 0; p + 30 < b.length;) {
+    if (b[p] !== 0x50 || b[p + 1] !== 0x4b || b[p + 2] !== 3 || b[p + 3] !== 4) { p++; continue; }
+    const method = b[p + 8] | (b[p + 9] << 8);
+    const csize = (b[p + 18] | (b[p + 19] << 8) | (b[p + 20] << 16) | (b[p + 21] << 24)) >>> 0;
+    const nl = b[p + 26] | (b[p + 27] << 8), el = b[p + 28] | (b[p + 29] << 8);
+    let name = '';
+    for (let k = 0; k < nl; k++) name += String.fromCharCode(b[p + 30 + k]);
+    const start = p + 30 + nl + el;
+    if (name === want) {
+      try {
+        let raw = b.subarray(start, start + csize);
+        if (method === 8) raw = immortalInflate(raw).data;
+        else if (method !== 0) return null;
+        const objs = new Map<number, IwaObject>();
+        indexArchives(unframeIwa(raw.subarray(0, Math.min(raw.length, 1 << 20))), want, objs);
+        return objs.get(1)?.type ?? null;
+      } catch { return null; }
+    }
+    p = csize > 0 ? start + csize : p + 4;
+  }
+  return null;
+}
+
 // ------------------------------------------------------------------------------------------
 // Helpers for rules
 
@@ -222,7 +262,7 @@ const cfbHas = (ctx: SniffContext, test: (n: string) => boolean) => !!ctx.cfb()?
 
 /** RFC 822 header lines at the start of a text. */
 function headerFields(t: string): string[] {
-  const lines = t.replace(/^﻿/, '').split(/\r?\n/, 40);
+  const lines = t.replace(/^\uFEFF/, '').split(/\r?\n/, 40);
   const out: string[] = [];
   for (const l of lines) {
     if (!l) break;
@@ -323,6 +363,11 @@ const BUILTIN: SniffRule[] = [
     const iwa = n.some((x) => x.startsWith('index/') && x.endsWith('.iwa')) || n.includes('index.zip');
     const old = n.includes('index.xml') || n.includes('index.xml.gz') || n.includes('index.apxl') || n.includes('index.apxl.gz');
     if (!iwa && !old) return 0;
+    if (iwa && !n.some((x) => /^index\/(slide|masterslide)/.test(x))) {
+      const t = iworkDocumentType(c.bytes);
+      if (t === 10000) return { confidence: 0.97, format: 'wordtext', label: 'Apple Pages document', category: 'document' };
+      if (t === 1) return 0.97;
+    }
     if (n.some((x) => /^index\/(calculationengine|tables\/)/.test(x)) || (old && c.ext === 'numbers')) return 0.9;
     if (n.some((x) => /^index\/(slide|masterslide)/.test(x)) || n.includes('index.apxl') || n.includes('index.apxl.gz')) return { confidence: 0.9, format: 'wordtext', label: 'Apple Keynote presentation', category: 'presentation' };
     return { confidence: 0.85, format: 'wordtext', label: 'Apple Pages document', category: 'document' };
@@ -444,7 +489,7 @@ const BUILTIN: SniffRule[] = [
   } },
   { id: 'wingz', format: 'wingz', label: 'Wingz worksheet', category: S, ext: ['wkz'], detect: () => 0 },
   { id: 'planmaker', format: 'planmaker', label: 'PlanMaker workbook', category: S, ext: ['pmd', 'pmdx', 'pmv'], detect: () => 0 },
-  { id: 'uof', format: 'uof', label: 'Uniform Office Format document', category: S, ext: ['uos', 'uof'], detect: (c) => (/uof:UOF/.test(c.head) ? 0.8 : 0) },
+  { id: 'uof', format: 'uos', label: 'Uniform Office Format document', category: S, ext: ['uos', 'uof'], detect: (c) => (/uof:UOF/.test(c.head) ? 0.8 : 0) },
 
   // ---- word processors
   { id: 'rtf', format: 'rtf', label: 'Rich Text Format document (RTF)', category: D, ext: ['rtf'], detect: (c) => (c.head.startsWith('{\\rtf') ? 0.95 : 0) },
@@ -468,7 +513,7 @@ const BUILTIN: SniffRule[] = [
   { id: 'md', format: 'txt', label: 'Markdown document', category: D, ext: ['md', 'markdown'], detect: () => 0 },
 
   // ---- e-mail
-  { id: 'eml', format: 'eml', label: 'E-mail message (EML)', category: E, ext: ['eml', 'emlx', 'mht', 'mhtml', 'nws'], detect: (c) => {
+  { id: 'eml', format: 'eml', label: 'E-mail message (EML)', category: E, ext: ['eml', 'emlx', 'nws'], detect: (c) => {
     let t = c.text();
     if (/^\d+\s*\r?\n/.test(t)) t = t.replace(/^\d+\s*\r?\n/, ''); // emlx byte count line
     const f = headerFields(t);
@@ -476,7 +521,8 @@ const BUILTIN: SniffRule[] = [
     const mail = ['from', 'to', 'subject', 'date', 'received', 'return-path', 'message-id', 'mime-version', 'delivered-to', 'x-mailer', 'reply-to', 'cc', 'content-type'];
     const hits = f.filter((x) => mail.includes(x)).length;
     if (hits < 2) return 0;
-    if (/^content-type:\s*multipart\/related/im.test(t.slice(0, 4000)) && !f.includes('from') && !f.includes('received')) return { confidence: 0.85, label: 'Web archive (MHT)' };
+    // Web archives (multipart/related without a sender) are pages, read by the MHTML rule.
+    if (/^content-type:\s*multipart\/related/im.test(t.slice(0, 4000)) && !f.includes('from') && !f.includes('received')) return 0;
     return Math.min(0.92, 0.55 + hits * 0.08);
   } },
   { id: 'mbox', format: 'mbox', label: 'Mailbox (MBOX)', category: E, ext: ['mbox', 'mbx', 'mbs', 'mail'], detect: (c) => {
@@ -490,8 +536,8 @@ const BUILTIN: SniffRule[] = [
 
   // ---- text formats this app already reads
   { id: 'qgwe', format: 'qgwe', label: 'Encrypted QuillGrid workbook', category: S, ext: ['qgwe', 'qlwe'], detect: (c) => (c.head.startsWith('QFDE1') ? 0.98 : 0) },
-  { id: 'sylk', format: 'sylk', label: 'SYLK file (SLK)', category: S, ext: ['slk', 'sylk'], detect: (c) => (/^﻿?ID;/.test(c.text()) ? 0.92 : 0) },
-  { id: 'dif', format: 'dif', label: 'Data Interchange Format (DIF)', category: S, ext: ['dif'], detect: (c) => (/^﻿?TABLE\r?\n\s*0\s*,\s*1\s*\r?\n/.test(c.text().trimStart()) ? 0.92 : 0) },
+  { id: 'sylk', format: 'sylk', label: 'SYLK file (SLK)', category: S, ext: ['slk', 'sylk'], detect: (c) => (/^\uFEFF?ID;/.test(c.text()) ? 0.92 : 0) },
+  { id: 'dif', format: 'dif', label: 'Data Interchange Format (DIF)', category: S, ext: ['dif'], detect: (c) => (/^\uFEFF?TABLE\r?\n\s*0\s*,\s*1\s*\r?\n/.test(c.text().trimStart()) ? 0.92 : 0) },
   { id: 'xml2003', format: 'xml', label: 'Excel 2003 XML spreadsheet', category: S, ext: ['xml'], detect: (c) => {
     const t = c.text();
     if (!/urn:schemas-microsoft-com:office:spreadsheet/.test(t.slice(0, 8000))) return 0;
@@ -505,7 +551,13 @@ const BUILTIN: SniffRule[] = [
     return 0.9;
   } },
   { id: 'json', format: 'json', label: 'QuillGrid JSON workbook', category: S, ext: ['json'], detect: (c) => (/^\s*\{/.test(c.text()) && /"format"\s*:\s*"quillgrid"|"qgw"\s*:/.test(c.text().slice(0, 4096)) ? 0.9 : 0) },
-  { id: 'html', format: 'html', label: 'Web page (HTML)', category: S, ext: ['html', 'htm', 'xhtml', 'shtml'], detect: (c) => (/^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<(!doctype html|html|table|body|head|meta)\b/i.test(c.text().replace(/^﻿/, '')) ? 0.8 : 0) },
+  { id: 'html', format: 'html', label: 'Web page (HTML)', category: S, ext: ['html', 'htm', 'xhtml', 'shtml'], detect: (c) => {
+    const t = c.text().replace(/^\uFEFF/, '');
+    if (/^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<(!doctype html|html|table|body|head|meta)\b/i.test(t)) return 0.8;
+    // Fragments copied from web pages and spreadsheet programs: markup with a table in it.
+    if (/^\s*</.test(t) && /<table\b/i.test(t.slice(0, 16384))) return 0.6;
+    return 0;
+  } },
   { id: 'csv', format: 'csv', label: 'Comma-separated values (CSV)', category: S, ext: ['csv'], detect: (c) => textTable(c, ',') },
   { id: 'tsv', format: 'tsv', label: 'Tab-separated values (TSV)', category: S, ext: ['tsv', 'tab'], detect: (c) => textTable(c, '\t') },
   { id: 'txt', format: 'txt', label: 'Text file', category: S, ext: ['txt', 'text', 'prn', 'asc'], detect: (c) => (isText(c) ? 0.26 : 0) },
@@ -533,3 +585,23 @@ function textTable(c: SniffContext, sep: string): number {
 }
 
 for (const r of BUILTIN) registerSniffer(r);
+
+// The modern, XML and text spreadsheet formats (sniff-b.ts), with the same guards they had alone:
+// a fixed-width or JSON guess never overrides a name that says CSV or another text format, and an
+// Apple package is only a Numbers spreadsheet when it has a calculation engine or tables.
+const TEXT_EXT = ['csv', 'tsv', 'tab', 'slk', 'sylk', 'dif', 'html', 'htm', 'xml', 'json'];
+for (const r of SNIFF_RULES_B) {
+  registerSniffer({
+    id: r.id, format: r.format, label: r.label, category: r.category, ext: r.ext,
+    detect: (c) => {
+      if (r.format === 'prn' && TEXT_EXT.includes(c.ext)) return 0;
+      if ((r.format === 'json' || r.format === 'ndjson') && ['csv', 'tsv', 'tab', 'txt'].includes(c.ext) && !c.text().trimStart().startsWith('[')) return 0;
+      if (r.format === 'numbers') {
+        const z = c.zip();
+        if (z && z.some((n) => /(^|\/)index\/(slide|masterslide|presentation)/.test(n))) return 0;
+        if (z && z.some((n) => /(^|\/)index\/document\.iwa$/.test(n)) && iworkDocumentType(c.bytes) === 10000) return 0; // a Pages document
+      }
+      return r.detect(c);
+    },
+  });
+}
