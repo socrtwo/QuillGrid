@@ -18,7 +18,7 @@ def write_zip(path, parts, mimetype=None):
         if mimetype:
             z.writestr(zipfile.ZipInfo('mimetype'), mimetype, compress_type=zipfile.ZIP_STORED)
         for name, data in parts:
-            z.writestr(name, data, compress_type=zipfile.ZIP_DEFLATED)
+            z.writestr(zipfile.ZipInfo(name, date_time=(2004, 3, 15, 0, 0, 0)), data, compress_type=zipfile.ZIP_DEFLATED)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -171,6 +171,86 @@ def make_sxc():
         ('settings.xml', SXC_SETTINGS), ('META-INF/manifest.xml', SXC_MANIFEST)], 'application/vnd.sun.xml.calc')
 
 
+# ---------------------------------------------------------------------------------------------
+# KSpread (KOffice 1.x)
+
+KSP_MAIN = """<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE spreadsheet >
+<spreadsheet mime="application/x-kspread" editor="KSpread" syntaxVersion="1">
+ <paper format="A4" orientation="Portrait"><borders left="20" top="20" right="20" bottom="20"/><head left="" center="" right=""/><foot left="" center="" right=""/></paper>
+ <map activeTable="Fruit" markerColumn="1" markerRow="1">
+  <table name="Fruit" columnnumber="0" borders="0" hide="0" hidezero="0" firstletterupper="0" grid="1" printGrid="0" lcmode="0" showFormula="0">
+   <column width="90" column="1"><format/></column>
+   <row height="24" row="1"><format/></row>
+   <cell row="1" column="1"><format align="2" bgcolor="#ffff00"><font family="Helvetica" size="12" weight="75" italic="0" underline="0" strikeout="0"/><bottom-border><pen width="1" style="1" color="#000000"/></bottom-border></format><text>Name</text><comment>Header note</comment></cell>
+   <cell row="1" column="2"><format align="2" bgcolor="#ffff00"><font family="Helvetica" size="12" weight="75"/></format><text>Qty</text></cell>
+   <cell row="1" column="3"><format align="2" bgcolor="#ffff00"><font family="Helvetica" size="12" weight="75"/></format><text>Price</text></cell>
+   <cell row="1" column="4"><format align="2" bgcolor="#ffff00"><font family="Helvetica" size="12" weight="75"/></format><text>Total</text></cell>
+   <cell row="2" column="1"><text dataType="Str">Apple</text></cell>
+   <cell row="2" column="2"><text dataType="Num">3</text></cell>
+   <cell row="2" column="3"><format precision="2" format="1"><font family="Helvetica" size="10" weight="50" italic="1"/></format><text dataType="Num">1.25</text></cell>
+   <cell row="2" column="4"><text outStr="3.75">=#-2#0#*#-1#0#</text></cell>
+   <cell row="2" column="5"><text dataType="Date">2024/03/15</text></cell>
+   <cell row="3" column="1"><text dataType="Str">Pear</text></cell>
+   <cell row="3" column="2"><text dataType="Num">5</text></cell>
+   <cell row="3" column="3"><text dataType="Num">2.5</text></cell>
+   <cell row="3" column="4"><text outStr="12.5">=#-2#0#*#-1#0#</text></cell>
+   <cell row="3" column="5"><text dataType="Bool">true</text></cell>
+   <cell row="4" column="1"><text dataType="Str">Sum</text></cell>
+   <cell row="4" column="4"><text outStr="16.25">=SUM(#0#-2#:#0#-1#)</text></cell>
+   <cell row="4" column="5"><text outStr="many">=IF($2$2#&gt;2;"many";"few")</text></cell>
+   <cell row="5" column="1"><format colspan="2" rowspan="0"/><text dataType="Str">Merged title</text></cell>
+  </table>
+  <table name="Hidden" hide="1" grid="0"><cell row="1" column="1"><text dataType="Num">42</text></cell></table>
+ </map>
+</spreadsheet>
+"""
+
+KSP_INFO = """<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE document-info>
+<document-info><author><full-name>Ann</full-name><company>Fruit Co</company></author><about><title>Fruit list</title><abstract></abstract></about></document-info>
+"""
+
+
+def make_ksp():
+    write_zip(os.path.join(HERE, 'sample.ksp'), [('maindoc.xml', KSP_MAIN), ('documentinfo.xml', KSP_INFO)], 'application/x-kspread')
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode='w', format=tarfile.USTAR_FORMAT) as t:
+        for name, text in (('maindoc.xml', KSP_MAIN), ('documentinfo.xml', KSP_INFO)):
+            data = text.encode('utf-8')
+            info = tarfile.TarInfo(name); info.size = len(data); info.mtime = 0
+            t.addfile(info, io.BytesIO(data))
+    with open(os.path.join(HERE, 'sample-old.ksp'), 'wb') as f:
+        f.write(gzip.compress(buf.getvalue(), mtime=0))
+
+
+# ---------------------------------------------------------------------------------------------
+# SQLite
+
+def make_sqlite():
+    path = os.path.join(HERE, 'sample.sqlite')
+    if os.path.exists(path):
+        os.remove(path)
+    c = sqlite3.connect(path)
+    c.execute('PRAGMA page_size=1024')
+    c.execute('CREATE TABLE fruit (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price REAL, qty INT, notes TEXT, pic BLOB)')
+    c.executemany('INSERT INTO fruit(name,price,qty,notes,pic) VALUES (?,?,?,?,?)', [
+        ('Apple', 1.25, 3, None, None), ('Pear', 2.5, 5, 'Crème brûlée – 日本', b'\x00\x01\x02'), ('Plum', 0.75, 12, 'x' * 5000, None)])
+    c.execute('CREATE TABLE "big table" (n INTEGER, sq INTEGER, label TEXT)')
+    c.executemany('INSERT INTO "big table" VALUES (?,?,?)', [(i, i * i, 'row %d' % i) for i in range(1, 1001)])
+    c.execute('CREATE TABLE kv (k TEXT, v INTEGER, PRIMARY KEY (k)) WITHOUT ROWID')
+    c.executemany('INSERT INTO kv VALUES (?,?)', [('b', 2), ('a', 1), ('c', 3)])
+    c.execute('CREATE TABLE ints (big INTEGER)')
+    c.executemany('INSERT INTO ints VALUES (?)', [(9007199254740993,), (-70000,), (2 ** 40,)])
+    c.execute('CREATE VIEW cheap AS SELECT name FROM fruit WHERE price < 2')
+    c.commit()
+    c.close()
+
+
 if __name__ == '__main__':
     make_sxc()
+    make_ksp()
+    import sys
+    if '--sqlite' in sys.argv:
+        make_sqlite()  # rewrites the committed database (byte layout may change)
     print('fixtures written to', HERE)

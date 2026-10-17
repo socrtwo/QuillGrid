@@ -417,3 +417,26 @@ describe('Apple Numbers', () => {
     expect(warnings.join(' ')).toMatch(/only a preview/);
   });
 });
+
+describe('KSpread', () => {
+  for (const f of ['sample.ksp', 'sample-old.ksp']) {
+    it(`reads ${f}`, async () => {
+      const data = fixture(f);
+      expect(sniffFormat(data, f)?.id).toBe('ksp');
+      const { book, format } = await importFile(data, f);
+      expect(format).toBe('ksp');
+      expect(book.sheets.map((s) => [s.name, s.visibility])).toEqual([['Fruit', 'visible'], ['Hidden', 'hidden']]);
+      const s = book.sheets[0];
+      expect([val(s, 'A2'), val(s, 'B2'), val(s, 'C2'), val(s, 'D2'), val(s, 'E2'), val(s, 'E3')]).toEqual(['Apple', 3, 1.25, 3.75, 45366, true]);
+      expect([fml(s, 'D2'), fml(s, 'D3'), fml(s, 'D4'), fml(s, 'E4')]).toEqual(['B2*C2', 'B3*C3', 'SUM(D2:D3)', 'IF($B$2>2,"many","few")']);
+      expect(sty(s, 'A1')).toMatchObject({ bold: true, size: 12, font: 'Helvetica', fill: '#ffff00', hAlign: 'center', bb: { style: 'thin' } });
+      expect(sty(s, 'C2')).toMatchObject({ numFmt: '0.00', italic: true });
+      expect(sty(s, 'E2').numFmt).toBe('yyyy-mm-dd');
+      expect(s.merges).toEqual([{ r1: 4, c1: 0, r2: 4, c2: 2 }]);
+      expect(s.comments.get(K('A1'))?.text).toBe('Header note');
+      expect(s.colW.get(0)).toBe(120);
+      expect(book.props).toMatchObject({ title: 'Fruit list', author: 'Ann', company: 'Fruit Co' });
+      expect(recalcDiffs(book)).toEqual([]);
+    });
+  }
+});
