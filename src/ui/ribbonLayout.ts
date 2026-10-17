@@ -60,6 +60,7 @@ export const DEFAULT_TABS: RibbonTab[] = [
       { id: 'names', label: 'Defined Names', items: ['formulas.nameManager', 'formulas.defineName', 'formulas.useInFormula', 'formulas.createFromSelection'] },
       { id: 'auditing', label: 'Formula Auditing', items: ['formulas.tracePrecedents', 'formulas.traceDependents', 'formulas.removeArrows', 'view.showFormulas', 'formulas.errorChecking', 'formulas.evaluate', 'formulas.watchWindow'] },
       { id: 'calculation', label: 'Calculation', items: ['formulas.calcOptions', 'formulas.calcNow', 'formulas.calcSheet'] },
+      { id: 'insight', label: 'Insight', items: ['formulas.explainValue', 'formulas.dependencyDiagram', 'formulas.formulaRules', 'formulas.selectInconsistent', 'formulas.infoWindow', 'formulas.cellHistory'] },
     ],
   },
   {
@@ -69,9 +70,10 @@ export const DEFAULT_TABS: RibbonTab[] = [
       { id: 'types', label: 'Data Types', items: ['data.dataTypes'] },
       { id: 'sortFilter', label: 'Sort & Filter', items: ['data.sortAZ', 'data.sortZA', 'data.sort', 'data.filter', 'data.clearFilter', 'data.reapply', 'data.advancedFilter'] },
       { id: 'tools', label: 'Data Tools', items: ['data.textToColumns', 'data.flashFill', 'data.removeDuplicates', 'data.validation', 'data.consolidate', 'data.relationships'] },
-      { id: 'forecast', label: 'Forecast', items: ['data.whatIf', 'data.forecastSheet'] },
+      { id: 'records', label: 'Records', items: ['data.dataForm', 'data.columnType', 'data.categorize', 'data.queryDelete'] },
+      { id: 'forecast', label: 'Forecast', items: ['data.whatIf', 'data.forecastSheet', 'data.whatIfSliders', 'data.monteCarlo'] },
       { id: 'outline', label: 'Outline', items: ['data.group', 'data.ungroup', 'data.subtotal', 'data.showDetail', 'data.hideDetail'], launcher: 'data.outlineSettings' },
-      { id: 'analyze', label: 'Analyze', items: ['data.analysisTools', 'data.solver'] },
+      { id: 'analyze', label: 'Analyze', items: ['data.analysisTools', 'data.solver', 'data.matrix'] },
     ],
   },
   {
@@ -89,8 +91,8 @@ export const DEFAULT_TABS: RibbonTab[] = [
   {
     id: 'view', label: 'View', groups: [
       { id: 'sheetView', label: 'Sheet View', items: ['view.sheetViewMenu'] },
-      { id: 'views', label: 'Workbook Views', items: ['view.normal', 'view.pageBreak', 'view.pageLayout', 'view.customViews'] },
-      { id: 'show', label: 'Show', items: ['view.formulaBar', 'view.gridlines', 'view.headings', 'view.ruler'] },
+      { id: 'views', label: 'Workbook Views', items: ['view.normal', 'view.pageBreak', 'view.pageLayout', 'view.customViews', 'view.chartSlideShow'] },
+      { id: 'show', label: 'Show', items: ['view.formulaBar', 'view.gridlines', 'view.headings', 'view.ruler', 'view.mapView'] },
       { id: 'zoom', label: 'Zoom', items: ['view.zoom', 'view.zoom100', 'view.zoomSelection'] },
       { id: 'window', label: 'Window', items: ['view.newWindow', 'view.arrangeAll', 'view.freezePanes', 'view.split', 'view.hideWindow', 'view.unhideWindow', 'view.switchWindows'] },
       { id: 'appearance', label: 'Appearance', items: ['view.darkSheet', 'view.fullScreen', 'view.navigator'] },
@@ -104,6 +106,7 @@ export const DEFAULT_TABS: RibbonTab[] = [
       { id: 'compare', label: 'Compare', items: ['tools.compareSheets', 'tools.findDuplicates', 'tools.fuzzyMatch'] },
       { id: 'analyze', label: 'Analyze', items: ['tools.dataProfile', 'tools.descriptiveStats', 'tools.histogram', 'tools.correlation'] },
       { id: 'generate', label: 'Generate', items: ['tools.randomData', 'tools.sequence', 'tools.calendar'] },
+      { id: 'classic', label: 'Classic', items: ['tools.slashMenu', 'tools.slashKey', 'tools.lotusEntry', 'tools.lotusLabels', 'tools.convertLotus', 'tools.exportCode'] },
     ],
   },
   {

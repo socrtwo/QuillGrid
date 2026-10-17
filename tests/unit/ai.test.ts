@@ -192,6 +192,7 @@ describe('ribbon coverage', () => {
   it('defines every AI, Tools, Developer and Draw ribbon command', async () => {
     await import('../../src/commands/ai');
     await import('../../src/commands/tools');
+    await import('../../src/commands/heritage');
     await import('../../src/commands/developer');
     await import('../../src/commands/draw');
     const { DEFAULT_TABS } = await import('../../src/ui/ribbonLayout');
