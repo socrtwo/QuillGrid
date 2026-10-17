@@ -68,6 +68,8 @@ The apps share one application shell: the command registry, Quick Access Bar, cu
 | [docs/COMMANDS-PLAN.md](docs/COMMANDS-PLAN.md) | The planned command inventory, tab by tab, with command ids |
 | [docs/ARCHITECTURE-PLAN.md](docs/ARCHITECTURE-PLAN.md) | Intended architecture: shell, document model, rendering, presenter view, export, AI, recovery, builds |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Milestones |
+| [docs/FORMATS-PLAN.md](docs/FORMATS-PLAN.md) | Every presentation format to open, current and historical, detected by content, with planned fidelity |
+| [docs/ENSEMBLE.md](docs/ENSEMBLE.md) | Several AIs on one request: master synthesis or Quaker consensus |
 | [docs/LEGAL.md](docs/LEGAL.md) | Clean-room, trademark and licensing notes |
 
 ## Project language
