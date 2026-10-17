@@ -534,7 +534,7 @@ describe('files written by LibreOffice', () => {
     expect(s.rowH.get(0)).toBe(30);
     expect(s.print.area).toBe('$A$1:$D$5');
     expect(s.drawings.filter((d) => d.kind === 'image').length).toBe(1);
-    expect(res.warnings.join(' ')).toMatch(/Charts/);
+    expect(s.charts.length).toBeGreaterThan(0); // charts in OpenDocument files are read
     expect(b.names).toEqual([{ name: 'Rate', ref: 'Sheet1!$C$2', sheet: null }]);
     expect(b.sheets[1].visibility).toBe('hidden');
   });
