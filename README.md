@@ -95,7 +95,7 @@ Keys are stored encrypted on the device (Android Keystore on Android, the system
 
 ## Known limitations (0.1)
 
-- **Native builds are untested on devices.** The web build, 497 unit tests, a browser smoke test (`npm run e2e`) and a phone layout audit (`npm run e2e:layout`: every window, menu and pane on emulated phones with system bars and the on-screen keyboard) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
+- **Native builds are untested on devices.** The web build, 591 unit tests, a browser smoke test (`npm run e2e`) and a phone layout audit (`npm run e2e:layout`: every window, menu and pane on emulated phones with system bars and the on-screen keyboard) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
 - **VBA is preserved, not run.** .xlsm files keep their VBA project when saved as .xlsm; macros run only in QuillGrid's JavaScript macro language.
 - **PivotTables from other programs open as static values.** PivotTables made in QuillGrid are live, but they are written to .xlsx as values, not as pivot caches.
 - **OpenDocument charts and embedded objects** are not opened or saved; cell data, formulas, styles, merges and conditional formats are.
