@@ -37,7 +37,8 @@ if ! exists QuillStage; then
   gh repo create "$OWNER/QuillStage" --public --description "$DESC_STAGE"
 fi
 gh repo edit "$OWNER/QuillStage" --description "$DESC_STAGE" --add-topic presentation,slides,slideshow,pptx,odp,office-suite,quill-suite,android,ios,electron,pwa,capacitor,clean-room,open-source,ai
-if [ -z "$(gh api "repos/$OWNER/QuillStage/commits?per_page=1" --jq '.[0].sha' 2>/dev/null || true)" ]; then
+# An empty repository has no branches; the API answers errors for it, so ask git directly.
+if ! git ls-remote --heads "https://github.com/$OWNER/QuillStage.git" 2>/dev/null | grep -q refs/heads/; then
   WORK="$(mktemp -d)"
   gh repo clone "$OWNER/QuillGrid" "$WORK/grid" -- --depth 1 --branch "$BRANCH"
   cp -r "$WORK/grid/suite/QuillStage" "$WORK/QuillStage"
