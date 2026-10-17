@@ -25,7 +25,12 @@ const SCHEME = 'app';
 // The page's origin keeps the app's former name so settings, drafts and keys stored by earlier
 // versions stay readable.
 const ORIGIN = `${SCHEME}://quilllattice`; // rename:keep
-const OPENABLE = ['xlsx', 'xlsm', 'xltx', 'xltm', 'xls', 'xlt', 'xlw', 'ods', 'ots', 'fods', 'csv', 'tsv', 'tab', 'txt', 'prn', 'html', 'htm', 'xml', 'slk', 'dif', 'qgw', 'qgwe', 'json', 'qlw', 'qlwe']; // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+const OPENABLE = ['xlsx', 'xlsm', 'xltx', 'xltm', 'xls', 'xlt', 'xlw', 'ods', 'ots', 'fods', 'csv', 'tsv', 'tab', 'txt', 'prn', 'html', 'htm', 'xml', 'slk', 'dif', 'qgw', 'qgwe', 'json', 'qlw', 'qlwe',
+  // legacy spreadsheets
+  'wk1', 'wks', 'wk3', 'wk4', '123', 'wrk', 'wr1', 'wq1', 'wq2', 'wb1', 'wb2', 'wb3', 'qpw', 'xlr', 'dbf', 'vc', 'cwk'];
+/** Documents, slides and mail the app can import or hand to a sibling Quill app (never programs or scripts). */
+const DOCUMENTS = ['docx', 'docm', 'dotx', 'doc', 'dot', 'odt', 'ott', 'fodt', 'rtf', 'wpd', 'wps', 'wri', 'sxw', 'abw', 'pages', 'epub', 'pdf', 'txt', 'md',
+  'pptx', 'pptm', 'ppsx', 'potx', 'ppt', 'pps', 'pot', 'odp', 'otp', 'fodp', 'sxi', 'key', 'eml', 'emlx', 'msg', 'mbox', 'mht', 'mhtml']; // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
 
 protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
 
@@ -82,7 +87,9 @@ function fileFromArgs(argv) {
   for (const a of argv.slice(1)) {
     if (!a || a.startsWith('-')) continue;
     const ext = path.extname(a).slice(1).toLowerCase();
-    if (OPENABLE.includes(ext) && fs.existsSync(a)) return path.resolve(a);
+    // Files are recognized by their contents, so names without an extension open too.
+    const known = OPENABLE.includes(ext) || DOCUMENTS.includes(ext) || (!ext && !a.includes('desktop-app'));
+    try { if (known && fs.statSync(a).isFile()) return path.resolve(a); } catch { /* not a file */ }
   }
   return null;
 }
@@ -133,7 +140,7 @@ function registerIpc() {
   handle('openDocument', async () => {
     const r = await dialog.showOpenDialog(win, {
       properties: ['openFile'],
-      filters: [{ name: 'Spreadsheets', extensions: OPENABLE }, { name: 'All files', extensions: ['*'] }],
+      filters: [{ name: 'Spreadsheets', extensions: OPENABLE }, { name: 'Documents, slides and mail', extensions: DOCUMENTS }, { name: 'All files', extensions: ['*'] }],
     });
     if (r.canceled || !r.filePaths[0]) return { canceled: true };
     grant(r.filePaths[0]);
@@ -198,6 +205,18 @@ function registerIpc() {
   });
   handle('stopLoopback', async () => stopLoop());
   handle('openExternal', async ({ url }) => { if (safeUrl(url)) await shell.openExternal(url); });
+  // Hand a document to the program registered for its type (QuillPen, QuillPost or QuillStage when installed).
+  handle('openWith', async ({ name, data }) => {
+    const base = path.basename(String(name || 'document')).replace(/[\\/:*?"<>|]/g, '_');
+    const ext = path.extname(base).slice(1).toLowerCase();
+    if (!DOCUMENTS.includes(ext)) return { ok: false, error: 'This kind of file is not handed to other programs.' };
+    const dir = path.join(app.getPath('temp'), 'quillgrid-handoff');
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, `${Date.now().toString(36)}-${base}`);
+    fs.writeFileSync(file, Buffer.from(String(data || ''), 'base64'));
+    const err = await shell.openPath(file);
+    return err ? { ok: false, error: err } : { ok: true };
+  });
   handle('http', async ({ url, method, headers, data }) => {
     if (typeof url !== 'string' || !/^https:\/\//i.test(url)) throw new Error('Only https requests are allowed');
     const res = await net.fetch(url, { method: method || 'GET', headers: headers || {}, body: data == null ? undefined : typeof data === 'string' ? data : JSON.stringify(data) });
