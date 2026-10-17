@@ -613,3 +613,46 @@ describe('.xlsx fidelity details', () => {
     expect(s.cf.some((r) => 'extId' in r)).toBe(false);
   });
 });
+
+describe('HTML tables from spreadsheet programs', () => {
+  it('reads LibreOffice HTML: sdval/sdnum, sheet data attributes, font wrappers, comments, sheet names', async () => {
+    const { book } = await importFile(fixture('lo-fruit.html'), 'fruit.html');
+    expect(book.sheets.map((s) => s.name)).toEqual(['Fruit', 'Notes & More']);
+    const s = book.sheets[0];
+    expect([val(s, 'A2'), val(s, 'B2'), val(s, 'C2'), val(s, 'D2'), val(s, 'E2')]).toEqual(['Apple', 3, 1.25, 3.75, 45366]);
+    expect(fml(s, 'D2')).toBe('B2*C2');
+    expect(sty(s, 'C2')).toMatchObject({ numFmt: '0.00', italic: true, color: '#0000ff' });
+    expect(sty(s, 'E2').numFmt).toBe('mm/dd/yyyy');
+    expect(sty(s, 'A1')).toMatchObject({ bold: true, fill: '#ffff00', hAlign: 'center', bb: { style: 'thin' } });
+    expect(s.comments.get(K('A1'))?.text).toBe('Header note');
+    expect(val(s, 'A1')).toBe('Name');
+    expect(s.colW.get(0)).toBe(151);
+    expect(s.merges).toContainEqual({ r1: 5, c1: 0, r2: 5, c2: 2 });
+    expect(fml(book.sheets[1], 'A2')).toBe('Fruit!D5*2');
+  });
+  it('reads Excel HTML: class styles, mso-number-format, x:num, x:fmla, x:bool', async () => {
+    const html = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><style>
+      <!-- td {mso-number-format:General; font-family:Calibri}
+      .xl65 {font-weight:700; background:#FFFF00; mso-pattern:black none; text-align:center; border-bottom:.5pt solid windowtext}
+      .xl66 {mso-number-format:"0\\.00"; font-style:italic; color:blue}
+      .xl67 {mso-number-format:"yyyy\\-mm\\-dd"} --></style></head><body><table>
+      <col width=120><col width=64 span=2>
+      <tr><td class=xl65>Item</td><td class=xl65>Price</td><td class=xl65>Date</td></tr>
+      <tr><td>Apple</td><td class=xl66 x:num="1.25">1.25</td><td class=xl67 x:num="45366">2024-03-15</td></tr>
+      <tr><td>Total</td><td class=xl66 x:num="1.25" x:fmla="=SUM(B2)">1.25</td><td x:bool="TRUE">TRUE</td></tr>
+      </table></body></html>`;
+    const { book } = await importFile(txt(html), 'excel.htm');
+    const s = book.sheets[0];
+    expect(sty(s, 'A1')).toMatchObject({ bold: true, fill: '#ffff00', hAlign: 'center', bb: { style: 'thin' } });
+    expect(sty(s, 'B2')).toMatchObject({ numFmt: '0.00', italic: true, color: '#0000ff' });
+    expect(sty(s, 'C2').numFmt).toBe('yyyy-mm-dd');
+    expect([val(s, 'B2'), val(s, 'C2'), fml(s, 'B3'), val(s, 'C3')]).toEqual([1.25, 45366, 'SUM(B2)', true]);
+    expect([s.colW.get(0), s.colW.get(2)]).toEqual([120, 64]);
+  });
+  it('reads Google Sheets HTML copies (data-sheets-value, R1C1 formulas)', async () => {
+    const html = '<google-sheets-html-origin><table><tr><td data-sheets-value=\'{"1":3,"3":4}\'>4</td><td data-sheets-value=\'{"1":3,"3":8}\' data-sheets-formula="=R[0]C[-1]*2">8</td><td data-sheets-value=\'{"1":2,"2":"007"}\'>007</td><td data-sheets-value=\'{"1":4,"4":1}\'>TRUE</td></tr></table>';
+    const { book } = await importFile(txt(html), 'clip.html');
+    const s = book.sheets[0];
+    expect([val(s, 'A1'), val(s, 'B1'), fml(s, 'B1'), val(s, 'C1'), val(s, 'D1')]).toEqual([4, 8, 'A1*2', '007', true]);
+  });
+});
