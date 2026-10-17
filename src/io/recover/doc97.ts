@@ -23,6 +23,10 @@ export interface CfbStreams {
   streams: Map<string, Uint8Array>;
   /** Chains that ended early or looped. */
   damaged: string[];
+  /** Every stream with its full path ("Storage/Sub/Stream"), root streams without a prefix. */
+  paths?: string[];
+  /** Reads any stream by full path (case-insensitive); null when absent. */
+  read?: (path: string) => Uint8Array | null;
 }
 
 export function readCfb(b: Uint8Array): CfbStreams | null {
@@ -150,6 +154,31 @@ export function readCfb(b: Uint8Array): CfbStreams | null {
     return out.subarray(0, w);
   };
 
+  // Every stream by full path (storages nest through their child trees), read on demand.
+  const byPath = new Map<string, Entry>();
+  const pathNames: string[] = [];
+  {
+    const seenIds = new Set<number>();
+    const walkTree = (start: number, prefix: string, depth: number) => {
+      const st = [start];
+      while (st.length) {
+        const id = st.pop()!;
+        if (id >= entries.length || seenIds.has(id)) continue;
+        seenIds.add(id);
+        const e = entries[id];
+        st.push(e.left, e.right);
+        if (e.type === 2) { byPath.set((prefix + e.name).toLowerCase(), e); pathNames.push(prefix + e.name); }
+        else if (e.type === 1 && depth < 32) walkTree(e.child, `${prefix}${e.name}/`, depth + 1);
+      }
+    };
+    walkTree(root.child, '', 0);
+  }
+  const readPath = (path: string): Uint8Array | null => {
+    const e = byPath.get(path.toLowerCase());
+    if (!e) return null;
+    return e.size < miniCutoff ? readMini(e.start, e.size, e.name) : readBig(e.start, e.size, e.name);
+  };
+
   // Root-level children: walk the red-black sibling tree under root.child.
   const streams = new Map<string, Uint8Array>();
   const visit = new Set<number>();
@@ -169,7 +198,7 @@ export function readCfb(b: Uint8Array): CfbStreams | null {
       if (e.type === 2 && !streams.has(e.name)) streams.set(e.name, e.size < miniCutoff ? readMini(e.start, e.size, e.name) : readBig(e.start, e.size, e.name));
     }
   }
-  return { streams, damaged: [...new Set(damaged)] };
+  return { streams, damaged: [...new Set(damaged)], paths: pathNames, read: readPath };
 }
 
 function concatSectors(b: Uint8Array, sids: number[], secOff: (sid: number) => number, secSize: number): Uint8Array {
