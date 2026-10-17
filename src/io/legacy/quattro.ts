@@ -22,12 +22,7 @@ import { u16, i16, f64, cstr, codepage, walkRecords, charsToPx, type Decoder } f
 import { importLotus, lotusVariant, type LegacyOptions } from './lotus';
 import { LOTUS_FUNCS, unknownFunctions } from './lotusfmla';
 import { isOle2, readCfb } from '../recover/doc97';
-
-/** Quattro functions with their own codes (shared ones use the 1-2-3 codes). */
-const QUATTRO_FUNCS: Record<number, [string, number]> = {
-  0x7a: ['MEMAVAIL', 0], 0x7b: ['MEMEMSAVAIL', 0], 0x7c: ['FILEEXISTS', 1], 0x7d: ['CURVALUE', 2],
-  0x80: ['HEX', 1], 0x81: ['NUM', 1], 0x82: ['SUMPRODUCT', 2],
-};
+import { stringsScan } from '../recover/salvage';
 
 export function importQuattro(data: ArrayBuffer | Uint8Array, name = '', warnings: string[] = [], opts: LegacyOptions = {}): Workbook {
   const b = data instanceof Uint8Array ? data : new Uint8Array(data);
@@ -74,7 +69,8 @@ function wbFormula(code: Uint8Array, refs: Uint8Array, at: { r: number; c: numbe
     rp += 6;
     return cellText(x, false);
   };
-  const funcs = { ...LOTUS_FUNCS, ...QUATTRO_FUNCS };
+  // Quattro Pro uses the 1-2-3 function codes for the functions the two programs share.
+  const funcs = LOTUS_FUNCS;
   const OPS: Record<number, [string, number]> = {
     0x08: ['-', 1], 0x09: ['+', 2], 0x0a: ['-', 2], 0x0b: ['*', 2], 0x0c: ['/', 2], 0x0d: ['^', 2], 0x0e: ['=', 2], 0x0f: ['<>', 2],
     0x10: ['<=', 2], 0x11: ['>=', 2], 0x12: ['<', 2], 0x13: ['>', 2], 0x14: ['#AND#', 2], 0x15: ['#OR#', 2], 0x16: ['#NOT#', 1], 0x17: ['+', 1], 0x18: ['&', 2],
@@ -191,31 +187,23 @@ function importWb(b: Uint8Array, name: string, warnings: string[], opts: LegacyO
 // Quattro Pro 7+ (QPW): the record layout of the "NativeContent_MAIN" stream is not public.
 
 function importQpw(b: Uint8Array, name: string, warnings: string[]): Workbook {
-  // Strings live in a notebook-wide table (record 0x0407); numbers are packed in column blocks
-  // whose layout is unknown, so only the text is recovered, one string per row.
+  // The record layout of Quattro Pro 7+ notebooks is not public: recover the readable text of the
+  // notebook stream, one item per row.
   const cfb = readCfb(b);
   const s = cfb?.read?.('NativeContent_MAIN') || cfb?.read?.('PerfectOffice_MAIN') || null;
   if (!s) throw new Error('The Quattro Pro notebook stream was not found.');
   const book = new Workbook(false);
   const sh = new Sheet(book, 'Text');
+  sh.colW.set(0, 320);
   book.sheets.push(sh);
-  const dec = codepage(1252);
-  const { recs } = walkRecords(s, { lenient: true });
   let row = 0;
-  for (const r of recs) {
-    if (r.op !== 0x0407) continue;
-    // A count, then length-prefixed strings.
-    let p = 4;
-    const d = r.data;
-    while (p < d.length && row < 100000) {
-      const n = u16(d, p);
-      if (!n || p + 2 + n > d.length) break;
-      const t = dec(d.subarray(p + 2, p + 2 + n)).replace(/\0+$/, '');
-      if (t) sh.setComputed(row++, 0, { v: t });
-      p += 2 + n;
-    }
+  for (const line of stringsScan(s, 3).split('\n')) {
+    const t = line.trim();
+    if (!t || !/^[\x20-\x7e\u00a0-\u024f]+$/.test(t) || !/[A-Za-z0-9]{2}/.test(t)) continue;
+    const n = Number(t);
+    sh.setComputed(row++, 0, { v: /^[-+]?\d+(\.\d+)?$/.test(t) && Number.isFinite(n) ? n : t });
   }
-  warnings.push('Quattro Pro 7 and later notebooks (.qpw) are read for their text only; numbers and formulas are not recovered. Save the notebook as .wb3 or .xls in Quattro Pro to keep everything.');
+  warnings.push('Quattro Pro 7 and later notebooks (.qpw) are read for their text only; numbers, formulas and cell positions are not recovered. Save the notebook as .wb3 or .xls in Quattro Pro to keep everything.');
   if (name) book.props.title = name.replace(/\.[^.]+$/, '');
   return book;
 }

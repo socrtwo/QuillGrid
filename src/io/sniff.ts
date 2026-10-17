@@ -187,7 +187,9 @@ export function sniff(data: ArrayBuffer | Uint8Array, name = ''): SniffResult {
 }
 
 function result(best: { rule: SniffRule; c: number; label: string; format: string }, ctx: SniffContext): SniffResult {
-  const out: SniffResult = { format: best.format, label: best.label, confidence: best.c, category: best.rule.category, rule: best.rule.id };
+  // A rule that refines its format (an OpenDocument package that is a text, not a spreadsheet) takes that format's category.
+  const category = best.format === best.rule.format ? best.rule.category : (RULES.find((r) => r.format === best.format)?.category ?? best.rule.category);
+  const out: SniffResult = { format: best.format, label: best.label, confidence: best.c, category, rule: best.rule.id };
   const ext = ctx.ext;
   if (!ext && best.c >= 0.5) out.note = `The file has no extension; its contents show it is a ${best.label}.`;
   else if (!NEUTRAL_EXT.has(ext) && !best.rule.ext.includes(ext) && best.c >= 0.5) {

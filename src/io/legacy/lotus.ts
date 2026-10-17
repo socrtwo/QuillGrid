@@ -179,7 +179,7 @@ class LotusReader {
       this.untranslated++;
       const where = `${this.sheets.length > 1 ? sheet.name + '!' : ''}${colName(c)}${r + 1}`;
       this.warn(`Formula in ${where} could not be translated (${res.error || 'unsupported'}); its last value is kept.`);
-      if (res.lotus) sheet.comments.set(cellKey(r, c), { author: 'Import', text: `1-2-3 formula, not translated: ${res.lotus}`, time: Date.now(), note: true });
+      sheet.comments.set(cellKey(r, c), { author: 'Import', text: res.lotus ? `1-2-3 formula, not translated (${res.error}): ${res.lotus}` : `The 1-2-3 formula here could not be read (${res.error}); the value is the one 1-2-3 last calculated.`, time: Date.now(), note: true });
     }
     this.put(sheet, r, c, cell);
     return cell;

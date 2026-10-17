@@ -1,0 +1,21 @@
+From: =?UTF-8?B?SsO8cmdlbg==?= <j@example.com>
+To: team@example.com
+Subject: Weekly numbers
+Date: Tue, 14 Oct 2025 09:30:00 +0200
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="XYZ"
+
+--XYZ
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Hello,
+the numbers are attached =E2=80=94 see below.
+
+--XYZ
+Content-Type: text/csv; name="numbers.csv"
+Content-Disposition: attachment; filename="numbers.csv"
+Content-Transfer-Encoding: base64
+
+SXRlbSxRdHkKUGVucywzClBhZHMsNQo=
+--XYZ--

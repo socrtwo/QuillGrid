@@ -292,3 +292,121 @@ export const VISICALC_SAMPLE = [
   '>A1:"ITEM', '>B1:/FR"COST', '>A2:"PENS', '>B2:/F$2.5', '>A3:"PADS', '>B3:/F$4',
   '>B4:/F$@SUM(B2...B3)', '>C4:2+3*4', '>D4:+B2*(1+B3)', '>A5:/-=', '/W1', '/GOC', '/GRA', '/GC12', '/X>A1:>A1:', '',
 ].join('\r\n');
+
+// ------------------------------------------------------------------------------------------
+// OLE2 compound file (512-byte sectors, every stream in regular sectors)
+
+const ENDOFCHAIN = 0xfffffffe, FREESECT = 0xffffffff, FATSECT = 0xfffffffd, NOSTREAM = 0xffffffff;
+
+/** Builds a compound file from streams keyed by path ("Stream" or "Storage/Stream", one level of storages). */
+export function buildCfb(streams: Record<string, Uint8Array>): Uint8Array {
+  interface E { name: string; type: number; child: number; right: number; start: number; size: number }
+  const entries: E[] = [{ name: 'Root Entry', type: 5, child: NOSTREAM, right: NOSTREAM, start: ENDOFCHAIN, size: 0 }];
+  const storages = new Map<string, number>();
+  const data: { entry: number; bytes: Uint8Array }[] = [];
+  const link = (parent: number, idx: number) => {
+    // Siblings are chained through their right pointers (a valid, if unbalanced, tree).
+    if (entries[parent].child === NOSTREAM) { entries[parent].child = idx; return; }
+    let k = entries[parent].child;
+    while (entries[k].right !== NOSTREAM) k = entries[k].right;
+    entries[k].right = idx;
+  };
+  for (const [p, bytes] of Object.entries(streams)) {
+    const parts = p.split('/');
+    let parent = 0;
+    if (parts.length === 2) {
+      let s = storages.get(parts[0]);
+      if (s == null) { s = entries.length; entries.push({ name: parts[0], type: 1, child: NOSTREAM, right: NOSTREAM, start: 0, size: 0 }); link(0, s); storages.set(parts[0], s); }
+      parent = s;
+    }
+    const idx = entries.length;
+    entries.push({ name: parts[parts.length - 1], type: 2, child: NOSTREAM, right: NOSTREAM, start: ENDOFCHAIN, size: bytes.length });
+    link(parent, idx);
+    data.push({ entry: idx, bytes });
+  }
+  const fat: number[] = [];
+  const sectors: Uint8Array[] = [];
+  const alloc = (bytes: Uint8Array): number => {
+    const n = Math.max(1, Math.ceil(bytes.length / 512));
+    const first = sectors.length;
+    for (let k = 0; k < n; k++) {
+      const s = new Uint8Array(512);
+      s.set(bytes.subarray(k * 512, (k + 1) * 512));
+      sectors.push(s);
+      fat.push(k === n - 1 ? ENDOFCHAIN : first + k + 1);
+    }
+    return first;
+  };
+  for (const d of data) entries[d.entry].start = d.bytes.length ? alloc(d.bytes) : ENDOFCHAIN;
+  const dir = new Uint8Array(Math.ceil(entries.length / 4) * 512);
+  entries.forEach((e, i) => {
+    const o = i * 128;
+    for (let k = 0; k < e.name.length; k++) { dir[o + k * 2] = e.name.charCodeAt(k) & 0xff; dir[o + k * 2 + 1] = e.name.charCodeAt(k) >> 8; }
+    const dv = new DataView(dir.buffer);
+    dv.setUint16(o + 0x40, (e.name.length + 1) * 2, true);
+    dir[o + 0x42] = e.type; dir[o + 0x43] = 1;
+    dv.setUint32(o + 0x44, NOSTREAM, true); dv.setUint32(o + 0x48, e.right, true); dv.setUint32(o + 0x4c, e.child, true);
+    dv.setUint32(o + 0x74, e.start, true); dv.setUint32(o + 0x78, e.size, true);
+  });
+  for (let i = entries.length; i < dir.length / 128; i++) { const dv = new DataView(dir.buffer); dv.setUint32(i * 128 + 0x44, NOSTREAM, true); dv.setUint32(i * 128 + 0x48, NOSTREAM, true); dv.setUint32(i * 128 + 0x4c, NOSTREAM, true); }
+  const dirStart = alloc(dir);
+  // FAT sectors: each covers 128 sectors, including themselves.
+  let nFat = 1;
+  while (sectors.length + nFat > nFat * 128) nFat++;
+  const fatStart = sectors.length;
+  for (let k = 0; k < nFat; k++) { sectors.push(new Uint8Array(512)); fat.push(FATSECT); }
+  const fatBytes = new Uint8Array(nFat * 512);
+  const fdv = new DataView(fatBytes.buffer);
+  for (let k = 0; k < nFat * 128; k++) fdv.setUint32(k * 4, k < fat.length ? fat[k] : FREESECT, true);
+  for (let k = 0; k < nFat; k++) sectors[fatStart + k] = fatBytes.subarray(k * 512, (k + 1) * 512);
+  const head = new Uint8Array(512);
+  const hv = new DataView(head.buffer);
+  head.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+  hv.setUint16(0x18, 0x3e, true); hv.setUint16(0x1a, 3, true); hv.setUint16(0x1c, 0xfffe, true); hv.setUint16(0x1e, 9, true); hv.setUint16(0x20, 6, true);
+  hv.setUint32(0x2c, nFat, true); hv.setUint32(0x30, dirStart, true); hv.setUint32(0x38, 1, true);
+  hv.setUint32(0x3c, ENDOFCHAIN, true); hv.setUint32(0x44, ENDOFCHAIN, true);
+  for (let k = 0; k < 109; k++) hv.setUint32(0x4c + k * 4, k < nFat ? fatStart + k : FREESECT, true);
+  const out = new Uint8Array(512 * (sectors.length + 1));
+  out.set(head, 0);
+  sectors.forEach((s, i) => out.set(s, 512 * (i + 1)));
+  return out;
+}
+
+const utf16 = (s: string) => { const b = new Uint8Array(s.length * 2); for (let i = 0; i < s.length; i++) { b[i * 2] = s.charCodeAt(i) & 0xff; b[i * 2 + 1] = s.charCodeAt(i) >> 8; } return b; };
+
+/** Outlook message with a CSV attachment. */
+export function buildMsg(): Uint8Array {
+  const props = B().bytes(new Array(32).fill(0));
+  // PR_CLIENT_SUBMIT_TIME (0x0039, PT_SYSTIME) = 2024-02-29 12:00 UTC as a FILETIME.
+  const ms = Date.UTC(2024, 1, 29, 12, 0, 0);
+  const ft = (ms + 11644473600000) * 10000;
+  props.u32((0x0039 << 16) | 0x0040).u32(6).u32(ft % 4294967296).u32(Math.floor(ft / 4294967296));
+  return buildCfb({
+    '__substg1.0_0037001F': utf16('Budget for March'),
+    '__substg1.0_0C1A001F': utf16('Ada Lovelace'),
+    '__substg1.0_5D01001F': utf16('ada@example.com'),
+    '__substg1.0_0E04001F': utf16('Charles Babbage'),
+    '__substg1.0_1000001F': utf16('Hello Charles,\r\nthe figures are attached.'),
+    '__properties_version1.0': props.out(),
+    '__attach_version1.0_#00000000/__substg1.0_3707001F': utf16('figures.csv'),
+    '__attach_version1.0_#00000000/__substg1.0_37010102': Uint8Array.from(Array.from('Month,Amount\nMarch,1200\n', (c) => c.charCodeAt(0))),
+  });
+}
+
+/** PowerPoint 97-2003: one slide in the SlideListWithText. */
+export function buildPpt(): Uint8Array {
+  const rec = (verInst: number, type: number, body: number[]) => B().u16(verInst).u16(type).u32(body.length).bytes(body).parts;
+  const chars = (s: string) => Array.from(utf16(s));
+  const slwt = [
+    ...rec(0x0000, 0x03f3, new Array(20).fill(0)),
+    ...rec(0x0000, 0x0f9f, B().u32(0).parts), ...rec(0x0000, 0x0fa0, chars('Launch plan')),
+    ...rec(0x0000, 0x0f9f, B().u32(1).parts), ...rec(0x0000, 0x0fa8, Array.from('Build\rTest\rShip', (c) => c.charCodeAt(0))),
+  ];
+  const doc = rec(0x000f, 0x03e8, rec(0x000f, 0x0ff0, slwt));
+  return buildCfb({ 'PowerPoint Document': Uint8Array.from(doc), 'Current User': new Uint8Array(20) });
+}
+
+/** Microsoft Works 6-9 spreadsheet (.xlr): a BIFF stream inside a compound file. */
+export function buildXlr(): Uint8Array {
+  return buildCfb({ WksSSWorkBook: buildBiff2() });
+}
