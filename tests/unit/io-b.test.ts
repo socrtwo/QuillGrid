@@ -22,7 +22,9 @@ import type { Workbook } from '../../src/model/workbook';
 export function recalcDiffs(book: Workbook): string[] {
   const cached: [Sheet, number, unknown][] = [];
   for (const sh of book.sheets) for (const [k, c] of sh.cells) if (c.f != null) cached.push([sh, k, c.v]);
-  new Engine(book).recalc(true);
+  const engine = new Engine(book);
+  engine.rebuild();
+  engine.recalc();
   const out: string[] = [];
   for (const [sh, k, v] of cached) {
     const now = sh.cells.get(k)?.v;
@@ -319,7 +321,7 @@ describe('Excel binary workbook (.xlsb)', () => {
     expect(s.hiddenCols.has(5)).toBe(true);
     expect(s.rowH.get(0)).toBe(40);
     expect(s.hiddenRows.has(9)).toBe(true);
-    expect(s.tables[0]).toMatchObject({ name: 'Sales', range: { r1: 0, c1: 9, r2: 2, c2: 10 }, columns: [{ name: 'Region' }, { name: 'Units' }], style: 'TableStyleMedium9' });
+    expect(s.tables[0]).toMatchObject({ name: 'Sales', range: { r1: 1, c1: 9, r2: 3, c2: 10 }, columns: [{ name: 'Region' }, { name: 'Units' }], style: 'TableStyleMedium9' });
     expect(s.print).toMatchObject({ orientation: 'landscape', paper: 'A4', scale: 90, area: '$A$1:$D$5', gridlines: true, centerH: true });
     expect(s.print.header).toEqual({ left: 'Left', center: '&[Page] of &[Pages]', right: '' });
     expect(book.names).toEqual([{ name: 'TaxRate', ref: 'Fruit!$C$2', sheet: null }]);
@@ -705,5 +707,15 @@ describe('Legacy interchange formats written by other programs', () => {
     expect(s.cf[1]).toMatchObject({ type: 'expression', formulas: ['B1=5'], style: { italic: true } });
     expect(s.validations[0]).toMatchObject({ type: 'whole', operator: 'between', formula1: '1', formula2: '100', errorStyle: 'warning', errorMessage: '1-100' });
     expect(s.validations[1]).toMatchObject({ type: 'list', formula1: '"a,b"', inputMessage: 'Pick' });
+  });
+});
+
+describe('recalculation check used above', () => {
+  it('reports a stored result that the formula does not produce', async () => {
+    const { Workbook } = await import('../../src/model/workbook');
+    const b = new Workbook();
+    b.sheets[0].cells.set(K('A1'), { v: 2 });
+    b.sheets[0].cells.set(K('B1'), { f: 'A1*2', v: 5 });
+    expect(recalcDiffs(b)).toHaveLength(1);
   });
 });

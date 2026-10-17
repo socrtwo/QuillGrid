@@ -211,9 +211,9 @@ export async function buildXlsb(): Promise<ArrayBuffer> {
     .rec(637, [0, ...enc.wstr('Ann:\nHeader note')])
     .rec(636).rec(634).rec(629);
 
-  // ---- table1.bin: Sales = J1:K3 (header row, no totals)
+  // ---- table1.bin: Sales = J2:K4 (header row, no totals)
   const tb = new Stream()
-    .rec(431, [...enc.rfx(0, 2, 9, 10), ...enc.u32(0), ...enc.u32(1), ...enc.u32(1), ...enc.u32(0), ...enc.u32(0), ...new Array(28).fill(0), ...enc.nwstr('Table1'), ...enc.nwstr('Sales'), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null)])
+    .rec(431, [...enc.rfx(1, 3, 9, 10), ...enc.u32(0), ...enc.u32(1), ...enc.u32(1), ...enc.u32(0), ...enc.u32(0), ...new Array(28).fill(0), ...enc.nwstr('Table1'), ...enc.nwstr('Sales'), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null)])
     .rec(433, enc.u32(2))
     .rec(435, [...enc.u32(1), ...enc.u32(0), ...new Array(16).fill(0), ...enc.nwstr('Region'), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null)]).rec(436)
     .rec(435, [...enc.u32(2), ...enc.u32(0), ...new Array(16).fill(0), ...enc.nwstr('Units'), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null), ...enc.nwstr(null)]).rec(436)
