@@ -438,6 +438,19 @@ describe('heritage commands', () => {
     expect([get('B1'), get('B2'), get('B3'), get('B4')]).toEqual(['Category', 'Travel', 'Food', 'Other']);
     expect(app.sheet.get(1, 1).f).toContain('CATEGORIZE(A2');
   });
+  it('walks every level of the slash menu', () => {
+    const { app } = fakeApp();
+    let leaves = 0;
+    const walk = (items: ReturnType<typeof slashTree>, depth: number) => {
+      // Letters never repeat within a level; very long lists (functions, symbols) run out and use the arrow keys.
+      const keys = slashKeys(items).filter(Boolean);
+      expect(new Set(keys).size).toBe(keys.length);
+      if (items.length <= 26) expect(keys.length).toBe(items.length);
+      for (const it of items) { if (it.children && depth < 4) walk(it.children(), depth + 1); else if (it.id) leaves++; }
+    };
+    walk(slashTree(app), 0);
+    expect(leaves).toBeGreaterThan(300);
+  });
   it('builds the slash menu from the ribbon', () => {
     const { app } = fakeApp();
     const tree = slashTree(app);
@@ -448,6 +461,7 @@ describe('heritage commands', () => {
     expect(groups.map((g) => g.label)).toContain('Records');
     const sort = groups.find((g) => g.label === 'Sort & Filter')!.children!();
     expect(sort[0].id).toBe('data.sortAZ');
+    expect(commandItem(app, 'fmt.size')!.children!().map((x) => x.arg)).toContain(11);
     const ct = commandItem(app, 'data.columnType')!;
     expect(ct.children!().map((x) => x.arg)).toContain('email');
     expect(commandItem(app, 'tools.lotusEntry')!.label).toBe('1-2-3 Formula Entry (on)');

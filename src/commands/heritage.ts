@@ -761,7 +761,8 @@ async function categorizeCmd(app: App, arg?: { rules: string; ifNone?: string; v
   const rg = sel.r1 === sel.r2 && sel.c1 === sel.c2 && lr ? { ...lr.rg, c1: sel.c1, c2: sel.c1 } : clipToUsed(s, sel);
   const header = hasHeaderRow(s, lr?.rg ?? rg) && rg.r1 === (lr?.rg.r1 ?? rg.r1);
   const r1 = header ? rg.r1 + 1 : rg.r1;
-  const col = rg.c1, out = rg.c2 + 1;
+  // The category goes in the first column after the list (or after the selected column).
+  const col = rg.c1, out = sel.r1 === sel.r2 && sel.c1 === sel.c2 && lr ? lr.rg.c2 + 1 : rg.c2 + 1;
   let o = arg;
   if (!o) {
     const res = await openDialog({

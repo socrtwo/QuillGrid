@@ -288,7 +288,7 @@ export function typeMismatches(values: Scalar[], type: ColumnType, choices: stri
 
 /**
  * Accelerator letters for a list of labels: 1-2-3 picked menu words with distinct first letters; when
- * two share one, the next unused letter of the label is taken, then a digit. `priority` (indices,
+ * two share one, the next unused letter of the label is taken, then any free digit or letter. `priority` (indices,
  * most important first) decides who gets a contested letter; by default it is the list order.
  */
 export function assignKeys(labels: string[], priority: number[] = labels.map((_, i) => i)): string[] {
@@ -306,7 +306,7 @@ export function assignKeys(labels: string[], priority: number[] = labels.map((_,
     // Then the first letter of a later word, then any letter.
     const words = l.split(/[\s&/-]+/).slice(1).map((w) => (/[A-Za-z0-9]/.exec(w)?.[0] ?? '').toUpperCase());
     const letters = [...words, ...[...l.toUpperCase()].filter((ch) => /[A-Z0-9]/.test(ch))];
-    const k = letters.find((ch) => ch && !used.has(ch)) ?? '123456789'.split('').find((d) => !used.has(d)) ?? '';
+    const k = letters.find((ch) => ch && !used.has(ch)) ?? [...'123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0'].find((d) => !used.has(d)) ?? '';
     if (k) used.add(k);
     out[i] = k;
   }

@@ -23,7 +23,9 @@ function fromEntries(app: App, entries: MenuEntry[]): SlashItem[] {
     if (!e.id) continue;
     const c = getCommand(e.id);
     if (!c) continue;
-    out.push({ label: clean(e.label || c.label), id: e.id, arg: e.arg, tip: c.tip, disabled: !!c.isEnabled && !c.isEnabled(app) });
+    let disabled = false;
+    try { disabled = !!c.isEnabled && !c.isEnabled(app); } catch { disabled = false; }
+    out.push({ label: clean(e.label || c.label), id: e.id, arg: e.arg, tip: c.tip, disabled });
   }
   return out;
 }
@@ -32,9 +34,11 @@ function fromEntries(app: App, entries: MenuEntry[]): SlashItem[] {
 export function commandItem(app: App, id: string): SlashItem | null {
   const c = getCommand(id);
   if (!c || c.internal) return null;
-  const disabled = !!c.isEnabled && !c.isEnabled(app);
-  const label = clean(c.label) + (c.kind === 'toggle' && c.isActive ? (c.isActive(app) ? ' (on)' : ' (off)') : '');
-  if (c.menu && (c.kind === 'menu' || c.kind === 'split' || c.kind === 'gallery')) {
+  const safe = (f: () => boolean) => { try { return f(); } catch { return false; } };
+  const disabled = !!c.isEnabled && !safe(() => c.isEnabled!(app));
+  const label = clean(c.label) + (c.kind === 'toggle' && c.isActive ? (safe(() => c.isActive!(app)) ? ' (on)' : ' (off)') : '');
+  // Commands with an options menu (menus, split buttons, galleries, size and combo boxes) open as submenus.
+  if (c.menu && c.kind !== 'toggle') {
     const menu = c.menu;
     return {
       label, tip: c.tip, disabled,
@@ -42,8 +46,8 @@ export function commandItem(app: App, id: string): SlashItem | null {
         let entries: MenuEntry[] = [];
         try { entries = menu(app); } catch { entries = []; }
         const items = fromEntries(app, entries);
-        // A split button runs itself too; a plain menu command may run without an argument.
-        if (c.kind === 'split' && !items.some((x) => x.id === id && x.arg === undefined)) items.unshift({ label: clean(c.label), id, tip: c.tip });
+        // A split button (or a plain button with a menu) runs itself too.
+        if ((c.kind === 'split' || !c.kind || c.kind === 'button') && !items.some((x) => x.id === id && x.arg === undefined)) items.unshift({ label: clean(c.label), id, tip: c.tip });
         return items.length ? items : [{ label: clean(c.label), id, tip: c.tip }];
       },
     };
