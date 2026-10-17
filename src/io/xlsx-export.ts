@@ -431,7 +431,7 @@ function coreXml(book: Workbook): string {
 function appXml(book: Workbook): string {
   const p = book.props;
   return XML_HEADER + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">' +
-    '<Application>QuillLattice</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop>' +
+    '<Application>QuillGrid</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop>' +
     (p.manager ? `<Manager>${esc(p.manager)}</Manager>` : '') + (p.company ? `<Company>${esc(p.company)}</Company>` : '') +
     '<LinksUpToDate>false</LinksUpToDate><SharedDoc>false</SharedDoc><HyperlinksChanged>false</HyperlinksChanged></Properties>';
 }

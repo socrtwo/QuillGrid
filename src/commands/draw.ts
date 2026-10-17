@@ -174,7 +174,7 @@ objectHooks.render.push((d) => renderInk(d));
 
 interface PenSettings { color: string; width: number }
 const DEFAULTS: Record<InkTool, PenSettings> = { pen: { color: '#1f3b57', width: 2.5 }, pencil: { color: '#444444', width: 1.5 }, highlighter: { color: '#ffeb3b', width: 14 } };
-const PREF_KEY = 'quilllattice.ink';
+const PREF_KEY = 'quillgrid.ink';
 
 function loadPens(): Record<InkTool, PenSettings> {
   try { const j = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); return { pen: { ...DEFAULTS.pen, ...j.pen }, pencil: { ...DEFAULTS.pencil, ...j.pencil }, highlighter: { ...DEFAULTS.highlighter, ...j.highlighter } }; } catch { return { ...DEFAULTS }; }
@@ -535,7 +535,7 @@ async function inkToMath(app: App): Promise<void> {
   session?.commit();
   const d = lastInk(app);
   if (!d) { toast('Write an equation in ink first, then use Ink to Math.'); return; }
-  const text = await promptDialog('Ink to Math', 'Handwriting recognition is not available offline in QuillLattice, so type the equation you wrote. It replaces the ink as a text box (for example: x = (-b ± √(b²-4ac)) / 2a). To compute it, enter it as a formula in a cell instead.', '');
+  const text = await promptDialog('Ink to Math', 'Handwriting recognition is not available offline in QuillGrid, so type the equation you wrote. It replaces the ink as a text box (for example: x = (-b ± √(b²-4ac)) / 2a). To compute it, enter it as a formula in a cell instead.', '');
   if (text == null || !text.trim()) return;
   const s = app.sheet;
   app.book.transact('Ink to Math', () => {

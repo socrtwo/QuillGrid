@@ -24,7 +24,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- "Open with QuillLattice" for workbooks identified by MIME type
+            <!-- "Open with QuillGrid" for workbooks identified by MIME type
                  (a mimeType-only <data> matches content: and file: URIs). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -40,8 +40,8 @@
                 <data android:mimeType="text/comma-separated-values" />
                 <data android:mimeType="text/tab-separated-values" />
                 <data android:mimeType="text/plain" />
-                <data android:mimeType="application/x-quilllattice" />
-                <data android:mimeType="application/x-quilllattice-encrypted" />
+                <data android:mimeType="application/x-quillgrid" />
+                <data android:mimeType="application/x-quillgrid-encrypted" />
             </intent-filter>
 
             <!-- Files whose provider reports a generic MIME type: match on extension.
@@ -90,6 +90,13 @@
                 <data android:pathPattern=".*\\.tsv" />
                 <data android:pathPattern=".*\\..*\\.tsv" />
                 <data android:pathPattern=".*\\..*\\..*\\.tsv" />
+                <data android:pathPattern=".*\\.qgw" />
+                <data android:pathPattern=".*\\..*\\.qgw" />
+                <data android:pathPattern=".*\\..*\\..*\\.qgw" />
+                <data android:pathPattern=".*\\.qgwe" />
+                <data android:pathPattern=".*\\..*\\.qgwe" />
+                <data android:pathPattern=".*\\..*\\..*\\.qgwe" />
+                <!-- rename:keep: workbooks saved by QuillLattice, the app's former name -->
                 <data android:pathPattern=".*\\.qlw" />
                 <data android:pathPattern=".*\\..*\\.qlw" />
                 <data android:pathPattern=".*\\..*\\..*\\.qlw" />
@@ -112,8 +119,8 @@
                 <data android:mimeType="text/comma-separated-values" />
                 <data android:mimeType="text/tab-separated-values" />
                 <data android:mimeType="text/plain" />
-                <data android:mimeType="application/x-quilllattice" />
-                <data android:mimeType="application/x-quilllattice-encrypted" />
+                <data android:mimeType="application/x-quillgrid" />
+                <data android:mimeType="application/x-quillgrid-encrypted" />
             </intent-filter>
 
         </activity>

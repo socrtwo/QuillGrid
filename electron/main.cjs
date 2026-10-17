@@ -1,4 +1,4 @@
-// QuillLattice desktop app (Windows, macOS, Linux, Raspberry Pi OS): Electron main process.
+// QuillGrid desktop app (Windows, macOS, Linux, Raspberry Pi OS): Electron main process.
 //
 // The web build (dist/) is served from the privileged app:// scheme so module workers, fetch and
 // IndexedDB behave as on the web. The renderer is sandboxed with context isolation and no Node;
@@ -9,13 +9,23 @@
 const { app, BrowserWindow, protocol, net, ipcMain, dialog, shell, clipboard, safeStorage, powerSaveBlocker, Menu } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+
+// QuillGrid was formerly named QuillLattice: on the first start after the rename, copy the old data
+// folder (settings, drafts, granted files, stored keys) to the new one before anything writes there.
+try {
+  const userData = app.getPath('userData');
+  const legacy = path.join(path.dirname(userData), 'QuillLattice'); // rename:keep
+  if (!fs.existsSync(userData) && fs.existsSync(legacy)) fs.cpSync(legacy, userData, { recursive: true });
+} catch { /* first run, or no access: start fresh */ }
 const http = require('node:http');
 const { pathToFileURL, fileURLToPath } = require('node:url');
 
 const DIST = path.join(__dirname, '..', 'dist');
 const SCHEME = 'app';
-const ORIGIN = `${SCHEME}://quilllattice`;
-const OPENABLE = ['xlsx', 'xlsm', 'xltx', 'xltm', 'xls', 'xlt', 'xlw', 'ods', 'ots', 'fods', 'csv', 'tsv', 'tab', 'txt', 'prn', 'html', 'htm', 'xml', 'slk', 'dif', 'qlw', 'qlwe', 'json'];
+// The page's origin keeps the app's former name so settings, drafts and keys stored by earlier
+// versions stay readable.
+const ORIGIN = `${SCHEME}://quilllattice`; // rename:keep
+const OPENABLE = ['xlsx', 'xlsm', 'xltx', 'xltm', 'xls', 'xlt', 'xlw', 'ods', 'ots', 'fods', 'csv', 'tsv', 'tab', 'txt', 'prn', 'html', 'htm', 'xml', 'slk', 'dif', 'qgw', 'qgwe', 'json', 'qlw', 'qlwe']; // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
 
 protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
 
@@ -46,7 +56,7 @@ function grant(p) {
 function grantedPath(uri) {
   if (typeof uri !== 'string' || !uri.startsWith('file:')) throw new Error('Not a file address');
   const p = path.resolve(fileURLToPath(uri));
-  if (!grants.has(p)) throw new Error('QuillLattice has no permission for this file; open it again.');
+  if (!grants.has(p)) throw new Error('QuillGrid has no permission for this file; open it again.');
   return p;
 }
 const MIME = {
@@ -60,7 +70,8 @@ const MIME = {
   fods: 'application/vnd.oasis.opendocument.flat-spreadsheet',
   csv: 'text/csv', tsv: 'text/tab-separated-values', tab: 'text/tab-separated-values',
   txt: 'text/plain', prn: 'text/plain', html: 'text/html', htm: 'text/html', xml: 'application/xml',
-  qlw: 'application/x-quilllattice', qlwe: 'application/x-quilllattice-encrypted', json: 'application/json',
+  qgw: 'application/x-quillgrid', qgwe: 'application/x-quillgrid-encrypted', json: 'application/json',
+  qlw: 'application/x-quillgrid', qlwe: 'application/x-quillgrid-encrypted', // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
 };
 function fileResult(p) {
   const data = fs.readFileSync(p);
@@ -245,7 +256,7 @@ function createWindow() {
     height: 860,
     minWidth: 360,
     minHeight: 480,
-    title: 'QuillLattice',
+    title: 'QuillGrid',
     backgroundColor: '#ffffff',
     autoHideMenuBar: process.platform !== 'darwin',
     icon: path.join(__dirname, 'icon.png'),
@@ -255,7 +266,7 @@ function createWindow() {
       sandbox: true,
       nodeIntegration: false,
       webSecurity: true,
-      spellcheck: false, // QuillLattice has its own spelling checker
+      spellcheck: false, // QuillGrid has its own spelling checker
     },
   });
   // Links open in the system browser; the window never navigates away from the app.
@@ -263,7 +274,7 @@ function createWindow() {
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(ORIGIN)) { e.preventDefault(); if (safeUrl(url)) void shell.openExternal(url); } });
   // The page asks before unloading with unsaved workbooks: confirm here, as the browser would.
   win.webContents.on('will-prevent-unload', (e) => {
-    const choice = dialog.showMessageBoxSync(win, { type: 'question', buttons: ['Close without saving', 'Cancel'], defaultId: 1, cancelId: 1, title: 'Unsaved changes', message: 'Some workbooks have unsaved changes. Close QuillLattice anyway?' });
+    const choice = dialog.showMessageBoxSync(win, { type: 'question', buttons: ['Close without saving', 'Cancel'], defaultId: 1, cancelId: 1, title: 'Unsaved changes', message: 'Some workbooks have unsaved changes. Close QuillGrid anyway?' });
     if (choice === 0) e.preventDefault();
   });
   // A reload or navigation drops the page's listeners until it registers them again.

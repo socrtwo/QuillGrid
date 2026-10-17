@@ -1,4 +1,5 @@
-/** QuillLattice entry point. */
+/** QuillGrid entry point. */
+import './util/legacy'; // first: carries data over from the app's former name
 import 'material-symbols/outlined.css';
 import './styles/app.css';
 import './ui/scrollcue.css';
@@ -56,7 +57,7 @@ async function start() {
           if (!s.active) s.active = 'openrouter';
         });
       });
-      if (ok) toast('Signed in to OpenRouter and saved the key. You can close this tab and return to QuillLattice.', { ms: 15000 });
+      if (ok) toast('Signed in to OpenRouter and saved the key. You can close this tab and return to QuillGrid.', { ms: 15000 });
     } catch (e: any) {
       toast(`OpenRouter sign-in did not complete: ${e?.message || e}`, { ms: 10000 });
     }

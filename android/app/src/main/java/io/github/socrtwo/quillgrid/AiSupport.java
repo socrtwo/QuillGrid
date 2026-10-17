@@ -1,4 +1,4 @@
-package io.github.socrtwo.quilllattice;
+package io.github.socrtwo.quillgrid;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -32,8 +32,8 @@ import javax.crypto.spec.GCMParameterSpec;
 final class AiSupport {
 
     private static final String TAG = "QuillNative";
-    private static final String KEY_ALIAS = "quilllattice.secrets.v1";
-    private static final String PREFS = "quilllattice.secure";
+    private static final String KEY_ALIAS = "quillgrid.secrets.v1";
+    private static final String PREFS = "quillgrid.secure";
 
     private AiSupport() {}
 
@@ -114,7 +114,7 @@ final class AiSupport {
             this.server = new ServerSocket(0, 4, InetAddress.getByName("127.0.0.1"));
             this.server.setSoTimeout(1000);
             this.deadline = System.currentTimeMillis() + Math.max(10_000L, timeoutMs);
-            this.html = html != null ? html : "<!doctype html><body><p>You can return to QuillLattice.</p></body>";
+            this.html = html != null ? html : "<!doctype html><body><p>You can return to QuillGrid.</p></body>";
             this.expectedPath = expectedPath;
             this.callback = callback;
         }

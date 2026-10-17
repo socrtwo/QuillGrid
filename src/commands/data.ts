@@ -1133,10 +1133,11 @@ async function subtotalDialog(app: App): Promise<void> {
 // Get & Transform
 
 interface StoredQuery { kind: 'web' | 'text'; name: string; url?: string; table?: number; sheet: string; r: number; c: number; rows: number; cols: number; time: number }
-const Q_PREFIX = 'QuillLattice.Query.';
+const Q_PREFIX = 'QuillGrid.Query.';
+const Q_LEGACY = 'QuillLattice.Query.'; // rename:keep — queries saved before the rename
 
 export function storedQueries(book: Workbook): StoredQuery[] {
-  return Object.entries(book.props.custom || {}).filter(([k]) => k.startsWith(Q_PREFIX)).map(([, v]) => { try { return JSON.parse(v) as StoredQuery; } catch { return null; } }).filter((x): x is StoredQuery => !!x);
+  return Object.entries(book.props.custom || {}).filter(([k]) => k.startsWith(Q_PREFIX) || k.startsWith(Q_LEGACY)).map(([, v]) => { try { return JSON.parse(v) as StoredQuery; } catch { return null; } }).filter((x): x is StoredQuery => !!x);
 }
 
 function saveQuery(book: Workbook, q: StoredQuery | null, name: string): void {
@@ -1495,12 +1496,12 @@ function editLinks(app: App): void {
   }
   for (const n of app.book.names) for (const m of n.ref.matchAll(/'?\[([^\]]+)\]/g)) found.add(m[1]);
   if (!found.size) { void alertDialog('Edit Links', 'This workbook has no links to other workbooks.'); return; }
-  void alertDialog('Edit Links', `This workbook refers to ${found.size} other workbook${found.size === 1 ? '' : 's'}:\n${[...found].join('\n')}\nLinks to other workbooks can't be updated in QuillLattice; formulas that use them keep their last values or show #REF!. Open the source workbook and copy the data in, or use Find & Replace to point the formulas at this workbook.`);
+  void alertDialog('Edit Links', `This workbook refers to ${found.size} other workbook${found.size === 1 ? '' : 's'}:\n${[...found].join('\n')}\nLinks to other workbooks can't be updated in QuillGrid; formulas that use them keep their last values or show #REF!. Open the source workbook and copy the data in, or use Find & Replace to point the formulas at this workbook.`);
 }
 
 function relationships(app: App): void {
   const tables = app.book.sheets.flatMap((s) => s.tables.map((t) => `${t.name} — ${s.name}!${addrText(t.range)} (${t.columns.map((c) => c.name).join(', ')})`));
-  void alertDialog('Relationships', `${tables.length ? `Tables in this workbook:\n${tables.join('\n')}` : 'This workbook has no tables. Use Insert ▸ Table to create one.'}\nQuillLattice doesn't keep a data model of related tables. To combine tables, look up related rows with XLOOKUP or use Get Data ▸ From Table/Range to group and reshape them.`);
+  void alertDialog('Relationships', `${tables.length ? `Tables in this workbook:\n${tables.join('\n')}` : 'This workbook has no tables. Use Insert ▸ Table to create one.'}\nQuillGrid doesn't keep a data model of related tables. To combine tables, look up related rows with XLOOKUP or use Get Data ▸ From Table/Range to group and reshape them.`);
 }
 
 // --------------------------------------------------------------------------------------------

@@ -496,7 +496,7 @@ const fmtVal = (sheet: Sheet, v: Scalar) => formatValue(v, undefined, { date1904
 // ============================================================================================
 // Recently used functions
 
-const RECENT_KEY = 'quilllattice.recentFunctions';
+const RECENT_KEY = 'quillgrid.recentFunctions';
 const DEFAULT_RECENT = ['SUM', 'AVERAGE', 'IF', 'HYPERLINK', 'COUNT', 'MAX', 'SIN', 'SUMIF', 'PMT', 'STDEV'];
 
 export function recentFunctions(): string[] {

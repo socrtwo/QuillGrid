@@ -210,7 +210,7 @@ async function setup(browser, prof) {
   p.errors = [];
   p.on('pageerror', (e) => p.errors.push(e.message));
   await p.addInitScript((ins) => {
-    localStorage.setItem('quilllattice.prefs.v1', JSON.stringify({ firstRun: false }));
+    localStorage.setItem('quillgrid.prefs.v1', JSON.stringify({ firstRun: false }));
     window.print = () => {}; window.open = () => null;
     HTMLInputElement.prototype.showPicker = function () {};
     const apply = () => { const d = document.documentElement.style; for (const [k, v] of Object.entries(ins)) d.setProperty(`--safe-area-inset-${k}`, `${v}px`); };

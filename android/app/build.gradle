@@ -18,14 +18,14 @@ def releaseKeystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
 def hasReleaseKeystore = releaseKeystorePath != null && !releaseKeystorePath.trim().isEmpty() &&
         new File(releaseKeystorePath.trim()).isFile()
 if (!hasReleaseKeystore) {
-    logger.lifecycle('QuillLattice: ANDROID_KEYSTORE_PATH not set or missing - release build will be signed with the DEBUG key (sideloading/testing only).')
+    logger.lifecycle('QuillGrid: ANDROID_KEYSTORE_PATH not set or missing - release build will be signed with the DEBUG key (sideloading/testing only).')
 }
 
 android {
-    namespace = "io.github.socrtwo.quilllattice"
+    namespace = "io.github.socrtwo.quillgrid"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.github.socrtwo.quilllattice"
+        applicationId "io.github.socrtwo.quillgrid"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode

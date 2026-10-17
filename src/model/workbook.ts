@@ -238,7 +238,7 @@ export interface CalcSettings {
 export interface ThemeDef { name: string; colors: string[]; headingFont: string; bodyFont: string; /** Theme effects name (stored with the theme). */ effects?: string }
 
 export const DEFAULT_THEME: ThemeDef = {
-  name: 'Lattice',
+  name: 'Quill',
   // dark1, light1, dark2, light2, accent1..6, hyperlink, followed
   colors: ['#000000', '#ffffff', '#1f3b57', '#e8eef4', '#2f6fb0', '#e07b28', '#7a8a99', '#e3b505', '#4a90c2', '#5aa33f', '#1565c0', '#7b3fa0'],
   headingFont: 'Carlito', bodyFont: 'Carlito',
@@ -467,7 +467,7 @@ export class Workbook {
 
   toJSON(): any {
     return {
-      format: 'quilllattice', version: 1,
+      format: 'quillgrid', version: 1,
       sheets: this.sheets.map((s) => s.toJSON()), styles: this.styles, names: this.names, cellStyles: this.cellStyles,
       customFormats: this.customFormats, props: this.props, calc: this.calc, theme: this.theme, structureLocked: this.structureLocked,
       structurePassword: this.structurePassword, activeSheet: this.activeSheet, modules: this.modules, finalMarked: this.finalMarked,

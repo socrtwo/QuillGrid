@@ -37,7 +37,7 @@ export const THEMES: ThemeDef[] = [
 ];
 
 export const FONT_SCHEMES: { name: string; heading: string; body: string }[] = [
-  { name: 'Lattice', heading: 'Carlito', body: 'Carlito' },
+  { name: 'Quill', heading: 'Carlito', body: 'Carlito' },
   { name: 'Classic Serif', heading: 'Caladea', body: 'Carlito' },
   { name: 'Grotesque', heading: 'Arimo', body: 'Arimo' },
   { name: 'Newsprint', heading: 'Tinos', body: 'Arimo' },

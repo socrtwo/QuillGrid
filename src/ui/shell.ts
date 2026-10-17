@@ -827,7 +827,7 @@ export class Shell {
 
   async tour(): Promise<void> {
     const steps = [
-      ['Everything is a command', 'Every feature of QuillLattice is a command you can find with the search button (or Alt+Q), place on the Quick Access Bar, put on your own tab, assign a key, or record in a macro.'],
+      ['Everything is a command', 'Every feature of QuillGrid is a command you can find with the search button (or Alt+Q), place on the Quick Access Bar, put on your own tab, assign a key, or record in a macro.'],
       ['Quick Access Bar', 'Tap ▾ at the end of the Quick Access Bar to add common commands, or choose More Commands… to pick from the full library. Long-press any ribbon button to add it. Options lets you move the bar to the bottom, near the keyboard.'],
       ['Cells and formulas', 'Type in a cell and press Enter. Start with = for a formula: click cells to insert references, and pick functions from the list as you type. Formulas that return several values spill into neighboring cells.'],
       ['Touch', 'On a phone or tablet, tap to select, double-tap to edit, drag the round handles to extend a selection, pinch to zoom, and long-press for the context menu.'],

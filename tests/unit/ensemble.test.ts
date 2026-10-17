@@ -306,14 +306,14 @@ describe('settings', () => {
     const secret = 'sk-test-0123456789abcdef0123456789abcdef';
     await setApiKey('custom', secret);
     // Even settings text that carries a key next to a member is cleaned on load.
-    mem.set('quilllattice.ai.v1', JSON.stringify({ ...aiSettings(), ensemble: { mode: 'consensus', members: [{ provider: 'custom', model: 'x', key: secret, apiKey: secret }, { provider: 'groq' }], master: 'groq', maxRounds: 9 } }));
+    mem.set('quillgrid.ai.v1', JSON.stringify({ ...aiSettings(), ensemble: { mode: 'consensus', members: [{ provider: 'custom', model: 'x', key: secret, apiKey: secret }, { provider: 'groq' }], master: 'groq', maxRounds: 9 } }));
     reloadAiSettings();
     const s = aiSettings();
     expect(s.ensemble).toEqual({ mode: 'consensus', members: [{ provider: 'custom', model: 'x' }, { provider: 'groq' }], master: 'groq', maxRounds: 5, showDeliberation: true, memberTimeoutMs: 90000 });
     saveAiSettings();
     expect(JSON.stringify(aiSettings())).not.toContain(secret);
-    expect(mem.get('quilllattice.ai.v1')).not.toContain(secret);
-    expect(mem.get('quilllattice.ai.v1')).toContain('"ensemble"');
+    expect(mem.get('quillgrid.ai.v1')).not.toContain(secret);
+    expect(mem.get('quillgrid.ai.v1')).toContain('"ensemble"');
     vi.unstubAllGlobals();
   });
 

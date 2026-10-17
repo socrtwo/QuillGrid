@@ -1,4 +1,4 @@
-/** QuillLattice application core: workbook tabs, command execution, recalculation, autosave. */
+/** QuillGrid application core: workbook tabs, command execution, recalculation, autosave. */
 import { isSafeExternalUrl } from './util/sanitize';
 import { Workbook, type Sheet } from './model/workbook';
 import { Engine } from './calc/engine';
@@ -120,7 +120,7 @@ export class App {
     this.ui.tabsChanged();
     tab.grid.layout();
     this.refresh();
-    document.title = `${tab.displayName}${tab.dirty ? ' •' : ''} – QuillLattice`;
+    document.title = `${tab.displayName}${tab.dirty ? ' •' : ''} – QuillGrid`;
   }
 
   closeTab(tab: BookTab): void {
@@ -150,7 +150,7 @@ export class App {
     // In manual mode the engine evaluates only the edited formulas; dependents wait for F9.
     tab.engine.recalc();
     tab.cf.invalidate();
-    if (!tab.dirty) { tab.dirty = true; this.ui.tabsChanged(); document.title = `${tab.displayName} • – QuillLattice`; }
+    if (!tab.dirty) { tab.dirty = true; this.ui.tabsChanged(); document.title = `${tab.displayName} • – QuillGrid`; }
     this.scheduleAutosave();
     tab.grid.invalidate();
     this.refresh();

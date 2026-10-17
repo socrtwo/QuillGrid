@@ -1,7 +1,7 @@
-// QuillLattice service worker: makes the web app (and the ChromeOS / desktop-browser install) work
+// QuillGrid service worker: makes the web app (and the ChromeOS / desktop-browser install) work
 // offline. Pages are network-first so an update shows on the next visit; other same-origin files
 // (hashed scripts, fonts, dictionaries) are served from the cache and refreshed in the background.
-const CACHE = 'quilllattice-v1';
+const CACHE = 'quillgrid-v1';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest'])).then(() => self.skipWaiting()));

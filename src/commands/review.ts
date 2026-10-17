@@ -468,7 +468,7 @@ registerPane({
 // --------------------------------------------------------------------------------------------
 // Spelling
 
-const OPTS_KEY = 'quilllattice.spellopts.v1';
+const OPTS_KEY = 'quillgrid.spellopts.v1';
 export function loadSpellOptions(): SpellOptions {
   try { return { ...DEFAULT_SPELL_OPTIONS, ...JSON.parse(localStorage.getItem(OPTS_KEY) || '{}') }; } catch { return { ...DEFAULT_SPELL_OPTIONS }; }
 }

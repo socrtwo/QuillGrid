@@ -2,7 +2,7 @@
  * Damaged-workbook recovery.
  *
  * The pipeline follows the author's Word Recovery / Immortal Unzipper design (socrtwo), adapted
- * from QuillForge's document recovery to spreadsheets. Methods run in order and the result
+ * from QuillPen's document recovery to spreadsheets. Methods run in order and the result
  * with the most recovered cells wins:
  *
  *   a. identify   S2 file identification: the real type regardless of extension, embedded or
@@ -46,7 +46,7 @@ export interface MethodResult {
   sheets?: number;
 }
 
-export type SpreadsheetKind = 'xlsx' | 'xlsm' | 'ods' | 'fods' | 'xls' | 'csv' | 'html' | 'xml2003' | 'qlw' | 'encrypted' | 'other' | 'unknown';
+export type SpreadsheetKind = 'xlsx' | 'xlsm' | 'ods' | 'fods' | 'xls' | 'csv' | 'html' | 'xml2003' | 'qgw' | 'encrypted' | 'other' | 'unknown';
 
 export interface RepairedPackage {
   name: string;
@@ -110,7 +110,7 @@ const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const KIND_DESC: Record<string, string> = {
   xlsx: 'Microsoft Excel workbook (XLSX)', xlsm: 'Microsoft Excel macro-enabled workbook (XLSM)', ods: 'OpenDocument spreadsheet (ODS)',
   fods: 'Flat OpenDocument spreadsheet (FODS)', xls: 'Microsoft Excel 97-2003 workbook (XLS)', csv: 'Delimited text (CSV/TSV)',
-  html: 'HTML document (tables)', xml2003: 'Excel 2003 XML spreadsheet (SpreadsheetML)', qlw: 'QuillLattice workbook',
+  html: 'HTML document (tables)', xml2003: 'Excel 2003 XML spreadsheet (SpreadsheetML)', qgw: 'QuillGrid workbook',
   encrypted: 'Password-protected (encrypted) Office file', unknown: 'Unrecognized data',
 };
 
@@ -251,7 +251,7 @@ function detectKind(u8: Uint8Array, fileName: string): { kind: SpreadsheetKind; 
   if (looksTextual(u8) || base.ext === 'xml' || base.ext === 'html' || base.ext === 'txt') {
     const head = dec(u8.subarray(0, 4096));
     const low = head.toLowerCase();
-    if (/^\s*\{/.test(head) && /"sheets"\s*:/.test(head)) return res('qlw');
+    if (/^\s*\{/.test(head) && /"sheets"\s*:/.test(head)) return res('qgw');
     if (low.includes('urn:schemas-microsoft-com:office:spreadsheet') || (/<workbook\b/.test(low) && /<worksheet\b/.test(low))) return res('xml2003');
     if (low.includes('office:document') || low.includes('opendocument.spreadsheet')) return res('fods');
     if (/<!doctype html|<html|<table/.test(low)) return res('html');
@@ -267,7 +267,7 @@ function detectKind(u8: Uint8Array, fileName: string): { kind: SpreadsheetKind; 
   return res('unknown', 'low', base.ext);
 }
 
-const SPREADSHEET_KINDS: SpreadsheetKind[] = ['xlsx', 'xlsm', 'ods', 'fods', 'xls', 'csv', 'html', 'xml2003', 'qlw', 'encrypted'];
+const SPREADSHEET_KINDS: SpreadsheetKind[] = ['xlsx', 'xlsm', 'ods', 'fods', 'xls', 'csv', 'html', 'xml2003', 'qgw', 'encrypted'];
 
 // ------------------------------------------------------------------------------------------
 // ZIP salvage
@@ -1072,7 +1072,7 @@ export async function recoverWorkbook(data: ArrayBuffer, name: string, opts: Rec
       mId.detail = 'This is a password-protected (encrypted) Office file: an encrypted package inside a compound file.';
       report.notes.push('The workbook is encrypted with a password. Open it with the password in the program that created it, remove the password (File > Info > Protect Workbook > Encrypt with Password), and save it again.');
       for (const id of ['open', 'zip', 'xml', 'rawsheet', 'biff', 'ods', 'text', 'strings'] as MethodId[]) { const m = M(id); m.detail = 'Not possible: the content is encrypted.'; }
-      report.summary = 'This workbook is password-protected (encrypted); QuillLattice cannot decrypt it.';
+      report.summary = 'This workbook is password-protected (encrypted); QuillGrid cannot decrypt it.';
       return finish(report, cands, base);
     }
     if (det.kind === 'other') {
@@ -1080,7 +1080,7 @@ export async function recoverWorkbook(data: ArrayBuffer, name: string, opts: Rec
     }
     const kind = det.kind;
     const zipKind = kind === 'xlsx' || kind === 'xlsm' || kind === 'ods' || (kind === 'unknown' && hasAscii(u8, 'PK\x03\x04'));
-    const textKind = kind === 'csv' || kind === 'html' || kind === 'xml2003' || kind === 'fods' || kind === 'qlw';
+    const textKind = kind === 'csv' || kind === 'html' || kind === 'xml2003' || kind === 'fods' || kind === 'qgw';
 
     // ---- b) normal open
     progress('Opening the file normally…');
@@ -1118,7 +1118,7 @@ export async function recoverWorkbook(data: ArrayBuffer, name: string, opts: Rec
           if (!isWellFormed(t)) throw new Error('The XML is not well-formed.');
           const mod = await loadMod('other');
           book = mod?.importXml2003 ? asBook(await mod.importXml2003(t, w), w) : xml2003Book(t);
-        } else if (kind === 'qlw') {
+        } else if (kind === 'qgw') {
           const mod = await loadMod('native');
           const t = dec(u8);
           book = mod?.importJson ? asBook(await mod.importJson(t), w) : Workbook.fromJSON(JSON.parse(t));
@@ -1310,7 +1310,7 @@ export async function recoverWorkbook(data: ArrayBuffer, name: string, opts: Rec
         if (kind === 'xml2003') book = xml2003Book(t);
         else if (kind === 'html') book = htmlBook(t);
         else if (kind === 'fods') book = null;
-        else if (kind === 'qlw') { try { book = Workbook.fromJSON(JSON.parse(t)); } catch { book = null; } }
+        else if (kind === 'qgw') { try { book = Workbook.fromJSON(JSON.parse(t)); } catch { book = null; } }
         else if (kind === 'csv' || (kind === 'unknown' && looksTextual(u8))) { const lines = t.split(/\r?\n/); book = gridBook(splitDelimited(t, detectDelim(lines)), base.slice(0, 31) || 'Sheet1'); }
       } catch { book = null; }
       if (book) { addCand(mText, 'text', book, 1.0); mText.status = (mText.cells ?? 0) ? 'success' : 'failed'; mText.detail = `Found ${plural(mText.cells || 0, 'cell')} in ${plural(mText.sheets || 0, 'sheet')}.`; }

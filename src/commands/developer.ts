@@ -28,9 +28,9 @@ import { isDateFormat } from '../model/numfmt';
 // ============================================================================================
 // Settings kept on this device
 
-const SEC_KEY = 'quilllattice.macroSecurity';
-const WARN_KEY = 'quilllattice.macroWarned';
-const REL_KEY = 'quilllattice.macroRelative';
+const SEC_KEY = 'quillgrid.macroSecurity';
+const WARN_KEY = 'quillgrid.macroWarned';
+const REL_KEY = 'quillgrid.macroRelative';
 
 export type MacroSecurity = 'disable' | 'ask' | 'enable';
 
@@ -1034,7 +1034,7 @@ def([
     run: (app) => { download(new Blob([JSON.stringify({ macros: app.prefs.macros, modules: app.book.modules }, null, 2)], { type: 'application/json' }), 'macros.json'); },
   },
   {
-    id: 'dev.importMacros', label: 'Import Macros', icon: 'upload_file', tab: D, group: 'Code', noRecord: true, tip: 'Load recorded macros and modules from a file exported by QuillLattice',
+    id: 'dev.importMacros', label: 'Import Macros', icon: 'upload_file', tab: D, group: 'Code', noRecord: true, tip: 'Load recorded macros and modules from a file exported by QuillGrid',
     run: async (app) => {
       const [f] = await pickFile('.json,application/json');
       if (!f) return;

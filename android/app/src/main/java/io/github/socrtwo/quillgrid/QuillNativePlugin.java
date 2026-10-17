@@ -1,4 +1,4 @@
-package io.github.socrtwo.quilllattice;
+package io.github.socrtwo.quillgrid;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
@@ -45,7 +45,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Native file plumbing for QuillLattice on Android.
+ * Native file plumbing for QuillGrid on Android.
  *
  * JS contract (all binary payloads are base64 strings without line breaks):
  * <ul>
@@ -179,7 +179,7 @@ public class QuillNativePlugin extends Plugin {
                 if ((text == null || text.isEmpty()) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     cm.clearPrimaryClip();
                 } else {
-                    ClipData clip = ClipData.newPlainText("QuillLattice", text);
+                    ClipData clip = ClipData.newPlainText("QuillGrid", text);
                     if (sensitive && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         PersistableBundle extras = new PersistableBundle();
                         extras.putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true);
@@ -213,7 +213,7 @@ public class QuillNativePlugin extends Plugin {
                 call.reject("Could not start the sign-in listener: " + e.getMessage(), asException(e));
                 return;
             }
-            Thread t = new Thread(loopback, "quilllattice-oauth");
+            Thread t = new Thread(loopback, "quillgrid-oauth");
             t.setDaemon(true);
             t.start();
             JSObject ret = new JSObject();
@@ -370,7 +370,7 @@ public class QuillNativePlugin extends Plugin {
 
     @PluginMethod
     public void print(PluginCall call) {
-        final String jobName = call.getString("jobName", "QuillLattice workbook");
+        final String jobName = call.getString("jobName", "QuillGrid workbook");
         final Activity activity = getActivity();
         if (activity == null) {
             call.reject("Printing is not available right now");
@@ -713,10 +713,10 @@ public class QuillNativePlugin extends Plugin {
                 return "application/xml";
             case "json":
                 return "application/json";
-            case "qlw":
-                return "application/x-quilllattice";
-            case "qlwe":
-                return "application/x-quilllattice-encrypted";
+            case "qgw":
+                return "application/x-quillgrid";
+            case "qgwe":
+                return "application/x-quillgrid-encrypted";
             default:
                 return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
         }

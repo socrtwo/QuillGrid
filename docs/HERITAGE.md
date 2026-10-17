@@ -1,6 +1,6 @@
-# Heritage: what QuillLattice takes from other spreadsheets
+# Heritage: what QuillGrid takes from other spreadsheets
 
-Spreadsheets have been reinvented many times since 1979. Many of the programs below are gone, but several of their ideas never made it into today's mainstream spreadsheets. This page surveys them, product by product, and records for each notable feature whether QuillLattice:
+Spreadsheets have been reinvented many times since 1979. Many of the programs below are gone, but several of their ideas never made it into today's mainstream spreadsheets. This page surveys them, product by product, and records for each notable feature whether QuillGrid:
 
 - **has** it already (the existing command id or function),
 - **added** it in this release (the new command id or function), or
@@ -39,7 +39,7 @@ Also fixed along the way: custom data validation formulas now judge the value be
 
 ## The survey
 
-| Product | Feature | QuillLattice | Command / notes |
+| Product | Feature | QuillGrid | Command / notes |
 |---|---|---|---|
 | **VisiCalc** (1979) | The electronic grid, A1 references, recalculation on every change | Has | The core of the app |
 | | /Replicate with relative or fixed references | Has | `edit.fillDown`, `edit.fillRight`, fill handle; F4 cycles $ while editing |
@@ -85,7 +85,7 @@ Also fixed along the way: custom data validation formulas now judge the value be
 | | .wk1/.wk3/.wk4/.123 files | Skips (for now) | Binary formats with compiled formulas need their own reader; the formula translator above is the groundwork |
 | **Lotus Symphony** (1984) | Several windows on one worksheet | Has | `view.newWindow`, `view.split` |
 | | FORM environment (record entry screens) | Added | `data.dataForm` |
-| | DOC and COMM environments | Skips | QuillForge is the word processor; modem communications are obsolete |
+| | DOC and COMM environments | Skips | QuillPen is the word processor; modem communications are obsolete |
 | **Lotus Improv** (1991), **Flexisheet**, **Quantrix** | Formulas kept apart from the grid as readable rules | Added | `formulas.formulaRules`; names, tables and LET/LAMBDA give named formulas |
 | | Categories (dimensions) dragged to pivot a model | Has | `insert.pivotTable`, `pivot.fields`; a separate multidimensional model engine is out of scope |
 | | Saved views | Has | `view.customViews` |

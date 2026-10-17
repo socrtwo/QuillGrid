@@ -28,7 +28,7 @@ try {
   const errs = [];
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-  await p.addInitScript(() => localStorage.setItem('quilllattice.prefs.v1', JSON.stringify({ firstRun: false })));
+  await p.addInitScript(() => localStorage.setItem('quillgrid.prefs.v1', JSON.stringify({ firstRun: false })));
   await p.goto(url, { waitUntil: 'networkidle' });
   await p.waitForSelector('.ql-grid-scroller');
   await p.waitForTimeout(500);

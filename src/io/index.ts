@@ -47,9 +47,9 @@ export const FORMATS: FormatDef[] = [
   { id: 'tsv', label: 'Tab-separated values (.tsv)', ext: ['tsv', 'tab'], mime: 'text/tab-separated-values', canImport: true, canExport: true, binary: false },
   { id: 'txt', label: 'Text (Tab delimited) (.txt)', ext: ['txt', 'text', 'prn'], mime: 'text/plain', canImport: true, canExport: true, binary: false },
   { id: 'html', label: 'Web Page (.html)', ext: ['html', 'htm', 'xhtml'], mime: 'text/html', canImport: true, canExport: true, binary: false },
-  { id: 'json', label: 'QuillLattice JSON (.json)', ext: ['json'], mime: 'application/json', canImport: true, canExport: true, binary: false },
-  { id: 'qlw', label: 'QuillLattice Workbook (.qlw)', ext: ['qlw'], mime: 'application/x-quilllattice', canImport: true, canExport: true, binary: true },
-  { id: 'qlwe', label: 'Encrypted QuillLattice Workbook (.qlwe)', ext: ['qlwe'], mime: 'application/x-quilllattice-encrypted', canImport: true, canExport: true, binary: true, note: 'AES-256 with a password' },
+  { id: 'json', label: 'QuillGrid JSON (.json)', ext: ['json'], mime: 'application/json', canImport: true, canExport: true, binary: false },
+  { id: 'qgw', label: 'QuillGrid Workbook (.qgw)', ext: ['qgw', 'qlw'], mime: 'application/x-quillgrid', canImport: true, canExport: true, binary: true }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+  { id: 'qgwe', label: 'Encrypted QuillGrid Workbook (.qgwe)', ext: ['qgwe', 'qlwe'], mime: 'application/x-quillgrid-encrypted', canImport: true, canExport: true, binary: true, note: 'AES-256 with a password' }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
   { id: 'xls', label: 'Excel 97-2003 Workbook (.xls)', ext: ['xls', 'xlt', 'xlw'], mime: 'application/vnd.ms-excel', canImport: true, canExport: false, binary: true, note: 'Opens values, formulas and basic formatting; save as .xlsx to keep it' },
   { id: 'sylk', label: 'SYLK (.slk)', ext: ['slk', 'sylk'], mime: 'application/x-sylk', canImport: true, canExport: false, binary: false },
   { id: 'dif', label: 'Data Interchange Format (.dif)', ext: ['dif'], mime: 'application/x-dif', canImport: true, canExport: false, binary: false },
@@ -79,7 +79,7 @@ export function sniffFormat(data: ArrayBuffer, name: string): FormatDef | undefi
     const head = latin1(u8.subarray(0, 120));
     if (head.includes('mimetypeapplication/vnd.oasis.opendocument.spreadsheet')) return formatById('ods');
     const names = zipNames(u8).map((n) => n.toLowerCase());
-    if (names.includes('workbook.json')) return formatById('qlw');
+    if (names.includes('workbook.json')) return formatById('qgw');
     if (names.some((n) => n.startsWith('xl/') || n === '[content_types].xml')) {
       if (byName && ['xlsx', 'xlsm', 'xltx'].includes(byName.id)) return byName;
       if (names.includes('xl/vbaproject.bin')) return formatById('xlsm');
@@ -92,12 +92,12 @@ export function sniffFormat(data: ArrayBuffer, name: string): FormatDef | undefi
   if (u8.length >= 8 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) return formatById('xls');
   // BIFF2-5 bare streams
   if (u8.length >= 4 && (u8[0] === 0x09 || u8[0] === 0x08) && u8[1] === 0x08 && byName?.id === 'xls') return byName;
-  if (latin1(u8.subarray(0, 5)) === QLWE_MAGIC) return formatById('qlwe');
+  if (latin1(u8.subarray(0, 5)) === QLWE_MAGIC) return formatById('qgwe');
   const head = decodeText(data.slice(0, Math.min(data.byteLength, 4096)));
   const t = head.replace(/^﻿/, '').trimStart();
   if (t.startsWith('ID;')) return formatById('sylk');
   if (/^TABLE\r?\n\s*0\s*,\s*1\s*\r?\n/.test(t)) return formatById('dif');
-  if (t.startsWith('{') && /"format"\s*:\s*"quilllattice"|"qlw"\s*:/.test(head)) return formatById('json');
+  if (t.startsWith('{') && /"format"\s*:\s*"quillgrid"|"qgw"\s*:/.test(head)) return formatById('json');
   if (t.startsWith('<')) {
     if (/urn:schemas-microsoft-com:office:spreadsheet/.test(head)) {
       // An HTML page saved by Excel also carries this namespace.
@@ -129,7 +129,7 @@ export class PasswordError extends Error {
   constructor(msg: string, public wrong = false) { super(msg); }
 }
 
-const ZIP_FORMATS = ['xlsx', 'xlsm', 'xltx', 'ods', 'qlw'];
+const ZIP_FORMATS = ['xlsx', 'xlsm', 'xltx', 'ods', 'qgw'];
 
 export async function importFile(data: ArrayBuffer, name: string, opts: { repair?: boolean; password?: string; csv?: CsvOptions } = {}): Promise<ImportResult> {
   const fmt = sniffFormat(data, name);
@@ -160,7 +160,7 @@ export async function importFile(data: ArrayBuffer, name: string, opts: { repair
   try {
     const book = await importAs(fmt.id, data, name, opts, warnings);
     book.clearHistory();
-    return { book, format: fmt.id, warnings, encrypted: fmt.id === 'qlwe' || undefined };
+    return { book, format: fmt.id, warnings, encrypted: fmt.id === 'qgwe' || undefined };
   } catch (e) {
     if (e instanceof PasswordError) throw e;
     if (fmt.id === 'xls' || ZIP_FORMATS.includes(fmt.id)) {
@@ -184,8 +184,8 @@ async function importAs(id: string, data: ArrayBuffer, name: string, opts: { pas
     }
     case 'html': return (await import('./html')).importHtml(decodeText(data), warnings);
     case 'json': return (await import('./native')).importJson(decodeText(data));
-    case 'qlw': return (await import('./native')).importQlw(data);
-    case 'qlwe': {
+    case 'qgw': return (await import('./native')).importQlw(data);
+    case 'qgwe': {
       if (!opts.password) throw new PasswordError('This workbook is protected with a password.');
       return (await import('./native')).importQlwe(data, opts.password);
     }
@@ -218,8 +218,8 @@ export async function exportFile(book: Workbook, formatId: string, opts: { sheet
     case 'html': return (await import('./html')).exportHtml(book, { sheetIndex: opts.sheetIndex, range: opts.selectionOnly });
     case 'md': return (await import('./html')).exportMarkdown(book, sheetIndex, opts.selectionOnly);
     case 'json': return (await import('./native')).exportJson(book);
-    case 'qlw': return (await import('./native')).exportQlw(book);
-    case 'qlwe': {
+    case 'qgw': return (await import('./native')).exportQlw(book);
+    case 'qgwe': {
       if (!opts.password) throw new PasswordError('A password is required to save an encrypted workbook.');
       return (await import('./native')).exportQlwe(book, opts.password);
     }

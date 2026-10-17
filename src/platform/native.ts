@@ -6,7 +6,7 @@
  * - Desktop (Windows, macOS, Linux, Raspberry Pi OS): the Electron preload (electron/preload.cjs)
  *   exposes the same interface as `window.quillDesktop`, backed by native file dialogs and the file system.
  * - Browser and iOS: <input type=file>, the File System Access API or downloads, and window.print().
- *   On iOS, saved files go to the app's Documents folder (Files ▸ On My iPhone ▸ QuillLattice).
+ *   On iOS, saved files go to the app's Documents folder (Files ▸ On My iPhone ▸ QuillGrid).
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { download, pickFile } from '../ui/dom';
@@ -115,7 +115,7 @@ export async function openDocument(accept: string, mimeTypes: string[]): Promise
 }
 
 function toastSaved(name: string): void {
-  import('../ui/dialog').then(({ toast }) => toast(`Saved "${name}" to Files ▸ On My iPhone ▸ QuillLattice`)).catch(() => undefined);
+  import('../ui/dialog').then(({ toast }) => toast(`Saved "${name}" to Files ▸ On My iPhone ▸ QuillGrid`)).catch(() => undefined);
 }
 
 export async function saveAs(blob: Blob, name: string): Promise<{ uri: string | null; name: string } | null> {
@@ -215,7 +215,7 @@ export async function shareFile(blob: Blob, name: string, title?: string): Promi
 }
 
 /**
- * iOS has no QuillNative plugin: "Open in QuillLattice" and Share arrive as file:// URLs through the
+ * iOS has no QuillNative plugin: "Open in QuillGrid" and Share arrive as file:// URLs through the
  * Capacitor App plugin. With LSSupportsOpeningDocumentsInPlace off, iOS copies the file into the app's
  * Documents/Inbox first, so it can be read without a security-scoped bookmark. There is no write-back
  * URI: Save on iOS goes through Save As / Share.
@@ -288,8 +288,9 @@ export async function onBackButton(cb: () => boolean): Promise<void> {
   App.addListener('backButton', () => { if (!cb()) App.minimizeApp(); });
 }
 
-export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qlw,.qlwe,.json';
+export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qgw,.qgwe,.qlw,.qlwe,.json'; // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
 export const OPEN_MIMES = [
+  'application/x-quilllattice', 'application/x-quilllattice-encrypted', // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-excel.sheet.macroEnabled.12',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.template',

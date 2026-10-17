@@ -1,6 +1,6 @@
-# QuillLattice Command Reference
+# QuillGrid Command Reference
 
-QuillLattice ships **687 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
+QuillGrid ships **687 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
 
 349 of them are "Commands Not in the Tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, the command search, or menus — so nothing the app can do is hidden.
 
@@ -34,7 +34,7 @@ This file is generated from the source by `npm run catalog`.
 | Close Workbook | Close | Ctrl+w, Ctrl+F4 | `file.close` | not in tabs |
 | Exit | Close |  | `file.exit` | not in tabs |
 | Export as CSV (Comma delimited) (.csv) | Export |  | `file.export.csv` | not in tabs |
-| Export as Encrypted QuillLattice Workbook (.qlwe) | Export |  | `file.export.qlwe` | not in tabs |
+| Export as Encrypted QuillGrid Workbook (.qgwe) | Export |  | `file.export.qgwe` | not in tabs |
 | Export as Excel Macro-Enabled Workbook (.xlsm) | Export |  | `file.export.xlsm` | not in tabs |
 | Export as Excel Template (.xltx) | Export |  | `file.export.xltx` | not in tabs |
 | Export as Excel Workbook (.xlsx) | Export |  | `file.export.xlsx` | not in tabs |
@@ -42,8 +42,8 @@ This file is generated from the source by `npm run catalog`.
 | Export as Markdown table (.md) | Export |  | `file.export.md` | not in tabs |
 | Export as OpenDocument Spreadsheet (.ods) | Export |  | `file.export.ods` | not in tabs |
 | Export as PDF | Export |  | `file.exportPdf` | not in tabs |
-| Export as QuillLattice JSON (.json) | Export |  | `file.export.json` | not in tabs |
-| Export as QuillLattice Workbook (.qlw) | Export |  | `file.export.qlw` | not in tabs |
+| Export as QuillGrid JSON (.json) | Export |  | `file.export.json` | not in tabs |
+| Export as QuillGrid Workbook (.qgw) | Export |  | `file.export.qgw` | not in tabs |
 | Export as Tab-separated values (.tsv) | Export |  | `file.export.tsv` | not in tabs |
 | Export as Text (Tab delimited) (.txt) | Export |  | `file.export.txt` | not in tabs |
 | Export as Web Page (.html) | Export |  | `file.export.html` | not in tabs |
@@ -676,7 +676,7 @@ This file is generated from the source by `npm run catalog`.
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
-| About QuillLattice | Help |  | `help.about` |  |
+| About QuillGrid | Help |  | `help.about` |  |
 | Command Reference | Help |  | `help.commandReference` |  |
 | Function Reference | Help |  | `help.functionReference` |  |
 | Help | Help | F1 | `help.help` |  |

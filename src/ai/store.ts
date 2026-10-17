@@ -53,7 +53,7 @@ export interface AiSettings {
   ensemble: EnsembleSettings;
 }
 
-const KEY = 'quilllattice.ai.v1';
+const KEY = 'quillgrid.ai.v1';
 
 export function defaultAiSettings(): AiSettings {
   return {
@@ -85,7 +85,7 @@ export function saveAiSettings(mut?: (s: AiSettings) => void): void {
   const s = aiSettings();
   mut?.(s);
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* quota */ }
-  try { new BroadcastChannel('quilllattice-ai').postMessage({ type: 'settings' }); } catch { /* unsupported */ }
+  try { new BroadcastChannel('quillgrid-ai').postMessage({ type: 'settings' }); } catch { /* unsupported */ }
   listeners.forEach((f) => f());
 }
 
@@ -104,7 +104,7 @@ export function reloadAiSettings(): void {
 // tooling that imports this module under Node can exit.
 if (typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined') {
   try {
-    const bc = new BroadcastChannel('quilllattice-ai');
+    const bc = new BroadcastChannel('quillgrid-ai');
     bc.onmessage = () => reloadAiSettings();
     (bc as unknown as { unref?: () => void }).unref?.();
   } catch { /* unsupported */ }

@@ -181,7 +181,7 @@ export function defaultPrefs(): Prefs {
   };
 }
 
-const KEY = 'quilllattice.prefs.v1';
+const KEY = 'quillgrid.prefs.v1';
 
 export function loadPrefs(): Prefs {
   const d = defaultPrefs();

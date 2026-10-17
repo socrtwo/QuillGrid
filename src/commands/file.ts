@@ -79,7 +79,7 @@ export async function openBuffer(app: App, data: ArrayBuffer, name: string, uri:
     }
     app.activate(tab);
     if (recovery) toast(`${name} was damaged. ${recoverySummary(recovery)}`, { action: 'Details', onAction: () => app.exec('file.recoveryReport'), ms: 9000 });
-    else if (format === 'xls') toast(`Opened ${name}. Save as .xlsx to keep everything QuillLattice can edit.`, { ms: 6000 });
+    else if (format === 'xls') toast(`Opened ${name}. Save as .xlsx to keep everything QuillGrid can edit.`, { ms: 6000 });
     else if (warnings?.length) toast(`Opened ${name} (${warnings.length} note${warnings.length > 1 ? 's' : ''})`, { action: 'Details', onAction: () => alertDialog('Import Notes', warnings.join('\n')), ms: 7000 });
     else toast(`Opened ${name}`);
     return tab;
@@ -123,7 +123,7 @@ export async function saveTab(app: App, tab: BookTab, opts: { as?: boolean; form
   tab.book.props.lastModifiedBy = app.prefs.author;
   const version = tab.book.version;
   let password: string | undefined;
-  if (format === 'qlwe') {
+  if (format === 'qgwe') {
     const r = await openDialog({ title: 'Encrypt Workbook', fields: [{ key: 'p1', label: 'Password', type: 'password' }, { key: 'p2', label: 'Confirm', type: 'password' }], validate: (x) => (!x.p1 ? 'Enter a password.' : x.p1 !== x.p2 ? 'Passwords do not match.' : null) });
     if (!r) return false;
     password = r.p1;
@@ -151,7 +151,7 @@ function markSaved(app: App, tab: BookTab, version: number) {
   tab.saved = Date.now();
   if (tab.book.version === version) { tab.dirty = false; kvDel('draft:' + tab.id); } else app.scheduleAutosave();
   app.ui.tabsChanged();
-  document.title = `${tab.displayName}${tab.dirty ? ' •' : ''} – QuillLattice`;
+  document.title = `${tab.displayName}${tab.dirty ? ' •' : ''} – QuillGrid`;
 }
 
 def([
@@ -277,7 +277,7 @@ def([
   {
     id: 'file.share', label: 'Share…', icon: 'share', tab: 'Backstage', group: 'Share', popular: true, noRecord: true,
     run: async (app) => {
-      const r = await openDialog({ title: 'Share', fields: [{ key: 'fmt', label: 'Send as', type: 'radio', options: [...FORMATS.filter((f) => f.canExport && f.id !== 'qlwe').map((f) => ({ value: f.id, label: f.label })), { value: 'pdf', label: 'PDF (via print service)' }], value: 'xlsx' }] });
+      const r = await openDialog({ title: 'Share', fields: [{ key: 'fmt', label: 'Send as', type: 'radio', options: [...FORMATS.filter((f) => f.canExport && f.id !== 'qgwe').map((f) => ({ value: f.id, label: f.label })), { value: 'pdf', label: 'PDF (via print service)' }], value: 'xlsx' }] });
       if (!r) return;
       if (r.fmt === 'pdf') return app.exec('file.exportPdf');
       const fmt = formatById(r.fmt)!;
@@ -375,11 +375,11 @@ def([
       toast('Workbook inspected and cleaned');
     },
   },
-  { id: 'file.encrypt', label: 'Encrypt with Password…', icon: 'enhanced_encryption', tab: 'Backstage', group: 'Info', noRecord: true, run: (app) => saveTab(app, app.tab, { copy: true, format: 'qlwe' }) },
+  { id: 'file.encrypt', label: 'Encrypt with Password…', icon: 'enhanced_encryption', tab: 'Backstage', group: 'Info', noRecord: true, run: (app) => saveTab(app, app.tab, { copy: true, format: 'qgwe' }) },
   {
     id: 'file.openEncrypted', label: 'Open Encrypted Workbook…', icon: 'lock_open', tab: 'Backstage', group: 'Open', noRecord: true,
     run: async (app) => {
-      const f = await openDocument('.qlwe', ['application/octet-stream', '*/*']);
+      const f = await openDocument('.qgwe', ['application/octet-stream', '*/*']);
       if (!f) return;
       await openBuffer(app, f.data, f.name, null);
     },
@@ -412,7 +412,7 @@ def([
     run: async (app) => {
       const p = app.prefs;
       const calc = app.book.calc;
-      const r = await openDialog({ title: 'QuillLattice Options', wide: true, fields: [
+      const r = await openDialog({ title: 'QuillGrid Options', wide: true, fields: [
         { key: 'h1', type: 'heading', label: 'General' },
         { key: 'author', label: 'User name', type: 'text', value: p.author, half: true },
         { key: 'initials', label: 'Initials', type: 'text', value: p.initials, half: true },
@@ -448,7 +448,7 @@ def([
         { key: 'h4', type: 'heading', label: 'Save and Proofing' },
         { key: 'autosave', label: 'AutoSave drafts', type: 'checkbox', value: p.autosave, half: true },
         { key: 'autosaveSeconds', label: 'Every (seconds)', type: 'number', value: p.autosaveSeconds, half: true },
-        { key: 'defaultSaveFormat', label: 'Default save format', type: 'select', options: FORMATS.filter((f) => f.canExport && f.id !== 'qlwe').map((f) => ({ value: f.id, label: f.label })), value: p.defaultSaveFormat, half: true },
+        { key: 'defaultSaveFormat', label: 'Default save format', type: 'select', options: FORMATS.filter((f) => f.canExport && f.id !== 'qgwe').map((f) => ({ value: f.id, label: f.label })), value: p.defaultSaveFormat, half: true },
         { key: 'confirmClose', label: 'Ask to save when closing', type: 'checkbox', value: p.confirmClose, half: true },
         { key: 'autoCorrect', label: 'AutoCorrect as you type', type: 'checkbox', value: p.autoCorrect, half: true },
         { key: 'spellDialect', label: 'English spelling', type: 'select', options: SPELL_DIALECTS, value: p.spellDialect || 'any', half: true },
@@ -538,18 +538,18 @@ def([
 
 // Help -------------------------------------------------------------------------------------------
 def([
-  { id: 'help.help', label: 'Help', icon: 'help', tab: 'Help', group: 'Help', keys: ['F1'], noRecord: true, run: () => openExternal('https://github.com/socrtwo/quill-lattice#readme') },
+  { id: 'help.help', label: 'Help', icon: 'help', tab: 'Help', group: 'Help', keys: ['F1'], noRecord: true, run: () => openExternal('https://github.com/socrtwo/QuillGrid#readme') },
   { id: 'help.shortcuts', label: 'Keyboard Shortcuts', icon: 'keyboard', tab: 'Help', group: 'Help', keys: ['Mod-/'], noRecord: true, run: (app) => app.ui.showShortcuts() },
   { id: 'help.commandReference', label: 'Command Reference', icon: 'menu_book', tab: 'Help', group: 'Help', noRecord: true, run: (app) => app.ui.showCommandReference() },
   { id: 'help.tour', label: 'Show the Quick Tour', icon: 'tour', tab: 'Help', group: 'Help', noRecord: true, run: (app) => app.ui.tour() },
   {
-    id: 'help.about', label: 'About QuillLattice', icon: 'info', tab: 'Help', group: 'Help', noRecord: true,
+    id: 'help.about', label: 'About QuillGrid', icon: 'info', tab: 'Help', group: 'Help', noRecord: true,
     run: async () => {
       const { functionNames } = await import('../calc/functions');
-      await alertDialog('About QuillLattice', h('div', { class: 'ql-msg' },
-        h('p', null, h('b', null, `QuillLattice ${__APP_VERSION__}`), ' — an original, open-source spreadsheet (MIT License). A companion to QuillForge.'),
+      await alertDialog('About QuillGrid', h('div', { class: 'ql-msg' },
+        h('p', null, h('b', null, `QuillGrid ${__APP_VERSION__}`), ' — an original, open-source spreadsheet (MIT License). A companion to QuillPen.'),
         h('p', null, `${commandCount()} commands and ${functionNames().length} worksheet functions. Every command is available to the Quick Access Bar, custom tabs, keyboard shortcuts, macros and command search.`),
-        h('p', null, 'QuillLattice is not affiliated with, endorsed by, or sponsored by Microsoft, Google, Apple, The Document Foundation, or any other vendor. Product names are used only to describe file-format compatibility or the origin of an idea.'),
+        h('p', null, 'QuillGrid is not affiliated with, endorsed by, or sponsored by Microsoft, Google, Apple, The Document Foundation, or any other vendor. Product names are used only to describe file-format compatibility or the origin of an idea.'),
         h('p', null, 'Open-source components: JSZip (MIT/GPLv3 dual, used under MIT), nspell and hunspell-asm (MIT) with SCOWL English dictionaries (MIT and BSD-style), Material Symbols (Apache 2.0), Capacitor (MIT), Electron (MIT), fonts Carlito, Caladea, Gelasio, EB Garamond, Courier Prime, Libre Baskerville, Lato, Merriweather, Open Sans (SIL OFL 1.1) and Tinos, Arimo, Cousine (Apache 2.0). Their licenses are in Help ▸ Third-Party Notices.')));
     },
   },
@@ -561,7 +561,7 @@ def([
       await alertDialog('Third-Party Notices', h('pre', { class: 'ql-notices' }, text || 'The notices file is missing from this build. The licenses are listed in docs/LEGAL.md.'));
     },
   },
-  { id: 'help.feedback', label: 'Report an Issue', icon: 'bug_report', tab: 'Help', group: 'Help', noRecord: true, run: () => openExternal('https://github.com/socrtwo/quill-lattice/issues') },
+  { id: 'help.feedback', label: 'Report an Issue', icon: 'bug_report', tab: 'Help', group: 'Help', noRecord: true, run: () => openExternal('https://github.com/socrtwo/QuillGrid/issues') },
   { id: 'help.functionReference', label: 'Function Reference', icon: 'functions', tab: 'Help', group: 'Help', noRecord: true, run: (app) => app.exec('formulas.insertFunction', { browse: true }) },
 ]);
 

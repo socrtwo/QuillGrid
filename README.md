@@ -1,6 +1,8 @@
-# QuillLattice
+# QuillGrid
 
-An original, open-source spreadsheet for Android (and the web, desktop and iOS) whose goal is simple: **no missing commands**. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, on a keyboard shortcut, or in a macro, which is the full-library customization that mobile and online spreadsheet apps leave out. It is the companion to the [QuillForge](https://github.com/socrtwo/QuillForge) word processor and shares its interface and customization system.
+*Part of the Quill suite: [QuillPen](https://github.com/socrtwo/QuillPen) (documents), **QuillGrid** (spreadsheets), [QuillPost](https://github.com/socrtwo/QuillPost) (email) and [QuillStage](https://github.com/socrtwo/QuillStage) (presentations). Formerly named QuillLattice; its .qlw/.qlwe workbooks, settings and drafts carry over.*
+
+An original, open-source spreadsheet for Android (and the web, desktop and iOS) whose goal is simple: **no missing commands**. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, on a keyboard shortcut, or in a macro, which is the full-library customization that mobile and online spreadsheet apps leave out. It is the companion to the [QuillPen](https://github.com/socrtwo/QuillPen) word processor and shares its interface and customization system.
 
 - **687 commands** across File, Home, Insert, Draw, Page Layout, Formulas, Data, Review, View, Tools, **AI**, Developer and Help, plus contextual Table Design, PivotTable Analyze, Chart Design, Picture Format and Shape Format tabs. See [docs/COMMANDS.md](docs/COMMANDS.md).
 - **522 worksheet functions**, including dynamic arrays (FILTER, SORT, UNIQUE, SEQUENCE, XLOOKUP, TEXTSPLIT, VSTACK, GROUPBY, PIVOTBY…), LET and LAMBDA with MAP/REDUCE/SCAN/BYROW/BYCOL, and the full statistical, financial, engineering and database libraries.
@@ -24,7 +26,7 @@ Each [release](../../releases) has builds for:
 
 [docs/INSTALL.md](docs/INSTALL.md) has the steps for each. To build it yourself, including the APK on the phone itself with Termux, see [docs/BUILD.md](docs/BUILD.md).
 
-On Android, QuillLattice registers for *Open with* and *Share to* on .xlsx, .xlsm, .xls, .ods, .csv, .tsv and .txt files. It uses the Android system file picker, so files on the device, SD card, Google Drive, Dropbox and similar providers all work. **Save** writes back to the same file.
+On Android, QuillGrid registers for *Open with* and *Share to* on .xlsx, .xlsm, .xls, .ods, .csv, .tsv and .txt files. It uses the Android system file picker, so files on the device, SD card, Google Drive, Dropbox and similar providers all work. **Save** writes back to the same file.
 
 ## Features
 
@@ -53,7 +55,7 @@ Recalculation is incremental: dependencies are recorded as formulas are evaluate
 
 **Developer.** Macro recorder (records commands, selections and typing; relative or absolute), a JavaScript macro editor with a workbook API, form controls (buttons, check boxes, lists, spin buttons) linked to cells, and JSON import/export.
 
-**Files.** Open and save .xlsx, .xlsm (macros kept, not run) and .xltx, OpenDocument .ods and .fods, CSV/TSV/text (with a Text Import Wizard for delimiters, encodings and column types), HTML, and the native .qlw format. Excel 97–2003 .xls files open with values, formulas and formatting. SYLK, DIF and XML Spreadsheet 2003 files open too. AES-256 encrypted .qlwe is also supported. Autosave drafts with crash recovery, version history snapshots, a document inspector, templates, and several open workbooks in tabs.
+**Files.** Open and save .xlsx, .xlsm (macros kept, not run) and .xltx, OpenDocument .ods and .fods, CSV/TSV/text (with a Text Import Wizard for delimiters, encodings and column types), HTML, and the native .qgw format. Excel 97–2003 .xls files open with values, formulas and formatting. SYLK, DIF and XML Spreadsheet 2003 files open too. AES-256 encrypted .qgwe is also supported. Autosave drafts with crash recovery, version history snapshots, a document inspector, templates, and several open workbooks in tabs.
 
 ### Innovations from other spreadsheets
 
@@ -71,12 +73,12 @@ Recalculation is incremental: dependencies are recorded as formulas are evaluate
 | Export a sheet as a Python or JavaScript program | Resolver One |
 | Column types; Monte Carlo Simulation and What-If Sliders; Cell History | Airtable and Grist; Causal; online spreadsheets |
 | ISBETWEEN, WEIGHTAVG, SEMEAN, REFCONVERT, XINDEX, COUNTUNIQUE, ISEMAIL, ISURL, EPOCHTODATE and date helpers | 1-2-3, online spreadsheets, StarCalc |
-| Command search, keyboard rebinding for every command, QAT at the bottom near the keyboard | QuillForge |
+| Command search, keyboard rebinding for every command, QAT at the bottom near the keyboard | QuillPen |
 | Metric-compatible open fonts substituted for Calibri, Cambria, Times New Roman, Arial, Courier New, Georgia and Garamond | Document-fidelity practice in open-source suites |
 
-[docs/HERITAGE.md](docs/HERITAGE.md) surveys VisiCalc, SuperCalc, Multiplan, Lotus 1-2-3, Symphony, Improv, Agenda, Quattro Pro, Framework, Javelin, Excel 1.0, Boeing Calc, Wingz, Resolver One and today's database-style and model-style spreadsheets, feature by feature: what QuillLattice already had, what was added, and what was left out and why.
+[docs/HERITAGE.md](docs/HERITAGE.md) surveys VisiCalc, SuperCalc, Multiplan, Lotus 1-2-3, Symphony, Improv, Agenda, Quattro Pro, Framework, Javelin, Excel 1.0, Boeing Calc, Wingz, Resolver One and today's database-style and model-style spreadsheets, feature by feature: what QuillGrid already had, what was added, and what was left out and why.
 
-**Recovery.** When a workbook is damaged, QuillLattice recovers it instead of refusing to open it. The pipeline identifies the real file type, salvages ZIP entries from their local headers with ImmortalInflate, checks CRCs, repairs XML (cutting sheet data at the last complete row and regenerating missing package parts), scans raw worksheet XML for cell values when the package cannot be rebuilt, reads Excel 97–2003 records even when the container is damaged, and falls back to text and strings scans. The recovered workbook opens as a new, unsaved file with a report of what each method found.
+**Recovery.** When a workbook is damaged, QuillGrid recovers it instead of refusing to open it. The pipeline identifies the real file type, salvages ZIP entries from their local headers with ImmortalInflate, checks CRCs, repairs XML (cutting sheet data at the last complete row and regenerating missing package parts), scans raw worksheet XML for cell values when the package cannot be rebuilt, reads Excel 97–2003 records even when the container is damaged, and falls back to text and strings scans. The recovered workbook opens as a new, unsaved file with a report of what each method found.
 
 **AI.** The AI tab writes formulas from a plain-language request (checked by the formula engine before it is offered), explains and fixes formulas, analyzes data, fills columns by instruction or example, classifies, extracts and cleans data, generates tables, suggests charts, summarizes, translates and rewrites cells, and has a chat pane with workbook context. With two or more providers set up, a command can go to several AIs at once: one AI combines their answers, or they deliberate in the manner of a Quaker meeting (unite, stand aside or block) until they agree, with the discussion shown in the AI pane. Quick Analysis (formatting, charts, totals, tables, sparklines for the selection) works without AI.
 
@@ -91,9 +93,9 @@ Keys are stored encrypted on the device (Android Keystore on Android, the system
 
 ## Known limitations (0.1)
 
-- **Native builds are untested on devices.** The web build, 496 unit tests, a browser smoke test (`npm run e2e`) and a phone layout audit (`npm run e2e:layout`: every window, menu and pane on emulated phones with system bars and the on-screen keyboard) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
-- **VBA is preserved, not run.** .xlsm files keep their VBA project when saved as .xlsm; macros run only in QuillLattice's JavaScript macro language.
-- **PivotTables from other programs open as static values.** PivotTables made in QuillLattice are live, but they are written to .xlsx as values, not as pivot caches.
+- **Native builds are untested on devices.** The web build, 497 unit tests, a browser smoke test (`npm run e2e`) and a phone layout audit (`npm run e2e:layout`: every window, menu and pane on emulated phones with system bars and the on-screen keyboard) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
+- **VBA is preserved, not run.** .xlsm files keep their VBA project when saved as .xlsm; macros run only in QuillGrid's JavaScript macro language.
+- **PivotTables from other programs open as static values.** PivotTables made in QuillGrid are live, but they are written to .xlsx as values, not as pivot caches.
 - **OpenDocument charts and embedded objects** are not opened or saved; cell data, formulas, styles, merges and conditional formats are.
 - **.xls is import-only.** Excel 97–2003 files open with values, formulas and formatting; save them as .xlsx.
 - **No network functions in cells.** WEBSERVICE returns #VALUE!; STOCKHISTORY and linked data types have no data source. ENCODEURL and FILTERXML work.
@@ -123,4 +125,4 @@ The interface, code comments and documentation use American English. Spelling ch
 
 ## Legal
 
-QuillLattice is an independent, clean-room project released under the MIT License. It is not affiliated with, endorsed by, or sponsored by Microsoft, Google, Apple, The Document Foundation, any AI provider, or any other vendor. Product names appear only to describe file-format compatibility or the origin of an idea (nominative use). Excel is a trademark of Microsoft Corporation. The interface, icons (Material Symbols, Apache 2.0), templates, styles and text are original or openly licensed. See [docs/LEGAL.md](docs/LEGAL.md).
+QuillGrid is an independent, clean-room project released under the MIT License. It is not affiliated with, endorsed by, or sponsored by Microsoft, Google, Apple, The Document Foundation, any AI provider, or any other vendor. Product names appear only to describe file-format compatibility or the origin of an idea (nominative use). Excel is a trademark of Microsoft Corporation. The interface, icons (Material Symbols, Apache 2.0), templates, styles and text are original or openly licensed. See [docs/LEGAL.md](docs/LEGAL.md).

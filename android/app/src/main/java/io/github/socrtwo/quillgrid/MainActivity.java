@@ -1,4 +1,4 @@
-package io.github.socrtwo.quilllattice;
+package io.github.socrtwo.quillgrid;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
