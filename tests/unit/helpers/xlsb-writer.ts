@@ -143,7 +143,7 @@ export async function buildXlsb(): Promise<ArrayBuffer> {
     .rec(9, [...cell(3, 2), ...enc.f64(3.75), ...enc.u16(0), ...fmla(ptg.exp(1), enc.u32(3))])
     .rec(427, [...enc.rfx(1, 3, 3, 3), ...fmla([...ptg.refN(0, -2), ...ptg.refN(0, -1), ...ptg.mul])])
     .rec(5, [...cell(4, 3), ...enc.f64(45366)])
-    .rec(8, [...cell(7, 0), ...enc.wstr('Tricky'), ...enc.u16(0), ...fmla(ptg.ref3d(1, 0, 0))])
+    .rec(8, [...cell(7, 0), ...enc.wstr('Tricky <&> "quotes"'), ...enc.u16(0), ...fmla(ptg.ref3d(1, 0, 0))])
     .rec(6, [...cell(9, 0), ...enc.wstr('Region')]).rec(6, [...cell(10, 0), ...enc.wstr('Units')])
     // Row 3
     .rec(0, row(2))
@@ -151,7 +151,7 @@ export async function buildXlsb(): Promise<ArrayBuffer> {
     .rec(2, [...cell(1, 0), ...enc.u32((5 << 2) | 2)])
     .rec(5, [...cell(2, 2), ...enc.f64(2.5)])
     .rec(9, [...cell(3, 2), ...enc.f64(12.5), ...enc.u16(0), ...fmla(ptg.exp(1), enc.u32(3))])
-    .rec(9, [...cell(7, 0), ...enc.f64(20), ...enc.u16(0), ...fmla([...ptg.name(1), ...ptg.int(10), ...ptg.mul])])
+    .rec(9, [...cell(7, 0), ...enc.f64(12.5), ...enc.u16(0), ...fmla([...ptg.name(1), ...ptg.int(10), ...ptg.mul])])
     .rec(6, [...cell(9, 0), ...enc.wstr('North')]).rec(2, [...cell(10, 0), ...enc.u32((4 << 2) | 2)])
     // Row 4
     .rec(0, row(3))

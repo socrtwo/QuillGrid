@@ -13,6 +13,24 @@ import { importFile, sniffFormat } from '../../src/io/index';
 import { SNIFF_RULES_B } from '../../src/io/sniff-b';
 import { detectEncoding, decodeAuto } from '../../src/io/encoding';
 import { detectLocale } from '../../src/io/csv';
+import '../../src/calc/functions';
+import { Engine } from '../../src/calc/engine';
+import JSZip from 'jszip';
+import type { Workbook } from '../../src/model/workbook';
+
+/** Recalculates every formula and returns the cells whose result differs from the value the file stored. */
+export function recalcDiffs(book: Workbook): string[] {
+  const cached: [Sheet, number, unknown][] = [];
+  for (const sh of book.sheets) for (const [k, c] of sh.cells) if (c.f != null) cached.push([sh, k, c.v]);
+  new Engine(book).recalc(true);
+  const out: string[] = [];
+  for (const [sh, k, v] of cached) {
+    const now = sh.cells.get(k)?.v;
+    const same = typeof v === 'number' && typeof now === 'number' ? Math.abs(v - now) < 1e-9 * Math.max(1, Math.abs(v)) : v instanceof CellError || now instanceof CellError ? String(v) === String(now) : v === now;
+    if (!same && v != null) out.push(`${sh.name}!${k}: stored ${String(v)}, calculated ${String(now)}`);
+  }
+  return out;
+}
 
 const FIX = 'tests/fixtures/io/b/';
 export function fixture(name: string): ArrayBuffer {
@@ -255,6 +273,7 @@ describe('OpenOffice.org 1.x Calc (.sxc)', () => {
     expect(val(n, 'A1')).toBe('Tricky <&> "quotes"');
     expect(book.names).toContainEqual({ name: 'Rate', ref: 'Fruit!$C$2', sheet: null });
     expect(book.props.title).toBe('Fruit list');
+    expect(recalcDiffs(book)).toEqual([]);
   });
 });
 
@@ -306,6 +325,7 @@ describe('Excel binary workbook (.xlsb)', () => {
     expect(book.names).toEqual([{ name: 'TaxRate', ref: 'Fruit!$C$2', sheet: null }]);
     expect(book.props.title).toBe('Binary fruit');
     expect(val(book.sheets[1], 'A1')).toBe('Tricky <&> "quotes"');
+    expect(recalcDiffs(book)).toEqual([]);
   });
 });
 
@@ -324,5 +344,76 @@ describe('Excel binary workbook written by Excel (Apache POI sample)', () => {
     expect(sty(s, 'B10').numFmt).toBe('m/d/yyyy');
     expect(warnings.join(' ')).toMatch(/VBA/);
     expect(s.drawings.length + s.charts.length).toBeGreaterThan(0);
+    expect(recalcDiffs(book)).toEqual([]);
+  });
+});
+
+describe('Apple Numbers', () => {
+  it("reads a Numbers '09 document saved by Numbers (values, formulas, formats, merges)", async () => {
+    const { book, format, warnings } = await importFile(fixture('third-party/tika-testNumbers.numbers'), 'budget.numbers');
+    expect(format).toBe('numbers');
+    expect(book.sheets.map((s) => s.name)).toEqual(['Account Categories', 'Transactions', 'Table 1']);
+    const cat = book.sheets[0];
+    expect([val(cat, 'A2'), val(cat, 'B2'), val(cat, 'A7'), val(cat, 'B7')]).toEqual(['Home', -872.4, 'Total', -2575.9]);
+    expect(fml(cat, 'B2')).toBe('SUMIF(Transactions!$D$3:$D$14,A2,Transactions!E$3:E$14)');
+    expect(fml(cat, 'B7')).toBe('SUM(B$2:B$6)');
+    expect(sty(cat, 'B2').numFmt).toBe('€#,##0.00;(€#,##0.00)');
+    const tr = book.sheets[1];
+    expect([val(tr, 'E1'), val(tr, 'F1'), val(tr, 'B3'), val(tr, 'C3'), val(tr, 'D3')]).toEqual(['Beginning Balance', 4650, 40087, 'Rent', 'Home']);
+    expect(sty(tr, 'B3').numFmt).toBe('m/d/yy');
+    expect(tr.merges).toContainEqual({ r1: 0, c1: 0, r2: 0, c2: 1 });
+    expect(tr.colW.get(2)).toBe(240);
+    expect(sty(tr, 'A2')).toMatchObject({ bold: true, font: 'Cochin' });
+    expect(recalcDiffs(book)).toEqual([]);
+    expect(warnings.join(' ')).toMatch(/Charts/);
+  });
+  it("reads index.xml.gz inside the package", async () => {
+    const zip = await JSZip.loadAsync(fixture('third-party/tika-testNumbers.numbers'));
+    const xml = await zip.file('index.xml')!.async('uint8array');
+    const z2 = new JSZip();
+    z2.file('index.xml.gz', gzipSync(xml));
+    z2.file('buildVersionHistory.plist', '<plist/>');
+    const data = await z2.generateAsync({ type: 'arraybuffer' });
+    expect(sniffFormat(data, 'x.zip')?.id).toBe('numbers');
+    const { book } = await importFile(data, 'x.numbers');
+    expect(val(book.sheets[0], 'B7')).toBe(-2575.9);
+  });
+  it('reads a Numbers 2013 document saved by Numbers (iWork archives)', async () => {
+    const { book, format, warnings } = await importFile(fixture('third-party/tika-testNumbers2013.numbers'), 'budget.numbers');
+    expect(format).toBe('numbers');
+    const names = book.sheets.map((s) => s.name);
+    expect(names).toEqual(expect.arrayContaining(['Account Categories', 'Transactions', 'Table 1']));
+    const cat = book.sheets[names.indexOf('Account Categories')];
+    expect([val(cat, 'A1'), val(cat, 'B2'), val(cat, 'A7'), val(cat, 'B7')]).toEqual(['Category', -872.4, 'Total', -2575.9]);
+    const tr = book.sheets[names.indexOf('Transactions')];
+    expect([val(tr, 'E1'), val(tr, 'F1'), val(tr, 'C3'), val(tr, 'E3'), val(tr, 'F14')]).toEqual(['Beginning Balance', 4650, 'Rent', -775, 4279.1]);
+    expect(Math.floor(val(tr, 'B3') as number)).toBe(40087);
+    expect(sty(tr, 'B3').numFmt).toBeTruthy();
+    const t1 = book.sheets[names.indexOf('Table 1')];
+    expect([val(t1, 'B2'), val(t1, 'C3'), val(t1, 'D4')]).toEqual(['Test', 0.5, 0.6]);
+    expect(tr.colW.get(2)).toBe(240);
+    expect(warnings.join(' ')).toMatch(/last calculated values/);
+  });
+  it('reads version 5 cell storage (decimal128, dates, booleans, durations)', async () => {
+    const { buildNumbers } = await import('./helpers/iwa-writer');
+    const data = await buildNumbers();
+    expect(sniffFormat(data, 'download')?.id).toBe('numbers');
+    const { book } = await importFile(data, 'stand.numbers');
+    const s = book.sheets[0];
+    expect(s.name).toBe('Fruit stand');
+    expect([val(s, 'A2'), val(s, 'B2'), val(s, 'C2'), val(s, 'D2'), val(s, 'C3'), val(s, 'D3')]).toEqual(['Apples', 3, 1.25, 3.75, -2.5, -12.5]);
+    expect([val(s, 'B4'), val(s, 'C4'), val(s, 'D4')]).toEqual([45366, true, 0.0625]);
+    expect(sty(s, 'B4').numFmt).toBe('yyyy-mm-dd');
+    expect(s.colW.get(0)).toBe(160);
+    expect(s.hiddenCols.has(3)).toBe(true);
+  });
+  it('opens the preview when that is all the package holds', async () => {
+    const z = new JSZip();
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 2, 0, 0, 0, 3, 8, 2, 0, 0, 0]);
+    z.file('preview.jpg', png);
+    z.file('Metadata/DocumentIdentifier', 'x');
+    const { book, warnings } = await importFile(await z.generateAsync({ type: 'arraybuffer' }), 'locked.numbers');
+    expect(book.sheets[0].drawings[0].kind).toBe('image');
+    expect(warnings.join(' ')).toMatch(/only a preview/);
   });
 });

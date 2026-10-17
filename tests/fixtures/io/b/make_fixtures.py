@@ -3,9 +3,9 @@
 
     python3 tests/fixtures/io/b/make_fixtures.py
 
-Writes sample.sxc (OpenOffice.org 1.0 Calc), sample.ksp (KSpread, KoStore ZIP),
-sample-old.ksp (KSpread 1.x tar.gz store), sample09.numbers (Apple Numbers '09 XML) and
-sample.sqlite. All content is original test data. LibreOffice reads the .sxc, .numbers and
+Writes sample.sxc (OpenOffice.org 1.0 Calc), sample.ksp (KSpread, KoStore ZIP) and
+sample-old.ksp (KSpread 1.x tar.gz store).
+sample.sqlite is made the same way. All content is original test data. LibreOffice reads the .sxc and
 .gnumeric fixtures, which is how they were checked (soffice --convert-to csv).
 """
 import gzip, io, os, sqlite3, tarfile, zipfile
