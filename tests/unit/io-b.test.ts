@@ -440,3 +440,50 @@ describe('KSpread', () => {
     });
   }
 });
+
+describe('Uniform Office Format (.uos)', () => {
+  it('reads values, formulas, styles, merges and links', async () => {
+    const data = fixture('sample.uos');
+    expect(sniffFormat(data, 'book.xml')?.id).toBe('uos');
+    const { book, format } = await importFile(data, 'book.uos');
+    expect(format).toBe('uos');
+    expect(book.sheets.map((s) => s.name)).toEqual(['Fruit', 'Notes & More']);
+    const s = book.sheets[0];
+    expect([val(s, 'A2'), val(s, 'B2'), val(s, 'C2'), val(s, 'D2'), val(s, 'E2')]).toEqual(['Apple', 3, 1.25, 3.75, 45366]);
+    expect(val(s, 'E3')).toBeCloseTo(13.5 / 24, 9);
+    expect([fml(s, 'D2'), fml(s, 'D5')]).toEqual(['B2*C2', 'SUM(D2:D4)']);
+    expect(sty(s, 'A1')).toMatchObject({ bold: true, fill: '#ffff00', hAlign: 'center', bb: { style: 'thin' } });
+    expect(sty(s, 'E2').numFmt).toBe('mm"/"dd"/"yyyy');
+    expect(sty(s, 'E5')).toMatchObject({ font: 'Courier New', size: 12, wrap: true });
+    expect(s.merges).toEqual([{ r1: 5, c1: 0, r2: 5, c2: 2 }]);
+    expect(s.cells.get(K('D6'))?.link).toBe('https://example.com/');
+    expect(s.hiddenRows.has(6)).toBe(true);
+    expect(val(book.sheets[1], 'A1')).toBe('Tricky <&> "quotes"');
+  });
+});
+
+describe('MIME HTML web archives (.mht)', () => {
+  it('reads every sheet part of an Excel single file web page', async () => {
+    const sheet = (rows: string) => `<html><body><table>${rows}</table></body></html>`;
+    const qp = (s: string) => s.replace(/=/g, '=3D').replace(/<tr>/g, '=\r\n<tr>');
+    const mht = [
+      'MIME-Version: 1.0', 'X-Document-Type: Workbook', 'Content-Type: multipart/related; boundary="----=_NextPart_01"', '',
+      'This document is a Single File Web Page.', '',
+      '------=_NextPart_01', 'Content-Location: file:///C:/x/book.htm', 'Content-Transfer-Encoding: quoted-printable', 'Content-Type: text/html; charset="us-ascii"', '',
+      qp('<html><frameset><frame src="book_files/sheet001.htm"></frameset></html>'), '',
+      '------=_NextPart_01', 'Content-Location: file:///C:/x/book_files/tabstrip.htm', 'Content-Transfer-Encoding: quoted-printable', 'Content-Type: text/html; charset="us-ascii"', '',
+      qp('<html><body><a href="sheet001.htm" target="frSheet"><font face="Arial">Sales</font></a> <a href="sheet002.htm" target="frSheet"><font face="Arial">Costs</font></a></body></html>'), '',
+      '------=_NextPart_01', 'Content-Location: file:///C:/x/book_files/sheet001.htm', 'Content-Transfer-Encoding: quoted-printable', 'Content-Type: text/html; charset="windows-1252"', '',
+      qp(sheet('<tr><td style="font-weight:700">Item</td><td>Qty</td></tr><tr><td>Caf=E9</td><td x:num="3">3</td></tr>')).replace('Caf=3DE9', 'Caf=E9'), '',
+      '------=_NextPart_01', 'Content-Location: file:///C:/x/book_files/sheet002.htm', 'Content-Transfer-Encoding: base64', 'Content-Type: text/html; charset="utf-8"', '',
+      btoa(sheet('<tr><td>Rent</td><td>775</td></tr>')), '',
+      '------=_NextPart_01--', '',
+    ].join('\r\n');
+    const data = txt(mht);
+    expect(sniffFormat(data, 'book.bin')?.id).toBe('mht');
+    const { book } = await importFile(data, 'book.mht');
+    expect(book.sheets.map((s) => s.name)).toEqual(['Sales', 'Costs']);
+    expect([val(book.sheets[0], 'A2'), val(book.sheets[0], 'B2'), val(book.sheets[1], 'B1')]).toEqual(['Café', 3, 775]);
+    expect(sty(book.sheets[0], 'A1').bold).toBe(true);
+  });
+});

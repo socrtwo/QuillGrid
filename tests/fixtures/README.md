@@ -11,7 +11,9 @@ Original test data written for this project:
 - `sample.gnumeric` — hand-written Gnumeric XML (gzip), following the Gnumeric file format.
 - `sample.sxc` — OpenOffice.org 1.0 Calc package built by `make_fixtures.py`.
 - `sample.ksp`, `sample-old.ksp` — KSpread documents (KoStore ZIP and KOffice 1.x tar.gz) built by `make_fixtures.py`.
-- `sample.uos` — Uniform Office Format spreadsheet written by LibreOffice 24.2 from our own data.
+- `sample.uos` — Uniform Office Format spreadsheet written by LibreOffice 24.2 from `sample.sxc`, with two
+  formulas added and the second sheet's row numbers corrected by hand (LibreOffice's UOF export drops
+  formulas and numbers rows on from the previous sheet).
 - `sample.sqlite` — SQLite database built by `make_fixtures.py` with Python's sqlite3 module.
 - `encodings/*.txt` — short CSV texts encoded in legacy code pages (Windows-125x, Mac OS Roman,
   DOS 437/850, KOI8-R, Shift-JIS, GBK, Big5, EUC-KR).
