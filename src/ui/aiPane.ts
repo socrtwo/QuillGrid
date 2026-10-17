@@ -12,8 +12,9 @@ import type { Scalar } from '../model/types';
 import { CellError } from '../model/types';
 import { cellName, rangeName } from '../model/address';
 import { formatValue } from '../model/numfmt';
-import { chat, AiError, type ChatMessage } from '../ai/client';
-import { aiSettings } from '../ai/store';
+import { chat, activeEnsemble, AiError, type ChatMessage } from '../ai/client';
+import { outcomeLine, type EnsembleInfo } from '../ai/ensemble';
+import { aiSettings, onAiSettingsChange } from '../ai/store';
 import { providerById } from '../ai/providers';
 import { cleanOutput, extractFormula, parseTable, tableText, validateFormula, writeTable, type FormulaCheck } from '../ai/apply';
 import { BASE_SYSTEM } from '../ai/features';
@@ -58,11 +59,74 @@ export function stopAi(): void { current?.abort(); }
 
 export function aiModelName(): string {
   const s = aiSettings();
+  const plan = activeEnsemble();
+  if (plan) return `${plan.members.length} AIs, ${plan.mode === 'master' ? 'combined by' : 'clerk'} ${s.providers[plan.master.provider]?.model || providerById(plan.master.provider)?.name || plan.master.provider}`;
   const id = s.active || '';
   return s.providers[id]?.model || providerById(id)?.name || 'AI';
 }
 
 export const fmtScalar = (v: Scalar, numFmt?: string) => (v instanceof CellError ? v.code : v == null ? '' : formatValue(v, numFmt).text);
+
+// ------------------------------------------------------------------------------------------
+// "How the AIs answered" (several AIs on one request)
+
+const DELIB_CSS = `
+.ql-ai-delib { margin-top: 8px; border-top: 1px solid var(--ql-border, #ddd); padding-top: 6px; font-size: 12.5px; }
+.ql-ai-delib > summary { cursor: pointer; font-weight: 600; }
+.ql-ai-delib-item { margin: 6px 0; padding: 6px 8px; border-left: 3px solid var(--ql-border, #ccc); background: color-mix(in srgb, currentColor 4%, transparent); border-radius: 0 6px 6px 0; }
+.ql-ai-delib-head { font-weight: 600; margin-bottom: 2px; }
+.ql-ai-delib-text { white-space: pre-wrap; max-height: 14em; overflow: auto; }
+.ql-ai-delib-err { color: #c62828; }
+.ql-ai-delib ul { margin: 4px 0 0; padding-left: 18px; }
+.ql-ai-delib-outcome { font-weight: 600; margin: 6px 0 0; }
+.ql-ai-nounity { margin-top: 8px; padding: 6px 8px; border-left: 3px solid #c62828; background: color-mix(in srgb, #c62828 8%, transparent); font-size: 12.5px; }
+.ql-ai-nounity ul { margin: 4px 0 0; padding-left: 18px; }
+.ql-ai-stance-unite { color: #2e7d32; } .ql-ai-stance-stand-aside { color: #8a6d00; } .ql-ai-stance-block { color: #c62828; }
+.ql-ai-msg-status, .ql-ai-preview .ql-ai-msg-status { font-size: 12px; opacity: .8; font-style: italic; margin-top: 4px; }
+@media (prefers-color-scheme: dark) { .ql-ai-stance-stand-aside { color: #ffd54f; } .ql-ai-stance-unite { color: #81c784; } .ql-ai-stance-block, .ql-ai-delib-err { color: #ef9a9a; } }
+`;
+let delibStyled = false;
+function delibStyles(): void {
+  if (delibStyled || typeof document === 'undefined') return;
+  delibStyled = true;
+  document.head.appendChild(h('style', { 'data-ql': 'ai-delib' }, DELIB_CSS));
+}
+
+const provName = (id: string) => providerById(id)?.name || id;
+const STANCE_LABEL = { unite: 'unites', 'stand-aside': 'stands aside', block: 'blocks' } as const;
+
+/**
+ * The discussion behind an answer from several AIs: "The AIs did not reach unity" with each block
+ * (always shown), and, when AI Settings ▸ "Show the discussion" is on, the collapsible "How the AIs
+ * answered" section with each member's answer, each round's minute and stances, and the outcome line.
+ */
+export function deliberationView(info: EnsembleInfo, opts: { open?: boolean } = {}): HTMLElement | null {
+  delibStyles();
+  const show = aiSettings().ensemble.showDeliberation;
+  const wrap = h('div', { class: 'ql-ai-delib-wrap' });
+  if (info.outcome === 'no-unity') {
+    wrap.append(h('div', { class: 'ql-ai-nounity', role: 'note' }, h('b', null, 'The AIs did not reach unity'), h('span', null, ' — the clerk\'s last minute is shown above.'),
+      h('ul', null, ...(info.blocks || []).map((b) => h('li', null, h('b', null, provName(b.provider)), ` blocks: ${b.reason}`)))));
+  }
+  if (!show) return wrap.childNodes.length ? wrap : null;
+  const d = h('details', { class: 'ql-ai-delib', ...(opts.open ? { open: '' } : {}) }, h('summary', null, 'How the AIs answered'));
+  if (info.note) d.append(h('p', { class: 'ql-help' }, info.note));
+  for (const m of info.members) {
+    d.append(h('div', { class: 'ql-ai-delib-item' },
+      h('div', { class: 'ql-ai-delib-head' }, `${provName(m.provider)} · ${m.model} · ${(m.ms / 1000).toFixed(1)} s`),
+      m.error != null ? h('div', { class: 'ql-ai-delib-err' }, `⚠ ${m.error}`) : h('div', { class: 'ql-ai-delib-text' }, cleanOutput(m.text || ''))));
+  }
+  (info.rounds || []).forEach((r, i) => {
+    d.append(h('div', { class: 'ql-ai-delib-item ql-ai-delib-round' },
+      h('div', { class: 'ql-ai-delib-head' }, `Round ${i + 1} · minute by the clerk, ${provName(info.master)}`),
+      h('div', { class: 'ql-ai-delib-text' }, cleanOutput(r.minute)),
+      h('ul', null, ...(r.responses.length ? r.responses.map((x) => h('li', null, h('b', null, provName(x.provider)), ' ', h('span', { class: `ql-ai-stance-${x.stance}` }, STANCE_LABEL[x.stance]),
+        x.reason ? `: ${x.reason}` : '', x.suggestedChange ? ` (suggested change: ${x.suggestedChange})` : '')) : [h('li', null, 'No AI replied in this round.')]))));
+  });
+  d.append(h('p', { class: 'ql-ai-delib-outcome' }, outcomeLine(info, provName)));
+  wrap.append(d);
+  return wrap;
+}
 
 // ------------------------------------------------------------------------------------------
 // Inserting into cells
@@ -101,8 +165,8 @@ export interface FormulaPreview {
   title: string;
   sheet: Sheet;
   r: number; c: number;
-  /** Streams the raw answer; resolves with the final raw text. */
-  generate: (onToken: (full: string) => void, signal: AbortSignal) => Promise<string>;
+  /** Streams the raw answer; resolves with the final raw text. With several AIs, `more` shows progress lines and the discussion. */
+  generate: (onToken: (full: string) => void, signal: AbortSignal, more: { status: (text: string) => void; ensemble: (info: EnsembleInfo | undefined) => void }) => Promise<string>;
   original?: string;
 }
 
@@ -115,6 +179,8 @@ export async function showFormulaPreview(app: App, o: FormulaPreview): Promise<v
   const status = h('div', { class: 'ql-ai-status' });
   const result = h('div', { class: 'ql-ai-result' });
   const expl = h('div', { class: 'ql-ai-expl ql-help' });
+  const progress = h('div', { class: 'ql-ai-msg-status', role: 'status', 'aria-live': 'polite' });
+  const delib = h('div', { class: 'ql-ai-delib-host' });
   const form = h('div', { class: 'ql-ai-formula-wrap', style: 'display:none' }, h('label', { class: 'ql-label' }, `Formula for ${cellName(o.r, o.c)}`), fIn, status, result, expl);
   let check: FormulaCheck | null = null;
   let done = false;
@@ -138,12 +204,18 @@ export async function showFormulaPreview(app: App, o: FormulaPreview): Promise<v
   fIn.addEventListener('input', recheck);
   const body = h('div', { class: 'ql-ai-preview' },
     o.original ? h('details', null, h('summary', null, 'Current formula'), h('code', null, o.original)) : null,
-    stream, form,
+    stream, progress, form, delib,
     h('p', { class: 'ql-help ql-ai-disclaimer' }, 'AI can be wrong. Check the result against a few rows before relying on it.'));
   const run = async () => {
     done = false; stream.style.display = ''; form.style.display = 'none'; stream.textContent = '…';
+    progress.textContent = ''; clear(delib);
+    const more = {
+      status: (t: string) => { progress.textContent = t; },
+      ensemble: (info: EnsembleInfo | undefined) => { clear(delib); const v = info && deliberationView(info); if (v) delib.append(v); },
+    };
     try {
-      const raw = await o.generate((full) => { stream.textContent = full; }, ctl.signal);
+      const raw = await o.generate((full) => { stream.textContent = full; }, ctl.signal, more);
+      progress.textContent = '';
       const f = extractFormula(raw);
       stream.style.display = 'none'; form.style.display = '';
       fIn.value = f?.formula || '';
@@ -229,22 +301,48 @@ export async function showTablePreview(title: string, rows: Scalar[][]): Promise
 // AI pane
 
 export interface PaneAction { label: string; icon?: string; run: () => void }
-interface Turn { role: 'user' | 'assistant'; text: string; title?: string; actions?: PaneAction[]; error?: boolean }
+interface Turn { role: 'user' | 'assistant'; text: string; title?: string; actions?: PaneAction[]; error?: boolean; status?: string; ensemble?: EnsembleInfo; /** A report, not an answer: no Insert buttons. */ note?: boolean }
 const history: Turn[] = [];
 let paneEl: HTMLElement | null = null;
 let paneApp: App | null = null;
 
 /** Shows a (streaming) result in the AI pane. */
-export function paneResult(app: App, title: string): { update: (t: string) => void; done: (t: string, actions?: PaneAction[]) => void; fail: (msg: string) => void } {
+export interface PaneOut {
+  update: (t: string) => void;
+  done: (t: string, actions?: PaneAction[]) => void;
+  fail: (msg: string) => void;
+  /** A progress line while several AIs work ("Round 2 of 3: 1 objection"). */
+  status: (t: string) => void;
+  /** The discussion behind the answer, shown below it. */
+  ensemble: (info: EnsembleInfo | undefined) => void;
+}
+
+export function paneResult(app: App, title: string): PaneOut {
   if (!app.ui.paneOpen('ai')) app.ui.openPane('ai');
   const turn: Turn = { role: 'assistant', text: '', title };
   history.push(turn);
   drawPane();
   return {
     update: (t) => { turn.text = t; drawTurnText(turn); },
-    done: (t, actions) => { turn.text = t; turn.actions = actions; drawPane(); },
-    fail: (msg) => { turn.text = `⚠ ${msg}`; turn.error = true; drawPane(); },
+    done: (t, actions) => { turn.text = t; turn.actions = actions; turn.status = undefined; drawPane(); },
+    fail: (msg) => { turn.text = `⚠ ${msg}`; turn.error = true; turn.status = undefined; drawPane(); },
+    status: (t) => { turn.status = t; drawTurnStatus(turn); },
+    ensemble: (info) => { turn.ensemble = info; drawPane(); },
   };
+}
+
+/** Shows how several AIs reached a result that was applied elsewhere (a chart, rules, a table). */
+export function paneDeliberation(app: App, title: string, info: EnsembleInfo): void {
+  if (!info || (!aiSettings().ensemble.showDeliberation && info.outcome !== 'no-unity')) return;
+  if (!app.ui.paneOpen('ai')) app.ui.openPane('ai');
+  history.push({ role: 'assistant', title, text: outcomeLine(info, provName), ensemble: info, note: true });
+  drawPane();
+}
+
+function drawTurnStatus(turn: Turn): void {
+  const el = paneEl?.querySelector(`[data-turn="${history.indexOf(turn)}"] .ql-ai-msg-status`);
+  if (el) el.textContent = turn.status || '';
+  else drawPane();
 }
 
 function drawTurnText(turn: Turn): void {
@@ -265,6 +363,20 @@ function turnActions(app: App, t: Turn): HTMLElement {
   return row;
 }
 
+/** Which AI answers: the active provider, or the several AIs and their master or clerk. */
+function paneHeading(): string {
+  const s = aiSettings();
+  const plan = activeEnsemble();
+  if (plan) return `${plan.mode === 'master' ? 'Several AIs, combined by' : 'Quaker consensus, clerk:'} ${provName(plan.master.provider)} · ${plan.members.map((m) => provName(m.provider)).join(', ')}`;
+  const prov = s.active ? providerById(s.active) : null;
+  return prov ? `${prov.name} · ${s.providers[s.active!]?.model || ''}` : 'No AI provider';
+}
+
+onAiSettingsChange(() => {
+  const el = paneEl?.querySelector('.ql-ai-head-text');
+  if (el) el.textContent = paneHeading();
+});
+
 function drawPane(): void {
   if (!paneEl || !paneApp) return;
   const app = paneApp;
@@ -282,7 +394,9 @@ function drawPane(): void {
     log.append(h('div', { class: `ql-ai-msg ql-ai-${t.role}`, 'data-turn': String(i) },
       t.title ? h('div', { class: 'ql-ai-msg-title' }, t.title) : null,
       h('div', { class: 'ql-ai-msg-text' }, t.text || '…'),
-      t.role === 'assistant' && t.text ? turnActions(app, t) : null));
+      t.status ? h('div', { class: 'ql-ai-msg-status', role: 'status' }, t.status) : null,
+      t.ensemble ? deliberationView(t.ensemble) : null,
+      t.role === 'assistant' && t.text && !t.note ? turnActions(app, t) : null));
   });
   log.scrollTop = log.scrollHeight;
 }
@@ -315,12 +429,13 @@ async function ask(app: App, question: string, include: Include): Promise<void> 
   msgs.push({ role: 'user', content: question });
   const b = aiBusy('AI is answering…');
   try {
-    const r = await chat({ messages: msgs, signal: b.signal, onToken: (_d, full) => { turn.text = full; drawTurnText(turn); } });
+    const r = await chat({ messages: msgs, signal: b.signal, onToken: (_d, full) => { turn.text = full; drawTurnText(turn); }, onStatus: (t) => { b.label(t); turn.status = t; drawTurnStatus(turn); } });
     turn.text = cleanOutput(r.text);
+    turn.ensemble = r.ensemble;
   } catch (e: any) {
     turn.error = !(e instanceof AiError && e.code === 'aborted');
     turn.text = turn.error ? `⚠ ${e?.message || e}` : turn.text || '(stopped)';
-  } finally { aiIdle(b); }
+  } finally { aiIdle(b); turn.status = undefined; }
   drawPane();
 }
 
@@ -336,10 +451,8 @@ export const aiPaneDef: PaneDef = {
       h('option', { value: 'region' }, 'Send the data around the selection'), h('option', { value: 'sheet' }, 'Send the whole sheet'), h('option', { value: 'none' }, 'Send no workbook data')) as HTMLSelectElement;
     const send = () => { const q = input.value.trim(); if (!q) return; input.value = ''; void ask(app, q, include.value as Include); };
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
-    const s = aiSettings();
-    const prov = s.active ? providerById(s.active) : null;
     el.append(
-      h('div', { class: 'ql-ai-head ql-help' }, prov ? `${prov.name} · ${s.providers[s.active!]?.model || ''}` : 'No AI provider', ' ', h('button', { class: 'ql-link', type: 'button', onclick: () => app.exec('ai.providers') }, 'Change')),
+      h('div', { class: 'ql-ai-head ql-help' }, h('span', { class: 'ql-ai-head-text' }, paneHeading()), ' ', h('button', { class: 'ql-link', type: 'button', onclick: () => app.exec(activeEnsemble() ? 'ai.ensembleMembers' : 'ai.providers') }, 'Change')),
       h('div', { class: 'ql-ai-log' }),
       h('div', { class: 'ql-ai-compose' }, input, h('div', { class: 'ql-row' }, include, h('span', { class: 'ql-spacer' }),
         h('button', { class: 'ql-iconbtn', type: 'button', title: 'Clear conversation', 'aria-label': 'Clear conversation', onclick: () => { history.length = 0; drawPane(); } }, icon('delete_sweep')),

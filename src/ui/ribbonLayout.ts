@@ -117,6 +117,7 @@ export const DEFAULT_TABS: RibbonTab[] = [
       { id: 'text', label: 'Text', items: ['ai.translateCells', 'ai.rewriteCells', 'ai.sentiment'] },
       { id: 'assistant', label: 'Assistant', items: ['ai.chat', 'ai.prompts'] },
       { id: 'setup', label: 'Setup', items: ['ai.setup', 'ai.providers', 'ai.settings'] },
+      { id: 'providers', label: 'Providers', items: ['ai.ensembleMode', 'ai.ensembleMembers', 'ai.showDeliberation'] },
     ],
   },
   {

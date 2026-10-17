@@ -15,6 +15,7 @@ import type { App } from '../app';
 import { PROVIDERS, providerById, detectKey, FREE_LABEL, type ProviderDef } from '../ai/providers';
 import { aiSettings, saveAiSettings, getApiKey, setApiKey, deleteApiKey, maskKey, resolveBaseUrl, type ProviderConfig } from '../ai/store';
 import { listModels, pickModels, chat, AiError } from '../ai/client';
+import { costNote, normalizeEnsemble, MAX_MEMBERS, type EnsembleMode, type EnsembleSettings } from '../ai/ensemble';
 import { openExternal, readClipboardText, writeClipboardText, onAppResume, isNative, isCapacitor } from '../platform/native';
 
 const SECTIONS: { title: string; help: string; ids: string[] }[] = [
@@ -343,10 +344,110 @@ export async function openAiProviders(app: App): Promise<void> {
   app.ui.refresh?.();
 }
 
-/** AI options. */
-export async function openAiSettings(app: App): Promise<void> {
+// ------------------------------------------------------------------------------------------
+// AI Settings ▸ Use several AIs
+
+/** The "Use several AIs" section. Edits `draft` in place; the caller saves it when the dialog is confirmed. */
+function ensembleSection(app: App, draft: EnsembleSettings, preferMode?: EnsembleMode): HTMLElement {
   const s = aiSettings();
+  const ids = Object.keys(s.providers).filter((id) => providerById(id));
+  const name = (id: string) => providerById(id)?.name || id;
+  const onDevice = (id: string) => { const k = providerById(id)?.kind; return k === 'local' || k === 'builtin'; };
+  const root = h('section', { class: 'ql-ai-wizard ql-ai-ens', 'aria-label': 'Use several AIs', style: 'display:flex;flex-direction:column;gap:8px;margin-top:6px;border-top:1px solid var(--border, #ddd)' });
+  root.append(h('h3', null, icon('groups'), ' Use several AIs'),
+    h('p', { class: 'ql-help' }, 'Send each AI command to more than one AI. Either one AI (the master) reads all the answers and writes the best one, or the AIs discuss the answer like a Quaker business meeting: a clerk words the answer, each AI unites with it, stands aside, or blocks it, and the clerk revises until no one blocks.'));
+  if (ids.length < 2) {
+    draft.mode = 'single';
+    root.append(h('p', { class: 'ql-help' }, ids.length ? `Only ${name(ids[0])} is set up. Set up at least one more provider to use several AIs at once.` : 'Set up at least two AI providers to use several AIs at once.'),
+      h('button', { class: 'ql-btn', type: 'button', onclick: () => void openAiSetup(app) }, icon('add'), ' Add a provider'));
+    return root;
+  }
+  let lastMode: Exclude<EnsembleMode, 'single'> = draft.mode !== 'single' ? draft.mode : preferMode && preferMode !== 'single' ? preferMode : 'master';
+  if (preferMode && preferMode !== 'single') draft.mode = preferMode;
+  if (!draft.master || !s.providers[draft.master]) draft.master = draft.members.find((m) => s.providers[m.provider])?.provider || s.active || ids[0];
+  draft.members = draft.members.filter((m) => s.providers[m.provider]);
+
+  const enable = h('input', { type: 'checkbox', checked: draft.mode !== 'single' }) as HTMLInputElement;
+  const boxes = new Map<string, HTMLInputElement>();
+  const modelSel = new Map<string, HTMLSelectElement>();
+  const list = h('div', { class: 'ql-ai-ens-members' });
+  for (const id of ids) {
+    const cfg = s.providers[id];
+    const m = draft.members.find((x) => x.provider === id);
+    const cb = h('input', { type: 'checkbox', checked: !!m, 'aria-label': `Use ${name(id)}` }) as HTMLInputElement;
+    const sel = h('select', { class: 'ql-input ql-sm', 'aria-label': `Model for ${name(id)}` }) as HTMLSelectElement;
+    sel.append(h('option', { value: '' }, `Default (${cfg.model})`));
+    for (const x of [...new Set([cfg.model, cfg.fastModel, ...(cfg.models || [])].filter(Boolean) as string[])].slice(0, 400)) sel.append(h('option', { value: x }, x));
+    if (m?.model && ![...sel.options].some((o) => o.value === m.model)) sel.append(h('option', { value: m.model }, m.model));
+    sel.value = m?.model || '';
+    boxes.set(id, cb);
+    modelSel.set(id, sel);
+    cb.addEventListener('change', () => update());
+    sel.addEventListener('change', () => update());
+    list.append(h('div', { class: 'ql-row', style: 'align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0' }, h('label', { class: 'ql-check', style: 'flex:1;min-width:180px' }, cb, ' ', name(id)), sel));
+  }
+  const modeRadios = (['master', 'consensus'] as const).map((v) => h('input', { type: 'radio', name: 'ql-ai-ens-mode', value: v, checked: lastMode === v }) as HTMLInputElement);
+  const master = h('select', { class: 'ql-input', 'aria-label': 'Master / clerk' }) as HTMLSelectElement;
+  for (const id of ids) master.append(h('option', { value: id, selected: id === draft.master }, name(id)));
+  const rounds = h('input', { type: 'number', class: 'ql-input', min: '1', max: '5', step: '1', value: String(draft.maxRounds), 'aria-label': 'Rounds of discussion' }) as HTMLInputElement;
+  const show = h('input', { type: 'checkbox', checked: draft.showDeliberation }) as HTMLInputElement;
+  const wait = h('input', { type: 'number', class: 'ql-input', min: '5', max: '600', step: '5', value: String(Math.round(draft.memberTimeoutMs / 1000)), 'aria-label': 'Seconds to wait for each AI' }) as HTMLInputElement;
+  const roundsRow = h('label', { class: 'ql-field' }, h('span', { class: 'ql-label' }, 'Rounds of discussion'), rounds);
+  const cost = h('p', { class: 'ql-help ql-ai-ens-cost' });
+  const privacy = h('p', { class: 'ql-help ql-ai-ens-privacy' });
+  const need = h('p', { class: 'ql-warn ql-ai-ens-need' });
+  for (const el of [...modeRadios, master, rounds, show, wait, enable]) el.addEventListener('change', () => update());
+
+  const update = () => {
+    draft.members = ids.filter((id) => boxes.get(id)!.checked).map((id) => (modelSel.get(id)!.value ? { provider: id, model: modelSel.get(id)!.value } : { provider: id }));
+    const n = draft.members.length;
+    for (const [id, cb] of boxes) cb.disabled = !cb.checked && n >= MAX_MEMBERS;
+    for (const [id, sel] of modelSel) sel.disabled = !boxes.get(id)!.checked;
+    lastMode = (modeRadios.find((r) => r.checked)?.value as 'master' | 'consensus') || lastMode;
+    enable.disabled = n < 2;
+    if (n < 2) enable.checked = false;
+    draft.mode = enable.checked ? lastMode : 'single';
+    draft.master = master.value;
+    draft.maxRounds = Math.min(5, Math.max(1, Math.round(Number(rounds.value) || 3)));
+    draft.showDeliberation = show.checked;
+    draft.memberTimeoutMs = Math.min(600, Math.max(5, Math.round(Number(wait.value) || 90))) * 1000;
+    roundsRow.style.display = lastMode === 'consensus' ? '' : 'none';
+    need.textContent = n < 2 ? 'Tick at least two AIs to use several AIs.' : '';
+    need.style.display = n < 2 ? '' : 'none';
+    cost.textContent = n >= 2 ? costNote(n, draft.maxRounds) : '';
+    const to = draft.mode === 'single' ? [s.active || ids[0]] : [...new Set([...draft.members.map((m) => m.provider), draft.master])];
+    const cloud = to.filter((id) => !onDevice(id));
+    privacy.textContent = draft.mode === 'single'
+      ? `Privacy: only the active provider (${name(to[0])}) receives the text an AI command sends.`
+      : `Privacy: the text an AI command sends goes to every one of these services: ${to.map((id) => `${name(id)}${onDevice(id) ? ' (on this device)' : ''}`).join(', ')}.${cloud.length ? ' Each cloud service\'s terms and privacy policy apply.' : ''}`;
+  };
+
+  root.append(
+    h('div', { class: 'ql-field' }, h('span', { class: 'ql-label' }, 'AIs that answer'), list),
+    need,
+    h('label', { class: 'ql-check' }, enable, ' Use several AIs for AI commands'),
+    h('div', { class: 'ql-field', role: 'radiogroup', 'aria-label': 'When several AIs answer' }, h('span', { class: 'ql-label' }, 'When several AIs answer'),
+      h('label', { class: 'ql-check' }, modeRadios[0], ' One AI combines the answers (master)'),
+      h('label', { class: 'ql-check' }, modeRadios[1], ' The AIs deliberate until they agree (Quaker consensus)')),
+    h('div', { class: 'ql-row2' }, h('label', { class: 'ql-field' }, h('span', { class: 'ql-label' }, 'Master / clerk'), master), roundsRow),
+    h('label', { class: 'ql-field' }, h('span', { class: 'ql-label' }, 'Seconds to wait for each AI (one that does not answer is left out)'), wait),
+    h('label', { class: 'ql-check' }, show, ' Show the discussion'),
+    cost, privacy);
+  update();
+  return root;
+}
+
+/** AI options. `section: 'ensemble'` scrolls to "Use several AIs"; `mode` preselects how several AIs answer. */
+export async function openAiSettings(app: App, opts: { section?: 'ensemble'; mode?: EnsembleMode } = {}): Promise<void> {
+  const s = aiSettings();
+  const s0 = normalizeEnsemble(s.ensemble);
+  const draft = normalizeEnsemble(s.ensemble);
+  const section = ensembleSection(app, draft, opts.mode);
   const r = await openDialog({
+    onOpen: (ctl) => {
+      ctl.body.appendChild(section);
+      if (opts.section === 'ensemble') setTimeout(() => { section.scrollIntoView({ block: 'start' }); section.querySelector<HTMLElement>('input')?.focus(); }, 40);
+    },
     title: 'AI Settings', wide: true, fields: [
       { key: 'enabled', label: 'AI features are on', type: 'checkbox', value: s.enabled },
       { key: 'confirmDocument', label: 'Ask before sending a large range (about 5,000 cells or more) to a cloud service', type: 'checkbox', value: s.confirmDocument },
@@ -362,7 +463,12 @@ export async function openAiSettings(app: App): Promise<void> {
     x.enabled = !!r.enabled; x.confirmDocument = !!r.confirmDocument;
     x.language = String(r.language || 'auto');
     x.clipboardWatch = !!r.clipboardWatch; x.clearClipboard = !!r.clearClipboard;
+    x.ensemble = normalizeEnsemble(draft);
   });
+  if (JSON.stringify(normalizeEnsemble(draft)) !== JSON.stringify(s0) && draft.mode !== 'single' && draft.members.length >= 2) {
+    const ids = [...new Set([...draft.members.map((m) => m.provider), draft.master])];
+    toast(`Several AIs: ${draft.mode === 'master' ? 'master' : 'Quaker consensus'} with ${ids.map((id) => providerById(id)?.name || id).join(', ')}`);
+  }
   app.ui.refresh?.();
 }
 

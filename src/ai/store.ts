@@ -9,6 +9,7 @@
 import { kvGet, kvSet, kvDel } from '../util/store';
 import { isNative, secureGet, secureSet, secureRemove } from '../platform/native';
 import { providerById, type ProviderDef } from './providers';
+import { defaultEnsemble, normalizeEnsemble, type EnsembleSettings } from './ensemble';
 
 export interface ProviderConfig {
   id: string;
@@ -48,6 +49,8 @@ export interface AiSettings {
   prompts: SavedPrompt[];
   usage: { requests: number; tokensIn: number; tokensOut: number; since: number };
   privacyAck: string[];
+  /** Several AIs on one request (provider ids and models only; never keys). */
+  ensemble: EnsembleSettings;
 }
 
 const KEY = 'quilllattice.ai.v1';
@@ -56,7 +59,7 @@ export function defaultAiSettings(): AiSettings {
   return {
     enabled: true, active: null, providers: {}, trackAsRevisions: false, confirmDocument: true, clipboardWatch: true, clearClipboard: true,
     alternatives: 3, language: 'auto', styleGuide: '', voiceProfile: '', prompts: [],
-    usage: { requests: 0, tokensIn: 0, tokensOut: 0, since: Date.now() }, privacyAck: [],
+    usage: { requests: 0, tokensIn: 0, tokensOut: 0, since: Date.now() }, privacyAck: [], ensemble: defaultEnsemble(),
   };
 }
 
@@ -73,6 +76,7 @@ export function aiSettings(): AiSettings {
   if (!s.providers || typeof s.providers !== 'object') s.providers = {};
   if (!Array.isArray(s.prompts)) s.prompts = [];
   s.prompts = s.prompts.filter((p) => p && typeof p.name === 'string' && typeof p.prompt === 'string');
+  s.ensemble = normalizeEnsemble(s.ensemble);
   cache = s;
   return s;
 }

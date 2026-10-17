@@ -1,6 +1,6 @@
 # QuillLattice Command Reference
 
-QuillLattice ships **684 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
+QuillLattice ships **687 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
 
 349 of them are "Commands Not in the Tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, the command search, or menus — so nothing the app can do is hidden.
 
@@ -17,7 +17,7 @@ This file is generated from the source by `npm run catalog`.
 - **Review**: Proofing · Accessibility · Insights · Language · Comments · Notes · Protect · Ink
 - **View**: Sheet View · Workbook Views · Show · Zoom · Window · Appearance · Macros
 - **Tools**: Clean Up · Transform · Compare · Analyze · Generate · Classic
-- **AI**: Formulas · Data · Generate · Text · Assistant · Setup
+- **AI**: Formulas · Data · Generate · Text · Assistant · Setup · Providers
 - **Developer**: Code · Controls · Data
 - **Help**: Help
 - **Table Design** (contextual): Properties · Tools · Table Style Options · Table Styles
@@ -600,7 +600,7 @@ This file is generated from the source by `npm run catalog`.
 | Unmerge and Fill | Transform |  | `tools.unmergeFill` | not in tabs |
 | Unpivot Columns… | Transform |  | `tools.unpivot` | inspired by Query editors (Unpivot) |
 
-## AI (43)
+## AI (46)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
@@ -633,6 +633,9 @@ This file is generated from the source by `npm run catalog`.
 | Suggest PivotTable | Generate |  | `ai.suggestPivot` | not in tabs |
 | Summarize | Generate |  | `ai.summarize` | has options menu |
 | Write Macro… | Generate |  | `ai.writeMacro` | not in tabs |
+| Choose AIs… | Providers |  | `ai.ensembleMembers` |  |
+| Several AIs | Providers |  | `ai.ensembleMode` | has options menu |
+| Show AI Discussion | Providers |  | `ai.showDeliberation` |  |
 | Active AI | Setup |  | `ai.chooseProvider` | has options menu; not in tabs |
 | AI & Privacy | Setup |  | `ai.privacy` | not in tabs |
 | AI Settings | Setup |  | `ai.settings` |  |
