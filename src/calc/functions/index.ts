@@ -11,4 +11,5 @@ import './financial';
 import './engineering';
 import './database';
 import './web';
+import './heritage';
 export { FUNCTIONS, getFn, functionNames, type FnDef } from './registry';
