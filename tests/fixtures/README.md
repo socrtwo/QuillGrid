@@ -14,6 +14,10 @@ Original test data written for this project:
 - `sample.uos` — Uniform Office Format spreadsheet written by LibreOffice 24.2 from `sample.sxc`, with two
   formulas added and the second sheet's row numbers corrected by hand (LibreOffice's UOF export drops
   formulas and numbers rows on from the previous sheet).
+- `rich.fods` — hand-written flat OpenDocument file with validity rules, conditional formats and an inline chart;
+  `lo-rich.ods` and `lo-rich.xlsx` are LibreOffice 24.2's conversions of it.
+- `lo-fruit.html`, `lo-fruit-2003.xml`, `lo-fruit.slk`, `lo-fruit.dif` — LibreOffice 24.2's HTML, XML Spreadsheet
+  2003, SYLK and DIF exports of `sample.sxc`.
 - `sample.sqlite` — SQLite database built by `make_fixtures.py` with Python's sqlite3 module.
 - `encodings/*.txt` — short CSV texts encoded in legacy code pages (Windows-125x, Mac OS Roman,
   DOS 437/850, KOI8-R, Shift-JIS, GBK, Big5, EUC-KR).
