@@ -461,7 +461,7 @@ function parseIsoDate(s: string, date1904: boolean): number | null {
   return partsToSerial(+m[1], +m[2], +m[3], date1904) + ((+(m[4] || 0)) * 3600 + (+(m[5] || 0)) * 60 + (+(m[6] || 0))) / 86400;
 }
 
-interface OdfDocs { content: Document; styles: Document | null; settings: Document | null; meta: Document | null; files?: JSZip }
+export interface OdfDocs { content: Document; styles: Document | null; settings: Document | null; meta: Document | null; files?: JSZip }
 
 export async function importOds(data: ArrayBuffer, warnings: string[] = []): Promise<Workbook> {
   const zip = await JSZip.loadAsync(data);
@@ -477,7 +477,7 @@ export async function importFods(text: string, warnings: string[] = []): Promise
   return readOdf({ content: doc, styles: doc, settings: doc, meta: doc }, warnings);
 }
 
-async function readOdf(docs: OdfDocs, warnings: string[]): Promise<Workbook> {
+export async function readOdf(docs: OdfDocs, warnings: string[]): Promise<Workbook> {
   const book = new Workbook(false);
   const defs = collectStyles([docs.styles !== docs.content ? docs.styles : null, docs.content]);
   const body = desc(docs.content, 'spreadsheet')[0];

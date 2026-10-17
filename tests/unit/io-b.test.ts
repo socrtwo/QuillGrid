@@ -225,3 +225,35 @@ describe('Gnumeric', () => {
     expect(fml(book.sheets[0], 'B1')).toBe('1+2');
   });
 });
+
+describe('OpenOffice.org 1.x Calc (.sxc)', () => {
+  it('reads values, formulas, styles, merges, comments, links and settings', async () => {
+    const { book, format } = await importFile(fixture('sample.sxc'), 'legacy.sxc');
+    expect(format).toBe('sxc');
+    expect(book.sheets.map((s) => s.name)).toEqual(['Fruit', 'Notes & More']);
+    const s = book.sheets[0];
+    expect([val(s, 'A2'), val(s, 'B2'), val(s, 'C2'), val(s, 'D2')]).toEqual(['Apple', 3, 1.25, 3.75]);
+    expect([fml(s, 'D2'), fml(s, 'D5')]).toEqual(['B2*C2', 'SUM(D2:D4)']);
+    expect(val(s, 'E2')).toBe(45366);
+    expect(val(s, 'E3')).toBeCloseTo(13.5 / 24, 9);
+    expect(val(s, 'E4')).toBe(true);
+    expect(val(s, 'E5')).toBe('line one\nline  two');
+    expect(sty(s, 'A1')).toMatchObject({ bold: true, fill: '#ffff00', hAlign: 'center', bb: { style: 'thin' } });
+    expect(sty(s, 'C2')).toMatchObject({ numFmt: '0.00', italic: true, color: '#0000ff' });
+    expect(sty(s, 'E2').numFmt).toBe('yyyy-mm-dd');
+    expect(sty(s, 'E5')).toMatchObject({ font: 'Courier New', size: 12, wrap: true });
+    expect(s.merges).toEqual([{ r1: 5, c1: 0, r2: 5, c2: 2 }]);
+    expect(s.cells.get(K('D6'))?.link).toBe('https://example.com/');
+    expect(s.comments.get(K('A1'))).toMatchObject({ author: 'Ann', text: 'Header note' });
+    expect(s.hiddenRows.has(6)).toBe(true);
+    expect(s.rowH.get(0)).toBe(30);
+    expect(s.colW.get(0)).toBe(151);
+    expect(s.freeze).toEqual({ rows: 1, cols: 0 });
+    const n = book.sheets[1];
+    expect(fml(n, 'A2')).toBe('Fruit!D5*2');
+    expect(fml(n, 'A3')).toBe('IF(Fruit!B2>2,"many","few")');
+    expect(val(n, 'A1')).toBe('Tricky <&> "quotes"');
+    expect(book.names).toContainEqual({ name: 'Rate', ref: 'Fruit!$C$2', sheet: null });
+    expect(book.props.title).toBe('Fruit list');
+  });
+});
