@@ -15,6 +15,7 @@ import { isDateFormat, isPercentFormat } from '../model/numfmt';
 import { partsToSerial, serialToParts } from '../model/dates';
 import { tokenize, parseRefText, type Token } from '../calc/parser';
 import { parseXml, kids, kid, desc, esc, XML_HEADER, normColor, decodeText, parseDataUrl, extForMime, mimeForExt, bytesToBase64, stripXlfn } from './index';
+import { readValidations, applyValidations, noteValidation, noteStyleMap, readConditionalFormats, styleMapRules, readChart } from './ods-extras';
 
 const NS = {
   office: 'urn:oasis:names:tc:opendocument:xmlns:office:1.0',
@@ -486,6 +487,7 @@ export async function readOdf(docs: OdfDocs, warnings: string[]): Promise<Workbo
   const nd = desc(body, 'null-date')[0];
   if (nd && /^1904-01-01/.test(a(nd, 'table', 'date-value') || '')) book.calc.date1904 = true;
   const dateSerial = (s: string) => parseIsoDate(s, book.calc.date1904);
+  const validity = readValidations(body, odfToFormula);
   const iter = desc(body, 'iteration')[0];
   if (iter && a(iter, 'table', 'status') === 'enable') {
     book.calc.iterative = true;
@@ -511,6 +513,7 @@ export async function readOdf(docs: OdfDocs, warnings: string[]): Promise<Workbo
     const pr = a(t, 'table', 'print-ranges');
     if (pr) sheet.print.area = pr.split(/\s+/).map((x) => splitSheetRef(odfRefToA1(x)).ref).join(',');
     await readTable(book, sheet, t, defs, docs, dateSerial, warnings);
+    readTableExtras(sheet, t, defs, validity, warnings);
     // Sheet-local names
     for (const ne of kids(kid(t, 'named-expressions'))) readName(book, ne, sheet.name);
   }
@@ -638,6 +641,9 @@ async function readRow(book: Workbook, sheet: Sheet, r: number, cells: Element[]
     }
     const styleName = a(el, 'table', 'style-name');
     const sid = styleName ? styleIdFor(book, defs, styleName) : rowDefault || 0;
+    const valName = a(el, 'table', 'content-validation-name');
+    if (valName) noteValidation(sheet, valName, r, c, rep);
+    if (styleName && kids(defs.cell.get(styleName) || null, 'map').length) noteStyleMap(sheet, styleName, r, c, rep);
     const vt = a(el, 'office', 'value-type') || a(el, 'calcext', 'value-type');
     const formula = a(el, 'table', 'formula');
     const paras = kids(el, 'p');
@@ -713,8 +719,21 @@ async function readFrame(sheet: Sheet, fr: Element, at: { r: number; c: number }
     while (yy >= sheet.rowHeight(r) && r < 100000) { yy -= sheet.rowHeight(r); r++; }
     pos = { r, c, dx: Math.round(xx), dy: Math.round(yy), w, h };
   }
-  if (kid(fr, 'object') || kid(fr, 'object-ole')) {
-    if (!warnings.includes('Charts and embedded objects in OpenDocument files are not opened.')) warnings.push('Charts and embedded objects in OpenDocument files are not opened.');
+  const obj = kid(fr, 'object');
+  if (obj || kid(fr, 'object-ole')) {
+    let chart: Partial<import('../model/types').ChartDef> | null = null;
+    try {
+      const inline = obj && kid(obj, 'document');
+      const href = (obj && a(obj, 'xlink', 'href')) || '';
+      let cdoc: Document | Element | null = inline;
+      if (!cdoc && docs.files && href) {
+        const f = docs.files.file(href.replace(/^\.\//, '').replace(/\/$/, '') + '/content.xml');
+        if (f) cdoc = parseXml(decodeText(await f.async('uint8array')), href);
+      }
+      if (cdoc) chart = readChart(cdoc, chartRef);
+    } catch { chart = null; }
+    if (chart) { sheet.charts.push({ id: newId('ch'), at: pos, ...chart } as import('../model/types').ChartDef); return; }
+    if (!warnings.includes('Some embedded objects in OpenDocument files are not opened.')) warnings.push('Some embedded objects in OpenDocument files are not opened.');
     return;
   }
   const img = kid(fr, 'image');
@@ -736,6 +755,33 @@ async function readFrame(sheet: Sheet, fr: Element, at: { r: number; c: number }
     const text = desc(fr, 'p').map(odfText).join('\n');
     sheet.drawings.push({ id: newId('shp'), kind: tb ? 'textbox' : 'shape', at: pos, shape: fr.localName === 'ellipse' ? 'ellipse' : 'rect', ...(text ? { text } : {}) });
     return;
+  }
+}
+
+/** First range of an ODF chart range address list ("Data.B2:Data.B4 Data.B1") as an A1 reference. */
+function chartRef(addr: string): string | null {
+  const first = addr.trim().split(/\s+/)[0];
+  if (!first) return null;
+  const r = odfRefToA1(first);
+  return /#REF!/.test(r) ? null : r;
+}
+
+/** Validity rules, conditional formats and style:map conditions of one table. */
+function readTableExtras(sheet: Sheet, t: Element, defs: StyleDefs, validity: ReturnType<typeof readValidations>, warnings: string[]): void {
+  applyValidations(sheet, validity);
+  const addr = (s: string): Range[] => s.trim().split(/\s+/).filter(Boolean).map((x) => parseRange(splitSheetRef(odfRefToA1(x)).ref)).filter((x): x is Range => !!x);
+  const base = baseStyle(defs);
+  const styleOf = (name: string): Partial<CellStyle> => {
+    const st: Partial<CellStyle> = cellStyleOf(defs, name);
+    for (const k of ['font', 'size', 'color', 'numFmt'] as const) if (st[k] != null && st[k] === base[k]) delete st[k];
+    return st;
+  };
+  const conv = (f: string) => (/\[/.test(f) ? odfToFormula(f) : f.replace(/;/g, ','));
+  const cf = readConditionalFormats(t, addr, styleOf, conv, warnings);
+  if (cf.length) sheet.cf.push(...cf);
+  else {
+    const maps = (style: string) => kids(defs.cell.get(style) || null, 'map').map((m) => ({ condition: a(m, 'style', 'condition') || '', apply: a(m, 'style', 'apply-style-name') || '' }));
+    sheet.cf.push(...styleMapRules(sheet, maps, styleOf, conv));
   }
 }
 

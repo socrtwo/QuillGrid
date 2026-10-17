@@ -487,3 +487,91 @@ describe('MIME HTML web archives (.mht)', () => {
     expect(sty(book.sheets[0], 'A1').bold).toBe(true);
   });
 });
+
+/** Rewrites a transitional .xlsx package with the ISO/IEC 29500 Strict namespaces. */
+async function toStrict(data: ArrayBuffer): Promise<ArrayBuffer> {
+  const zip = await JSZip.loadAsync(data);
+  const map: [string, string][] = [
+    ['http://schemas.openxmlformats.org/spreadsheetml/2006/main', 'http://purl.oclc.org/ooxml/spreadsheetml/main'],
+    ['http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'http://purl.oclc.org/ooxml/officeDocument/relationships'],
+    ['http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing', 'http://purl.oclc.org/ooxml/drawingml/spreadsheetDrawing'],
+    ['http://schemas.openxmlformats.org/drawingml/2006/chart', 'http://purl.oclc.org/ooxml/drawingml/chart'],
+    ['http://schemas.openxmlformats.org/drawingml/2006/main', 'http://purl.oclc.org/ooxml/drawingml/main'],
+    ['http://schemas.openxmlformats.org/officeDocument/2006/extended-properties', 'http://purl.oclc.org/ooxml/officeDocument/extendedProperties'],
+  ];
+  const out = new JSZip();
+  for (const name of Object.keys(zip.files)) {
+    const f = zip.files[name];
+    if (f.dir) continue;
+    if (/\.(xml|rels)$/.test(name)) {
+      let t = await f.async('string');
+      for (const [a, b] of map) t = t.split(a).join(b);
+      if (name === 'xl/workbook.xml') t = t.replace('<workbook ', '<workbook conformance="strict" ');
+      out.file(name, t);
+    } else out.file(name, await f.async('uint8array'));
+  }
+  return out.generateAsync({ type: 'arraybuffer' });
+}
+
+describe('Excel Strict (ISO/IEC 29500 Strict) workbooks', () => {
+  it('reads cells, styles, formulas, names and charts in the Strict namespaces', async () => {
+    const { Workbook } = await import('../../src/model/workbook');
+    const { exportXlsx } = await import('../../src/io/xlsx-export');
+    const b = new Workbook();
+    const s = b.sheets[0];
+    s.cells.set(K('A1'), { v: 'Item', s: b.styleId({ bold: true, fill: '#ffff00' }) });
+    s.cells.set(K('B1'), { v: 'Qty' });
+    s.cells.set(K('A2'), { v: 'Apple' }); s.cells.set(K('B2'), { v: 3 });
+    s.cells.set(K('A3'), { v: 'Pear' }); s.cells.set(K('B3'), { v: 5 });
+    s.cells.set(K('B4'), { f: 'SUM(B2:B3)', v: 8 });
+    s.cells.set(K('C1'), { v: 'site', link: 'https://example.com/' });
+    s.merges.push({ r1: 5, c1: 0, r2: 5, c2: 1 });
+    s.charts.push({ id: 'c1', type: 'column', title: 'Qty', series: [{ name: 'Qty', values: 'Sheet1!$B$2:$B$3', categories: 'Sheet1!$A$2:$A$3' }], at: { r: 6, c: 0, dx: 0, dy: 0, w: 300, h: 200 } });
+    b.names.push({ name: 'Total', ref: 'Sheet1!$B$4', sheet: null });
+    const strict = await toStrict(await (await exportXlsx(b)).arrayBuffer());
+    expect(sniffFormat(strict, 'strict.xlsx')?.id).toBe('xlsx');
+    const { book, warnings } = await importFile(strict, 'strict.xlsx');
+    const t = book.sheets[0];
+    expect([val(t, 'A2'), val(t, 'B3'), fml(t, 'B4'), val(t, 'B4')]).toEqual(['Apple', 5, 'SUM(B2:B3)', 8]);
+    expect(sty(t, 'A1')).toMatchObject({ bold: true, fill: '#ffff00' });
+    expect(t.cells.get(K('C1'))?.link).toBe('https://example.com/');
+    expect(t.merges).toEqual([{ r1: 5, c1: 0, r2: 5, c2: 1 }]);
+    expect(t.charts.length, warnings.join()).toBe(1);
+    expect(t.charts[0]).toMatchObject({ type: 'column', title: 'Qty' });
+    expect(book.names).toContainEqual({ name: 'Total', ref: 'Sheet1!$B$4', sheet: null });
+  });
+});
+
+describe('OpenDocument and .xlsx fidelity (files written by LibreOffice)', () => {
+  const check = (book: Workbook, from: string) => {
+    const s = book.sheets[0];
+    expect(s.name).toBe('Data');
+    const dv = s.validations.find((v) => v.type === 'list');
+    expect(dv, from).toMatchObject({ ranges: [{ r1: 1, c1: 0, r2: 3, c2: 0 }], formula1: '"Apple,Pear,Plum"', errorTitle: 'Oops', errorMessage: 'Pick a fruit', inputMessage: 'Choose a fruit', allowBlank: true });
+    expect(s.validations.find((v) => v.type === 'whole'), from).toMatchObject({ operator: 'between', formula1: '1', formula2: '100', errorStyle: 'warning', ranges: [{ r1: 1, c1: 1, r2: 3, c2: 1 }] });
+    const gt = s.cf.find((r) => r.type === 'cellIs' && r.operator === 'greaterThan');
+    expect(gt, from).toMatchObject({ formulas: ['10'], ranges: [{ r1: 1, c1: 1, r2: 3, c2: 1 }], style: { fill: '#ffcccc', color: '#cc0000' } });
+    expect(s.cf.find((r) => r.type === 'colorScale'), from).toMatchObject({ colors: ['#f8696b', '#63be7b'], stops: [{ type: 'min' }, { type: 'max' }] });
+    expect(s.cf.find((r) => r.type === 'beginsWith'), from).toMatchObject({ text: 'P' });
+    expect(s.charts.length, from).toBe(1);
+    expect(s.charts[0], from).toMatchObject({ type: 'column', title: 'Fruit qty', legend: 'bottom', gridlines: true });
+    expect(s.charts[0].series[0].values.replace(/\$/g, '')).toBe('Data!B2:B4');
+    expect(s.charts[0].series[0].categories?.replace(/\$/g, '')).toBe('Data!A2:A4');
+    expect(recalcDiffs(book)).toEqual([]);
+  };
+  it('reads validity, conditional formats and charts from .ods', async () => {
+    check((await importFile(fixture('lo-rich.ods'), 'rich.ods')).book, 'ods');
+  });
+  it('reads them from flat .fods with an inline chart', async () => {
+    check((await importFile(fixture('rich.fods'), 'rich.fods')).book, 'fods');
+  });
+  it('turns ODF style:map conditions into conditional formats when there are no calcext rules', async () => {
+    const fods = new TextDecoder().decode(new Uint8Array(fixture('rich.fods'))).replace(/<calcext:conditional-formats>[\s\S]*<\/calcext:conditional-formats>/, '');
+    const s = (await importFile(txt(fods), 'maps.fods')).book.sheets[0];
+    expect(s.cf).toHaveLength(1);
+    expect(s.cf[0]).toMatchObject({ type: 'cellIs', operator: 'greaterThanOrEqual', formulas: ['5'], ranges: [{ r1: 1, c1: 3, r2: 1, c2: 3 }], style: { fill: '#ccffcc', color: '#006600' } });
+  });
+  it('reads them from the .xlsx LibreOffice wrote', async () => {
+    check((await importFile(fixture('lo-rich.xlsx'), 'rich.xlsx')).book, 'xlsx');
+  });
+});
