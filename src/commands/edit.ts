@@ -10,6 +10,7 @@ import { CellError, ERR } from '../model/types';
 import { cellKey, keyRow, keyCol, MAX_COLS, MAX_ROWS, parseRange, splitSheetRef, normRange, rangeName, cellName, type Range } from '../model/address';
 import { shiftFormula, mapRefs } from '../calc/parser';
 import { moveBlock, resolveRangeText } from '../model/structure';
+import { hasLotusSyntax } from '../heritage/lotus';
 import { selRanges, activeRange, activeCell, setInput, parseInput, clearRange, fillRange, forEachSelected, clipToUsed, rangeToTsv, parseTsv, currentRegion, isWholeCols, isWholeRows, addrText, type ClearWhat } from './ops';
 import { openDialog, toast, showMenu, alertDialog, choiceDialog } from '../ui/dialog';
 import { readClipboardText, writeClipboardText } from '../platform/native';
@@ -35,7 +36,15 @@ export function validates(app: App, sheet: Sheet, r: number, c: number, v: Scala
     const items = listItems(app, sheet, dv, r, c);
     return items.some((x) => compare(x, v) === 0 || (typeof v === 'number' && String(v) === String(x)));
   }
-  if (dv.type === 'custom') { const x = val(dv.formula1); return x === true || (typeof x === 'number' && x !== 0); }
+  if (dv.type === 'custom') {
+    // The rule judges the value being entered, so evaluate it with that value in the cell.
+    const k = cellKey(r, c);
+    const cur = sheet.cells.get(k);
+    sheet.cells.set(k, { ...(cur?.s ? { s: cur.s } : {}), v });
+    let x: Scalar;
+    try { x = val(dv.formula1); } finally { if (cur) sheet.cells.set(k, cur); else sheet.cells.delete(k); }
+    return x === true || (typeof x === 'number' && x !== 0);
+  }
   let x: number;
   if (dv.type === 'textLength') x = String(v).length;
   else if (typeof v === 'number') x = v;
@@ -88,7 +97,7 @@ def([
       const s = app.sheet;
       let text = arg.text;
       // AutoCorrect replacements for plain text
-      if (app.prefs.autoCorrect && !text.startsWith('=') && /\S/.test(text)) {
+      if (app.prefs.autoCorrect && !text.startsWith('=') && !(app.prefs.lotusFormulas && /^[@+-]/.test(text) && hasLotusSyntax(text)) && /\S/.test(text)) {
         for (const [k, v] of Object.entries(app.prefs.replacements)) if (text.includes(k)) text = text.split(k).join(v);
       }
       const dv = validationFor(s, arg.r, arg.c);

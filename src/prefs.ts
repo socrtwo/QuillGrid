@@ -73,6 +73,12 @@ export interface Prefs {
   touchMode: boolean;
   /** Hide Quick Access Bar. */
   qatHidden: boolean;
+  /** Lotus 1-2-3 formula entry: @SUM(A1..A5), +A1*@AVG(B1..B3), #AND# are translated when typed. */
+  lotusFormulas: boolean;
+  /** Lotus 1-2-3 label prefixes: "right, ^centered, \repeating (' is always left-aligned text). */
+  lotusLabels: boolean;
+  /** The / key opens the slash menu when a cell is selected and not being edited. */
+  slashKey: boolean;
 }
 
 export const DEFAULT_QAT = ['file.save', 'edit.undo', 'edit.redo', 'file.saveAs', 'file.print', 'view.cmdSearch'];
@@ -169,6 +175,9 @@ export function defaultPrefs(): Prefs {
     touchHandles: true,
     touchMode: false,
     qatHidden: false,
+    lotusFormulas: true,
+    lotusLabels: false,
+    slashKey: false,
   };
 }
 
