@@ -52,7 +52,7 @@ export const sty = (s: Sheet, a1: string) => s.book.styles[s.cells.get(K(a1))?.s
 describe('detection rules', () => {
   it('every rule names a registered format', async () => {
     const { formatById } = await import('../../src/io/index');
-    for (const r of SNIFF_RULES_B) expect(formatById(r.id), r.id).toBeTruthy();
+    for (const r of SNIFF_RULES_B) { expect(formatById(r.format), r.id).toBeTruthy(); expect(r.category).toBe('spreadsheet'); expect(r.ext.length).toBeGreaterThan(0); }
   });
   it('identifies content regardless of the extension', () => {
     const id = (data: ArrayBuffer, name: string) => sniffFormat(data, name)?.id;
