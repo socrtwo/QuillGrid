@@ -385,7 +385,7 @@ function parseStyles(doc: Document | null, book: Workbook, ctx: ColorCtx): Style
 // --------------------------------------------------------------------------------------------
 // Theme
 
-function parseTheme(doc: Document | null, book: Workbook): string[] {
+export function parseTheme(doc: Document | null, book: Workbook): string[] {
   const colors = [...book.theme.colors];
   if (!doc) return colors;
   const scheme = desc(doc, 'clrScheme')[0];
@@ -558,7 +558,7 @@ function splitTopLevel(s: string): string[] {
   return out;
 }
 
-async function parseDocProps(pkg: Pkg, rootRels: Rel[], book: Workbook): Promise<void> {
+export async function parseDocProps(pkg: Pkg, rootRels: Rel[], book: Workbook): Promise<void> {
   const p = book.props;
   try {
     const core = await pkg.xml(relOf(rootRels, 'core-properties')?.target || 'docProps/core.xml');
@@ -1484,3 +1484,19 @@ function parseChart(doc: Document, ctx: Ctx): Partial<ChartDef> | null {
 }
 
 export { colIndex };
+
+// --------------------------------------------------------------------------------------------
+// Shared with the Excel binary workbook reader (xlsb.ts), whose drawings, charts, threaded
+// comments and theme are XML parts like in .xlsx.
+
+/** Reads a sheet's drawing part (pictures, shapes, charts) into the sheet. */
+export async function readSheetDrawing(pkg: Pkg, sheet: Sheet, drawingPath: string, theme: string[], warnings: string[], persons = new Map<string, string>()): Promise<void> {
+  const ctx: Ctx = { pkg, book: sheet.book, sst: [], styles: { numFmts: new Map(), fonts: [], fills: [], borders: [], xfMap: [0], dxfs: [] }, date1904: sheet.book.calc.date1904, warnings, persons, theme, indexed: [...INDEXED] };
+  await parseDrawing(ctx, sheet, drawingPath, false);
+}
+
+/** Reads a threaded comments part into the sheet (persons: person id -> display name). */
+export async function readThreadedComments(pkg: Pkg, sheet: Sheet, partPath: string, persons: Map<string, string>, warnings: string[]): Promise<void> {
+  const ctx: Ctx = { pkg, book: sheet.book, sst: [], styles: { numFmts: new Map(), fonts: [], fills: [], borders: [], xfMap: [0], dxfs: [] }, date1904: false, warnings, persons, theme: sheet.book.theme.colors, indexed: [...INDEXED] };
+  await parseThreaded(ctx, sheet, partPath);
+}

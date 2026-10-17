@@ -257,3 +257,72 @@ describe('OpenOffice.org 1.x Calc (.sxc)', () => {
     expect(book.props.title).toBe('Fruit list');
   });
 });
+
+describe('Excel binary workbook (.xlsb)', () => {
+  it('reads cells, formulas, styles, layout, comments, links and names', async () => {
+    const { buildXlsb } = await import('./helpers/xlsb-writer');
+    const data = await buildXlsb();
+    expect(sniffFormat(data, 'anything.zip')?.id).toBe('xlsb');
+    const { book, format, warnings } = await importFile(data, 'book.xlsb');
+    expect(format).toBe('xlsb');
+    expect(warnings, warnings.join()).toEqual([]);
+    expect(book.sheets.map((s) => [s.name, s.visibility])).toEqual([['Fruit', 'visible'], ['Notes & More', 'hidden']]);
+    const s = book.sheets[0];
+    expect([val(s, 'A2'), val(s, 'B2'), val(s, 'C2'), val(s, 'D2'), val(s, 'C4')]).toEqual(['Apple', 3, 1.25, 3.75, 0.75]);
+    expect([fml(s, 'D2'), fml(s, 'D3'), fml(s, 'D4')]).toEqual(['B2*C2', 'B3*C3', 'B4*C4']);
+    expect(fml(s, 'D5')).toBe('SUM(D2:D4)');
+    expect(fml(s, 'E5')).toBe('ROUND(D5,1)');
+    expect(fml(s, 'F5')).toBe('IF(B2>2,"many","few")');
+    expect(fml(s, 'H2')).toBe("'Notes & More'!A1");
+    expect(fml(s, 'H3')).toBe('TaxRate*10');
+    expect(fml(s, 'H4')).toBe('SUM({1,2;3,4})');
+    expect(fml(s, 'J5')).toBe('SUM(Sales[Units])');
+    expect(fml(s, 'C6')).toBe('NA()');
+    expect(fml(s, 'D6')).toBe('IFERROR(1/0,"x")');
+    expect(s.cells.get(K('A8'))?.arr).toEqual({ r1: 7, c1: 0, r2: 8, c2: 0 });
+    expect(s.cells.get(K('A9'))?.sp).toBe(K('A8'));
+    expect(val(s, 'A6')).toBe(true);
+    expect((val(s, 'B6') as CellError).code).toBe('#DIV/0!');
+    expect(val(s, 'G6')).toBe('Bold part plain');
+    expect(s.cells.get(K('G6'))?.rich?.[0]).toMatchObject({ t: 'Bold part', s: { bold: true } });
+    expect(sty(s, 'A1')).toMatchObject({ bold: true, size: 12, font: 'Arial', color: '#c00000', fill: '#ffff00', hAlign: 'center', bb: { style: 'thin' } });
+    expect(sty(s, 'C2')).toMatchObject({ numFmt: '#,##0.000', italic: true, underline: 'single', color: '#0000ff' });
+    expect(sty(s, 'E2').numFmt).toBe('m/d/yyyy');
+    expect(sty(s, 'H6').locked).toBe(false);
+    expect(sty(s, 'I6')).toMatchObject({ wrap: true, vAlign: 'top' });
+    expect(s.merges).toEqual([{ r1: 6, r2: 6, c1: 0, c2: 2 }]);
+    expect(s.cells.get(K('D7'))).toMatchObject({ link: 'https://example.com/', linkTip: 'Visit' });
+    expect(s.comments.get(K('A1'))).toMatchObject({ author: 'Ann', text: 'Header note' });
+    expect(s.freeze).toEqual({ rows: 1, cols: 0 });
+    expect(s.zoom).toBe(1.25);
+    expect(s.tabColor).toBe('#ff8800');
+    expect(s.colW.get(0)).toBe(140);
+    expect(s.hiddenCols.has(5)).toBe(true);
+    expect(s.rowH.get(0)).toBe(40);
+    expect(s.hiddenRows.has(9)).toBe(true);
+    expect(s.tables[0]).toMatchObject({ name: 'Sales', range: { r1: 0, c1: 9, r2: 2, c2: 10 }, columns: [{ name: 'Region' }, { name: 'Units' }], style: 'TableStyleMedium9' });
+    expect(s.print).toMatchObject({ orientation: 'landscape', paper: 'A4', scale: 90, area: '$A$1:$D$5', gridlines: true, centerH: true });
+    expect(s.print.header).toEqual({ left: 'Left', center: '&[Page] of &[Pages]', right: '' });
+    expect(book.names).toEqual([{ name: 'TaxRate', ref: 'Fruit!$C$2', sheet: null }]);
+    expect(book.props.title).toBe('Binary fruit');
+    expect(val(book.sheets[1], 'A1')).toBe('Tricky <&> "quotes"');
+  });
+});
+
+describe('Excel binary workbook written by Excel (Apache POI sample)', () => {
+  it('matches the values LibreOffice shows', async () => {
+    const { book, warnings } = await importFile(fixture('third-party/poi-testVarious.xlsb'), 'testVarious.xlsb');
+    const s = book.sheets[0];
+    expect(s.name).toBe('mySheet1');
+    const col = (c: string) => Array.from({ length: 17 }, (_, i) => val(s, `${c}${i + 1}`));
+    expect(col('A').slice(0, 5)).toEqual(['String', 'integer', 'float', 'currency', 'percent']);
+    expect(col('B')).toEqual(['This is a string', 13, 13.1211231321, 3.03, 0.2, 13.12131231, 123456789012345, 1234567890123450, 0.25, 42803, 'contents', 'tika_link', 4, expect.any(CellError), 0.5, '   46/1963', '  3/128']);
+    expect([fml(s, 'B13'), fml(s, 'B14'), fml(s, 'B15')]).toEqual(['C13*2', 'COS(NA)', '1/C13']);
+    expect(s.cells.get(K('B12'))?.link).toBe('http://tika.apache.org/');
+    expect(s.comments.get(K('B11'))?.text).toMatch(/^test comment/);
+    expect(sty(s, 'B5').numFmt).toBe('0%');
+    expect(sty(s, 'B10').numFmt).toBe('m/d/yyyy');
+    expect(warnings.join(' ')).toMatch(/VBA/);
+    expect(s.drawings.length + s.charts.length).toBeGreaterThan(0);
+  });
+});
