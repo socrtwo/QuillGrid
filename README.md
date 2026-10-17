@@ -2,8 +2,8 @@
 
 An original, open-source spreadsheet for Android (and the web, desktop and iOS) whose goal is simple: **no missing commands**. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, on a keyboard shortcut, or in a macro, which is the full-library customization that mobile and online spreadsheet apps leave out. It is the companion to the [QuillForge](https://github.com/socrtwo/QuillForge) word processor and shares its interface and customization system.
 
-- **663 commands** across File, Home, Insert, Draw, Page Layout, Formulas, Data, Review, View, Tools, **AI**, Developer and Help, plus contextual Table Design, PivotTable Analyze, Chart Design, Picture Format and Shape Format tabs. See [docs/COMMANDS.md](docs/COMMANDS.md).
-- **507 worksheet functions**, including dynamic arrays (FILTER, SORT, UNIQUE, SEQUENCE, XLOOKUP, TEXTSPLIT, VSTACK, GROUPBY, PIVOTBY…), LET and LAMBDA with MAP/REDUCE/SCAN/BYROW/BYCOL, and the full statistical, financial, engineering and database libraries.
+- **684 commands** across File, Home, Insert, Draw, Page Layout, Formulas, Data, Review, View, Tools, **AI**, Developer and Help, plus contextual Table Design, PivotTable Analyze, Chart Design, Picture Format and Shape Format tabs. See [docs/COMMANDS.md](docs/COMMANDS.md).
+- **522 worksheet functions**, including dynamic arrays (FILTER, SORT, UNIQUE, SEQUENCE, XLOOKUP, TEXTSPLIT, VSTACK, GROUPBY, PIVOTBY…), LET and LAMBDA with MAP/REDUCE/SCAN/BYROW/BYCOL, and the full statistical, financial, engineering and database libraries.
 - **Opens damaged workbooks** with a recovery engine built on the author's [Word Recovery](https://github.com/socrtwo/wordrecovery-SF) / Immortal Unzipper heritage: byte-level ZIP salvage, XML repair, raw worksheet scanning, and record-level salvage of Excel 97–2003 .xls files. See [docs/RECOVERY.md](docs/RECOVERY.md).
 - **AI tab** with formula writing and explanation, data analysis, fill-by-instruction, classification, extraction and cleaning. It offers a free on-device model (no account) and a setup wizard for free and paid providers. See [docs/AI.md](docs/AI.md).
 - **Quick Access Bar chooser** with the desktop-style categories: *Popular Commands*, *Commands Not in the Tabs*, *All Commands*, each tab, and *Macros*. You can add separators, reorder, reset, and import or export the layout. Long-press any ribbon button to add it, and the bar can sit at the top or at the bottom near the keyboard. Its drop-down has the full desktop checklist (AutoSave, New, Open, Save, Email, Quick Print, Print Preview and Print, Spelling, Undo, Redo, Sort Ascending/Descending, Touch/Mouse Mode) and **Add All Choices**, which puts Save and Print first and everything else in alphabetical order.
@@ -64,8 +64,17 @@ Recalculation is incremental: dependencies are recorded as formulas are evaluate
 | Data profile, fuzzy matching, compare sheets, unpivot, split/merge columns | Data-wrangling tools |
 | OCR clean-up for cells (broken lines, hyphenation, O/0 and l/1 confusions, ligatures) | Publishing and OCR workflows |
 | Number to words, Roman numerals, date calculator | Accounting and genealogy record keeping |
+| Slash Menu (Alt+/), 1-2-3 formula entry (`@SUM(A1..A5)`, `#AND#`) and label prefixes, Map View | Lotus 1-2-3 |
+| Data Form, Delete Matching Records, Matrix (invert, multiply, solve) | Lotus Symphony, 1-2-3 /Data commands |
+| Formula Rules, Dependency Diagram, Explain Value, Info Window | Lotus Improv, Multiplan, Javelin, Excel for Macintosh |
+| Chart Slide Show; Categorize by Rules | Quattro Pro; Lotus Agenda |
+| Export a sheet as a Python or JavaScript program | Resolver One |
+| Column types; Monte Carlo Simulation and What-If Sliders; Cell History | Airtable and Grist; Causal; online spreadsheets |
+| ISBETWEEN, WEIGHTAVG, SEMEAN, REFCONVERT, XINDEX, COUNTUNIQUE, ISEMAIL, ISURL, EPOCHTODATE and date helpers | 1-2-3, online spreadsheets, StarCalc |
 | Command search, keyboard rebinding for every command, QAT at the bottom near the keyboard | QuillForge |
 | Metric-compatible open fonts substituted for Calibri, Cambria, Times New Roman, Arial, Courier New, Georgia and Garamond | Document-fidelity practice in open-source suites |
+
+[docs/HERITAGE.md](docs/HERITAGE.md) surveys VisiCalc, SuperCalc, Multiplan, Lotus 1-2-3, Symphony, Improv, Agenda, Quattro Pro, Framework, Javelin, Excel 1.0, Boeing Calc, Wingz, Resolver One and today's database-style and model-style spreadsheets, feature by feature: what QuillLattice already had, what was added, and what was left out and why.
 
 **Recovery.** When a workbook is damaged, QuillLattice recovers it instead of refusing to open it. The pipeline identifies the real file type, salvages ZIP entries from their local headers with ImmortalInflate, checks CRCs, repairs XML (cutting sheet data at the last complete row and regenerating missing package parts), scans raw worksheet XML for cell values when the package cannot be rebuilt, reads Excel 97–2003 records even when the container is damaged, and falls back to text and strings scans. The recovered workbook opens as a new, unsaved file with a report of what each method found.
 
@@ -82,7 +91,7 @@ Keys are stored encrypted on the device (Android Keystore on Android, the system
 
 ## Known limitations (0.1)
 
-- **Native builds are untested on devices.** The web build, 446 unit tests and a browser smoke test (`npm run e2e`) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
+- **Native builds are untested on devices.** The web build, 480 unit tests and a browser smoke test (`npm run e2e`) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
 - **VBA is preserved, not run.** .xlsm files keep their VBA project when saved as .xlsm; macros run only in QuillLattice's JavaScript macro language.
 - **PivotTables from other programs open as static values.** PivotTables made in QuillLattice are live, but they are written to .xlsx as values, not as pivot caches.
 - **OpenDocument charts and embedded objects** are not opened or saved; cell data, formulas, styles, merges and conditional formats are.

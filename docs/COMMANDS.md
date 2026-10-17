@@ -1,6 +1,6 @@
 # QuillLattice Command Reference
 
-QuillLattice ships **663 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
+QuillLattice ships **684 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
 
 349 of them are "Commands Not in the Tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, the command search, or menus — so nothing the app can do is hidden.
 
@@ -12,11 +12,11 @@ This file is generated from the source by `npm run catalog`.
 - **Insert**: Tables · Illustrations · Charts · Sparklines · Filters · Links · Comments · Text · Symbols
 - **Draw**: Drawing Tools · Convert · Replay
 - **Page Layout**: Themes · Page Setup · Scale to Fit · Sheet Options · Arrange
-- **Formulas**: Function Library · Defined Names · Formula Auditing · Calculation
-- **Data**: Get & Transform Data · Queries & Connections · Data Types · Sort & Filter · Data Tools · Forecast · Outline · Analyze
+- **Formulas**: Function Library · Defined Names · Formula Auditing · Calculation · Insight
+- **Data**: Get & Transform Data · Queries & Connections · Data Types · Sort & Filter · Data Tools · Records · Forecast · Outline · Analyze
 - **Review**: Proofing · Accessibility · Insights · Language · Comments · Notes · Protect · Ink
 - **View**: Sheet View · Workbook Views · Show · Zoom · Window · Appearance · Macros
-- **Tools**: Clean Up · Transform · Compare · Analyze · Generate
+- **Tools**: Clean Up · Transform · Compare · Analyze · Generate · Classic
 - **AI**: Formulas · Data · Generate · Text · Assistant · Setup
 - **Developer**: Code · Controls · Data
 - **Help**: Help
@@ -370,7 +370,7 @@ This file is generated from the source by `npm run catalog`.
 | Fonts | Themes |  | `layout.themeFonts` | has options menu |
 | Themes | Themes |  | `layout.themes` | has options menu |
 
-## Formulas (30)
+## Formulas (36)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
@@ -404,12 +404,19 @@ This file is generated from the source by `npm run catalog`.
 | More Functions | Function Library |  | `formulas.more` | has options menu |
 | Recently Used | Function Library |  | `formulas.recent` | has options menu |
 | Text | Function Library |  | `formulas.text` | has options menu |
+| Cell History | Insight |  | `formulas.cellHistory` | inspired by Cell edit history in online spreadsheets |
+| Dependency Diagram | Insight |  | `formulas.dependencyDiagram` | inspired by Javelin diagram view |
+| Explain Value | Insight |  | `formulas.explainValue` | inspired by Javelin's model views; explainable models in Causal |
+| Formula Rules | Insight |  | `formulas.formulaRules` | inspired by Lotus Improv formula pane; Multiplan R1C1 notation |
+| Info Window | Insight |  | `formulas.infoWindow` | inspired by Excel for Macintosh Info window |
+| Select Inconsistent Formulas | Insight |  | `formulas.selectInconsistent` | inspired by Multiplan R1C1 notation (copies of a formula read identically) |
 
-## Data (49)
+## Data (56)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
 | Data Analysis | Analyze |  | `data.analysisTools` |  |
+| Matrix | Analyze |  | `data.matrix` | has options menu; inspired by Lotus 1-2-3 /Data Matrix |
 | Solver | Analyze |  | `data.solver` |  |
 | Circle Invalid Data | Data Tools |  | `data.circleInvalid` | not in tabs |
 | Clear Validation Circles | Data Tools |  | `data.clearCircles` | not in tabs |
@@ -427,8 +434,10 @@ This file is generated from the source by `npm run catalog`.
 | Data Table | Forecast |  | `data.dataTable` | not in tabs |
 | Forecast Sheet | Forecast |  | `data.forecastSheet` |  |
 | Goal Seek | Forecast |  | `data.goalSeek` | not in tabs |
+| Monte Carlo Simulation | Forecast |  | `data.monteCarlo` | inspired by Uncertain inputs in Causal; spreadsheet risk-analysis add-ins |
 | Scenario Manager | Forecast |  | `data.scenarios` | not in tabs |
 | What-If Analysis | Forecast |  | `data.whatIf` | has options menu |
+| What-If Sliders | Forecast |  | `data.whatIfSliders` | inspired by Live model controls in Causal and reactive notebooks |
 | From Clipboard | Get & Transform Data |  | `data.fromClipboard` |  |
 | From Table/Range | Get & Transform Data |  | `data.fromTable` |  |
 | From Text/CSV | Get & Transform Data |  | `data.fromText` |  |
@@ -447,6 +456,10 @@ This file is generated from the source by `npm run catalog`.
 | Edit Links | Queries & Connections |  | `data.editLinks` |  |
 | Queries & Connections | Queries & Connections |  | `data.connections` |  |
 | Refresh All | Queries & Connections | Ctrl+Alt+F5 | `data.refreshAll` |  |
+| Categorize by Rules | Records |  | `data.categorize` | inspired by Lotus Agenda categories |
+| Column Type | Records |  | `data.columnType` | has options menu; inspired by Airtable and Grist field types |
+| Data Form | Records |  | `data.dataForm` | inspired by Lotus Symphony FORM window; 1-2-3 /Range Input |
+| Delete Matching Records | Records |  | `data.queryDelete` | inspired by Lotus 1-2-3 /Data Query Delete |
 | Advanced Filter | Sort & Filter |  | `data.advancedFilter` |  |
 | Clear Filter | Sort & Filter |  | `data.clearFilter` |  |
 | Custom Sort | Sort & Filter |  | `data.sort` |  |
@@ -496,7 +509,7 @@ This file is generated from the source by `npm run catalog`.
 | Protect Sheet | Protect |  | `review.protectSheet` |  |
 | Protect Workbook | Protect |  | `review.protectWorkbook` |  |
 
-## View (37)
+## View (39)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
@@ -514,6 +527,7 @@ This file is generated from the source by `npm run catalog`.
 | Gridline Color… | Show |  | `view.gridColor` | not in tabs |
 | Gridlines | Show |  | `view.gridlines` |  |
 | Headings | Show |  | `view.headings` |  |
+| Map View | Show |  | `view.mapView` | inspired by Lotus 1-2-3 Release 3 map view |
 | Ruler | Show |  | `view.ruler` |  |
 | Show Zero Values | Show |  | `view.showZeros` | not in tabs |
 | Arrange All | Window |  | `view.arrangeAll` |  |
@@ -527,6 +541,7 @@ This file is generated from the source by `npm run catalog`.
 | Switch Windows | Window |  | `view.switchWindows` | has options menu |
 | Unfreeze Panes | Window |  | `view.unfreeze` | not in tabs |
 | Unhide Window… | Window |  | `view.unhideWindow` |  |
+| Chart Slide Show | Workbook Views |  | `view.chartSlideShow` | inspired by Quattro Pro slide shows; 1-2-3 /Graph View |
 | Custom Views… | Workbook Views |  | `view.customViews` |  |
 | Normal | Workbook Views |  | `view.normal` |  |
 | Page Break Preview | Workbook Views |  | `view.pageBreak` |  |
@@ -538,7 +553,7 @@ This file is generated from the source by `npm run catalog`.
 | Zoom to Selection | Zoom |  | `view.zoomSelection` |  |
 | Zoom… | Zoom |  | `view.zoom` |  |
 
-## Tools (36)
+## Tools (42)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
@@ -547,6 +562,12 @@ This file is generated from the source by `npm run catalog`.
 | Descriptive Statistics | Analyze |  | `tools.descriptiveStats` |  |
 | Histogram | Analyze |  | `tools.histogram` |  |
 | Summarize by Category… | Analyze |  | `tools.groupSummary` | not in tabs; inspired by Categories in tabular spreadsheet apps |
+| / Key Opens Menu | Classic |  | `tools.slashKey` | inspired by Lotus 1-2-3 (and the menu-key option spreadsheets offered 1-2-3 users) |
+| 1-2-3 Formula Entry | Classic |  | `tools.lotusEntry` | inspired by Lotus 1-2-3 @functions; transition formula entry in later spreadsheets |
+| 1-2-3 Label Prefixes | Classic |  | `tools.lotusLabels` | inspired by Lotus 1-2-3 label prefixes |
+| Convert 1-2-3 Formulas | Classic |  | `tools.convertLotus` | inspired by Lotus 1-2-3 |
+| Export as Code | Classic |  | `tools.exportCode` | has options menu; inspired by Resolver One (every spreadsheet is a Python program) |
+| Slash Menu | Classic | Alt+/ | `tools.slashMenu` | inspired by Lotus 1-2-3 / command menu |
 | Change Case | Clean Up |  | `tools.changeCase` | has options menu; inspired by Word processors (Change Case) |
 | Clean Up OCR Text | Clean Up |  | `tools.ocrCleanup` | inspired by Transcription and genealogy tools |
 | Convert Text to Numbers | Clean Up |  | `tools.textToNumbers` |  |
