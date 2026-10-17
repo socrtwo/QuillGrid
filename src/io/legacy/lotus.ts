@@ -19,7 +19,7 @@
  */
 import { Workbook, Sheet } from '../../model/workbook';
 import { CellError, type Cell, type CellStyle } from '../../model/types';
-import { cellKey, colName, MAX_COLS, MAX_ROWS } from '../../model/address';
+import { cellKey, keyRow, keyCol, colName, MAX_COLS, MAX_ROWS } from '../../model/address';
 import { lotusLabel } from '../../heritage/lotus';
 import { u16, i16, u32, f64, f64hi, f80, f80Special, snum, lnum, cstr, codepage, lmbcs, walkRecords, charsToPx, type Decoder, type LRec } from './bin';
 import { lotusFormula, type Dialect } from './lotusfmla';
@@ -31,44 +31,8 @@ export interface LegacyOptions {
   codepage?: number;
 }
 
-export type LotusVariant = 'wks' | 'wk1' | 'wrk' | 'wk3' | 'wk4' | '123' | 'works-dos' | 'works-win' | 'wq1' | 'wq2';
-
-/** The variant a Lotus-format file belongs to, from its first record; null when it is not one. */
-export function lotusVariant(b: Uint8Array): LotusVariant | null {
-  if (b.length < 6) return null;
-  const op = u16(b, 0), len = u16(b, 2), v = u16(b, 4);
-  if (op === 0x00ff && len === 2 && v === 0x0404) return 'works-win';
-  if (op !== 0 || (len !== 2 && len !== 26)) return null;
-  if (len === 2) {
-    if (v === 0x0404) return hasWorksRecords(b) ? 'works-dos' : 'wks';
-    if (v === 0x0405) return 'wrk';
-    if (v === 0x0406) return 'wk1';
-    if (v === 0x5120) return 'wq1';
-    if (v === 0x5121) return 'wq2';
-    return null;
-  }
-  if (v >= 0x1000 && v <= 0x1002) return 'wk3';
-  if (v === 0x1003 || v === 0x1004) return 'wk4';
-  if (v >= 0x1005 && v <= 0x1007) return '123';
-  return null;
-}
-
-function hasWorksRecords(b: Uint8Array): boolean {
-  let p = 0;
-  for (let k = 0; k < 40 && p + 4 <= b.length; k++) {
-    const op = u16(b, p);
-    if (op >= 0x5400 && op <= 0x54ff) return true;
-    p += 4 + u16(b, p + 2);
-  }
-  return false;
-}
-
-export const LOTUS_VARIANT_LABEL: Record<LotusVariant, string> = {
-  wks: 'Lotus 1-2-3 Release 1A worksheet (WKS)', wk1: 'Lotus 1-2-3 Release 2 worksheet (WK1)', wrk: 'Symphony worksheet (WRK)',
-  wk3: 'Lotus 1-2-3 Release 3 workbook (WK3)', wk4: 'Lotus 1-2-3 Release 4/5 workbook (WK4)', '123': 'Lotus 1-2-3 97/Millennium workbook (123)',
-  'works-dos': 'Microsoft Works for DOS spreadsheet (WKS)', 'works-win': 'Microsoft Works for Windows spreadsheet (WKS)',
-  wq1: 'Quattro / Quattro Pro for DOS spreadsheet (WQ1)', wq2: 'Quattro Pro 5 for DOS spreadsheet (WQ2)',
-};
+import { lotusVariant, type LotusVariant } from './signatures';
+export { lotusVariant, LOTUS_VARIANT_LABEL, type LotusVariant } from './signatures';
 
 // ------------------------------------------------------------------------------------------
 // Cell formats (Appendix A of the specification)
@@ -381,6 +345,11 @@ function readWk3(rd: LotusReader, recs: LRec[], guard: (r: LRec, fn: () => void)
   }
   for (let i = 0; i <= maxSheet; i++) if (!rd.sheetNames[i]) rd.sheetNames[i] = colName(i);
   for (let i = 0; i <= maxSheet; i++) rd.sheet(i);
+  // Release 3 cell formats (record 0x13), one record per formatted row: kind 0 lists 4-byte cell
+  // attributes (the first byte is the 1-2-3 format byte; bit 7 of the fourth announces a repeat
+  // count byte), kind 1 holds the sheet default, kind 2 repeats another row.
+  const rowFmt = new Map<string, number[]>();
+  const sheetDefault = new Map<number, number>();
   const at = (d: Uint8Array) => ({ r: u16(d, 0), s: d[2], c: d[3] });
   for (const rec of recs) {
     const d = rec.data;
@@ -402,6 +371,21 @@ function readWk3(rd: LotusReader, recs: LRec[], guard: (r: LRec, fn: () => void)
           if (d.length < 26) break;
           const nm = cstr(d, 2, rd.dec, 16);
           addName(rd, nm, d[20], d[21], u16(d, 18), d[25], u16(d, 22), d[24]);
+          break;
+        }
+        case 0x13: {
+          if (d.length < 5) break;
+          const sh = d[0], kind = d[1], row = u16(d, 2);
+          if (kind === 1) { sheetDefault.set(sh, d[4]); break; }
+          if (kind === 2 && d.length >= 8) { const src = rowFmt.get(`${d[4]},${u16(d, 6)}`); if (src) rowFmt.set(`${sh},${row}`, src); break; }
+          if (kind !== 0) break;
+          const cols: number[] = [];
+          for (let p = 4; p + 4 <= d.length && cols.length < 256;) {
+            const f = d[p], rep = d[p + 3] & 0x80 ? d[p + 4] : 0;
+            for (let k = 0; k <= rep; k++) cols.push(f);
+            p += rep || d[p + 3] & 0x80 ? 5 : 4;
+          }
+          rowFmt.set(`${sh},${row}`, cols);
           break;
         }
         case 0x14: { const a = at(d); rd.put(rd.sheet(a.s), a.r, a.c, { v: ERR() }); break; }
@@ -434,6 +418,24 @@ function readWk3(rd: LotusReader, recs: LRec[], guard: (r: LRec, fn: () => void)
           if (text) rd.sheet(a.s).comments.set(cellKey(a.r, a.c), { author: '', text, time: Date.now(), note: true });
           break;
         }
+      }
+    });
+  }
+  // Apply the formats to the cells read.
+  if (rowFmt.size || sheetDefault.size) {
+    rd.sheets.forEach((sh, si) => {
+      const dflt = sheetDefault.get(si);
+      if (dflt != null) rd.defaultFmt = dflt;
+      for (const [k, cell] of sh.cells) {
+        const r = keyRow(k), c = keyCol(k);
+        const f = rowFmt.get(`${si},${r}`)?.[c];
+        if (f == null || cell.v == null || typeof cell.v === 'string') continue;
+        const nf = lotusNumFmt(f);
+        const useDefault = nf === undefined;
+        const fmt = useDefault ? (dflt != null ? lotusNumFmt(dflt) ?? null : null) : nf;
+        if (!fmt) continue;
+        const st = { ...(rd.book.styles[cell.s || 0] || {}), numFmt: fmt };
+        cell.s = rd.style(st);
       }
     });
   }

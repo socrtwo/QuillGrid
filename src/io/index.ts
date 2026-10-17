@@ -6,7 +6,7 @@
  */
 import type { Workbook } from '../model/workbook';
 import type { Range } from '../model/address';
-import { sniff, extOf, type SniffResult, type SniffCategory } from './sniff';
+import { sniff, extOf, article, type SniffResult, type SniffCategory } from './sniff';
 
 export { sniff, registerSniffer, type SniffResult, type SniffRule, type SniffCategory } from './sniff';
 
@@ -175,7 +175,7 @@ export async function importFile(data: ArrayBuffer, name: string, opts: ImportOp
 
   if (opts.repair) return recover(null);
   if (!fmt || !fmt.canImport) {
-    if (sn.format !== 'unknown' && sn.confidence >= 0.5) throw new Error(`This is a ${sn.label}. QuillGrid recognizes it but cannot open this kind of file.`);
+    if (sn.format !== 'unknown' && sn.confidence >= 0.5) throw new Error(`This is ${article(sn.label)} ${sn.label}. QuillGrid recognizes it but cannot open this kind of file.`);
     throw new Error(`QuillGrid does not recognize the contents of ${name.replace(/^.*[\\/]/, '') || 'this file'}. Try Open and Repair to recover any text in it.`);
   }
   const note = opts.as ? undefined : sn.note;

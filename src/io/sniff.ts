@@ -9,7 +9,7 @@
  *
  * Rules are data: other modules add their own with registerSniffer().
  */
-import { lotusVariant, LOTUS_VARIANT_LABEL } from './legacy/lotus';
+import { lotusVariant, LOTUS_VARIANT_LABEL } from './legacy/signatures';
 import { isOle2, readCfb } from './recover/doc97';
 
 export type SniffCategory = 'spreadsheet' | 'document' | 'presentation' | 'email' | 'unknown';
@@ -56,7 +56,7 @@ export interface SniffRule {
   /** Extensions (lower case, no dot) this kind of file normally has. */
   ext: string[];
   /** Confidence 0..1, or an object that refines the label. */
-  detect(ctx: SniffContext): number | { confidence: number; label?: string; format?: string } | null;
+  detect(ctx: SniffContext): number | { confidence: number; label?: string; format?: string; category?: SniffCategory } | null;
 }
 
 const RULES: SniffRule[] = [];
@@ -158,14 +158,14 @@ const NEUTRAL_EXT = new Set(['', 'dat', 'bin', 'tmp', 'bak', 'old', 'file', 'dow
 export function sniff(data: ArrayBuffer | Uint8Array, name = ''): SniffResult {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
   const ctx = makeContext(bytes, name);
-  const scored: { rule: SniffRule; c: number; label: string; format: string }[] = [];
+  const scored: { rule: SniffRule; c: number; label: string; format: string; category?: SniffCategory }[] = [];
   for (const rule of RULES) {
     let r: ReturnType<SniffRule['detect']>;
     try { r = rule.detect(ctx); } catch { r = 0; }
     if (!r) continue;
     const c = typeof r === 'number' ? r : r.confidence;
     if (c <= 0) continue;
-    scored.push({ rule, c: Math.min(1, c), label: (typeof r === 'object' && r.label) || rule.label, format: (typeof r === 'object' && r.format) || rule.format });
+    scored.push({ rule, c: Math.min(1, c), label: (typeof r === 'object' && r.label) || rule.label, format: (typeof r === 'object' && r.format) || rule.format, category: (typeof r === 'object' && r.category) || undefined });
   }
   const ext = ctx.ext;
   const byExt = RULES.filter((r) => r.ext.includes(ext));
@@ -186,22 +186,25 @@ export function sniff(data: ArrayBuffer | Uint8Array, name = ''): SniffResult {
   return result(best, ctx);
 }
 
-function result(best: { rule: SniffRule; c: number; label: string; format: string }, ctx: SniffContext): SniffResult {
+function result(best: { rule: SniffRule; c: number; label: string; format: string; category?: SniffCategory }, ctx: SniffContext): SniffResult {
   // A rule that refines its format (an OpenDocument package that is a text, not a spreadsheet) takes that format's category.
-  const category = best.format === best.rule.format ? best.rule.category : (RULES.find((r) => r.format === best.format)?.category ?? best.rule.category);
+  const category = best.category ?? (best.format === best.rule.format ? best.rule.category : (RULES.find((r) => r.format === best.format)?.category ?? best.rule.category));
   const out: SniffResult = { format: best.format, label: best.label, confidence: best.c, category, rule: best.rule.id };
   const ext = ctx.ext;
-  if (!ext && best.c >= 0.5) out.note = `The file has no extension; its contents show it is a ${best.label}.`;
+  if (!ext && best.c >= 0.5) out.note = `The file has no extension; its contents show it is ${article(best.label)} ${best.label}.`;
   else if (!NEUTRAL_EXT.has(ext) && !best.rule.ext.includes(ext) && best.c >= 0.5) {
     const claimed = RULES.find((r) => r.ext.includes(ext));
     // Plain-text kinds are interchangeable; only mention real disagreements.
     const textish = (id?: string) => !!id && ['csv', 'tsv', 'txt', 'text-table'].includes(id);
     if (claimed && !(textish(claimed.id) && textish(best.rule.id)) && claimed.format !== best.format) {
-      out.note = `"${ctx.name.replace(/^.*[\\/]/, '')}" is named .${ext} (${claimed.label}) but contains a ${best.label}; it was opened by its contents.`;
+      out.note = `"${ctx.name.replace(/^.*[\\/]/, '')}" is named .${ext} but contains ${article(best.label)} ${best.label}; it was opened by its contents.`;
     }
   }
   return out;
 }
+
+/** "a" or "an" for a format label. */
+export function article(label: string): string { return /^[AEIOU]/i.test(label) && !/^(Uniform|Unicode)/.test(label) ? 'an' : 'a'; }
 
 // ------------------------------------------------------------------------------------------
 // Helpers for rules
@@ -300,19 +303,19 @@ const BUILTIN: SniffRule[] = [
     if (/opendocument\.presentation/.test(m)) return { confidence: 0.97, format: 'odp', label: 'OpenDocument presentation (ODP)' };
     if (/opendocument\.graphics/.test(m)) return { confidence: 0.9, format: 'odg', label: 'OpenDocument drawing (ODG)' };
     if (/sun\.xml\.calc/.test(m)) return { confidence: 0.95, format: 'sxc', label: 'StarOffice/OpenOffice.org 1 spreadsheet (SXC)' };
-    if (/sun\.xml\.writer/.test(m)) return { confidence: 0.95, format: 'sxw', label: 'StarOffice/OpenOffice.org 1 text (SXW)' };
-    if (/sun\.xml\.impress/.test(m)) return { confidence: 0.95, format: 'sxi', label: 'StarOffice/OpenOffice.org 1 presentation (SXI)' };
+    if (/sun\.xml\.writer/.test(m)) return { confidence: 0.95, format: 'odt', label: 'StarOffice/OpenOffice.org 1 text (SXW)' };
+    if (/sun\.xml\.impress/.test(m)) return { confidence: 0.95, format: 'odp', label: 'StarOffice/OpenOffice.org 1 presentation (SXI)' };
     if (/application\/x-kspread/.test(m)) return { confidence: 0.9, format: 'ksp', label: 'KSpread spreadsheet' };
-    if (/epub\+zip/.test(m)) return { confidence: 0.95, format: 'epub', label: 'EPUB e-book' };
+    if (/epub\+zip/.test(m)) return { confidence: 0.95, format: 'wordtext', label: 'EPUB e-book', category: 'document' };
     if (hasContent && !names!.some((n) => n.startsWith('xl/') || n.startsWith('word/') || n.startsWith('ppt/'))) return 0.5;
     return 0;
   } },
   { id: 'odt', format: 'odt', label: 'OpenDocument text (ODT)', category: D, ext: ['odt', 'ott'], detect: () => 0 },
   { id: 'odp', format: 'odp', label: 'OpenDocument presentation (ODP)', category: P, ext: ['odp', 'otp'], detect: () => 0 },
   { id: 'sxc', format: 'sxc', label: 'StarOffice/OpenOffice.org 1 spreadsheet (SXC)', category: S, ext: ['sxc', 'stc'], detect: () => 0 },
-  { id: 'sxw', format: 'sxw', label: 'StarOffice/OpenOffice.org 1 text (SXW)', category: D, ext: ['sxw', 'stw'], detect: () => 0 },
-  { id: 'sxi', format: 'sxi', label: 'StarOffice/OpenOffice.org 1 presentation (SXI)', category: P, ext: ['sxi', 'sti'], detect: () => 0 },
-  { id: 'epub', format: 'epub', label: 'EPUB e-book', category: D, ext: ['epub'], detect: () => 0 },
+  { id: 'sxw', format: 'odt', label: 'StarOffice/OpenOffice.org 1 text (SXW)', category: D, ext: ['sxw', 'stw'], detect: () => 0 },
+  { id: 'sxi', format: 'odp', label: 'StarOffice/OpenOffice.org 1 presentation (SXI)', category: P, ext: ['sxi', 'sti'], detect: () => 0 },
+  { id: 'epub', format: 'wordtext', label: 'EPUB e-book', category: D, ext: ['epub'], detect: () => 0 },
   { id: 'qgw', format: 'qgw', label: 'QuillGrid workbook', category: S, ext: ['qgw', 'qlw'], detect: (c) => (zipHas(c, (n) => n === 'workbook.json') ? 0.97 : 0) },
   { id: 'iwork', format: 'numbers', label: 'Apple Numbers spreadsheet', category: S, ext: ['numbers'], detect: (c) => {
     const n = c.zip();
@@ -321,11 +324,11 @@ const BUILTIN: SniffRule[] = [
     const old = n.includes('index.xml') || n.includes('index.xml.gz') || n.includes('index.apxl') || n.includes('index.apxl.gz');
     if (!iwa && !old) return 0;
     if (n.some((x) => /^index\/(calculationengine|tables\/)/.test(x)) || (old && c.ext === 'numbers')) return 0.9;
-    if (n.some((x) => /^index\/(slide|masterslide)/.test(x)) || n.includes('index.apxl') || n.includes('index.apxl.gz')) return { confidence: 0.9, format: 'key', label: 'Apple Keynote presentation' };
-    return { confidence: 0.85, format: 'pages', label: 'Apple Pages document' };
+    if (n.some((x) => /^index\/(slide|masterslide)/.test(x)) || n.includes('index.apxl') || n.includes('index.apxl.gz')) return { confidence: 0.9, format: 'wordtext', label: 'Apple Keynote presentation', category: 'presentation' };
+    return { confidence: 0.85, format: 'wordtext', label: 'Apple Pages document', category: 'document' };
   } },
-  { id: 'pages', format: 'pages', label: 'Apple Pages document', category: D, ext: ['pages'], detect: () => 0 },
-  { id: 'key', format: 'key', label: 'Apple Keynote presentation', category: P, ext: ['key', 'kth'], detect: () => 0 },
+  { id: 'pages', format: 'wordtext', label: 'Apple Pages document', category: D, ext: ['pages'], detect: () => 0 },
+  { id: 'key', format: 'wordtext', label: 'Apple Keynote presentation', category: P, ext: ['key', 'kth'], detect: () => 0 },
 
   // ---- OLE2 compound files
   { id: 'xls', format: 'xls', label: 'Excel 97-2003 workbook (XLS)', category: S, ext: ['xls', 'xlt', 'xla', 'et', 'ett'], detect: (c) => {
@@ -380,7 +383,7 @@ const BUILTIN: SniffRule[] = [
   } },
   { id: 'starcalc', format: 'sdc', label: 'StarCalc spreadsheet (SDC)', category: S, ext: ['sdc', 'vor'], detect: (c) => (cfbHas(c, (n) => n === 'starcalcdocument') ? 0.93 : 0) },
   { id: 'starwriter', format: 'wordtext', label: 'StarWriter document (SDW)', category: D, ext: ['sdw'], detect: (c) => (cfbHas(c, (n) => n === 'starwriterdocument') ? 0.93 : 0) },
-  { id: 'starimpress', format: 'sdd', label: 'StarImpress presentation (SDD)', category: P, ext: ['sdd'], detect: (c) => (cfbHas(c, (n) => n === 'starimpressdocument' || n === 'stardrawdocument3') ? 0.9 : 0) },
+  { id: 'starimpress', format: 'wordtext', label: 'StarImpress presentation (SDD)', category: P, ext: ['sdd'], detect: (c) => (cfbHas(c, (n) => n === 'starimpressdocument' || n === 'stardrawdocument3') ? 0.9 : 0) },
   { id: 'hwp', format: 'wordtext', label: 'Hangul word processor document (HWP)', category: D, ext: ['hwp'], detect: (c) => (c.head.startsWith('HWP Document File') || (cfbHas(c, (n) => n === 'fileheader') && cfbHas(c, (n) => n.startsWith('bodytext/'))) ? 0.85 : 0) },
   { id: 'mdb', format: 'mdb', label: 'Microsoft Access database', category: 'unknown', ext: ['mdb', 'accdb'], detect: (c) => (/^\x00\x01\x00\x00Standard (Jet|ACE) DB/.test(c.head) ? 0.95 : 0) },
 
@@ -459,7 +462,7 @@ const BUILTIN: SniffRule[] = [
   { id: 'fodt', format: 'odt', label: 'Flat OpenDocument text (FODT)', category: D, ext: ['fodt'], detect: (c) => (/<office:document\b/.test(c.head) && /office:mimetype="application\/vnd\.oasis\.opendocument\.text"/.test(c.text().slice(0, 8000)) ? 0.95 : 0) },
   { id: 'fodp', format: 'odp', label: 'Flat OpenDocument presentation (FODP)', category: P, ext: ['fodp'], detect: (c) => (/<office:document\b/.test(c.head) && /office:mimetype="application\/vnd\.oasis\.opendocument\.presentation"/.test(c.text().slice(0, 8000)) ? 0.95 : 0) },
   { id: 'wordml', format: 'wordtext', label: 'Word 2003 XML document', category: D, ext: [], detect: (c) => (/<\?mso-application\s+progid="Word\.Document"/i.test(c.head) || /<w:wordDocument\b/.test(c.head) ? 0.9 : 0) },
-  { id: 'pdf', format: 'pdf', label: 'PDF document', category: D, ext: ['pdf'], detect: (c) => (c.head.startsWith('%PDF-') ? 0.97 : c.head.slice(0, 1024).includes('%PDF-') ? 0.6 : 0) },
+  { id: 'pdf', format: 'wordtext', label: 'PDF document', category: D, ext: ['pdf'], detect: (c) => (c.head.startsWith('%PDF-') ? 0.97 : c.head.slice(0, 1024).includes('%PDF-') ? 0.6 : 0) },
   { id: 'lwp', format: 'wordtext', label: 'Lotus Word Pro document (LWP)', category: D, ext: ['lwp'], detect: (c) => (c.head.slice(0, 64).includes('WordPro') ? 0.85 : 0) },
   { id: 'wordtext', format: 'wordtext', label: 'Word processor document', category: D, ext: ['wps', 'sdw', 'hwp', 'wp4', 'ws', 'ws7', 'wsd', 'mcw', 'cwd'], detect: () => 0 },
   { id: 'md', format: 'txt', label: 'Markdown document', category: D, ext: ['md', 'markdown'], detect: () => 0 },

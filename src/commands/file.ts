@@ -3,6 +3,7 @@ import { def, commandCount } from './registry';
 import type { App, BookTab } from '../app';
 import { Workbook } from '../model/workbook';
 import { FORMATS, formatById, formatForName, importFile, exportFile, PasswordError, sniff, type SniffResult } from '../io';
+import { article } from '../io/sniff';
 import { openDocument, saveAs, writeBack, printDocument, shareFile, readUri, openExternal, OPEN_ACCEPT, OPEN_MIMES, openInQuillApp, isIOS, type QuillApp } from '../platform/native';
 import { openDialog, toast, confirmDialog, choiceDialog, alertDialog, promptDialog } from '../ui/dialog';
 import { kvGet, kvSet, kvKeys, kvDel } from '../util/store';
@@ -56,7 +57,7 @@ async function chooseForeignOpen(sn: SniffResult, data: ArrayBuffer, name: strin
   const short = name.replace(/^.*[\\/]/, '');
   const canImport = !!formatById(sn.format)?.canImport;
   const choices = [`Open in ${sib.app}`, ...(canImport ? ['Import into QuillGrid'] : [])];
-  const c = await choiceDialog(`Open ${sn.label}`, `${short} is a ${sn.label}. ${sib.app} is the Quill app for it.${canImport ? ` QuillGrid can also import ${sib.what} into a new workbook.` : ''}`, choices);
+  const c = await choiceDialog(`Open ${sn.label}`, `${short} is ${article(sn.label)} ${sn.label}. ${sib.app} is the Quill app for it.${canImport ? ` QuillGrid can also import ${sib.what} into a new workbook.` : ''}`, choices);
   if (c === 1) return 'import';
   if (c !== 0) return 'cancel';
   const mime = formatById(sn.format)?.mime || 'application/octet-stream';

@@ -100,7 +100,7 @@ Keys are stored encrypted on the device (Android Keystore on Android, the system
 - **PivotTables from other programs open as static values.** PivotTables made in QuillGrid are live, but they are written to .xlsx as values, not as pivot caches.
 - **OpenDocument charts and embedded objects** are not opened or saved; cell data, formulas, styles, merges and conditional formats are.
 - **.xls is import-only.** Excel 97–2003 files open with values, formulas and formatting; save them as .xlsx.
-- **Legacy formats are import-only**, and some open with less than everything: Lotus 1-2-3 Release 3+ and Quattro Pro for Windows files keep values and formulas but not number formats; .qpw, AppleWorks, SuperCalc and binary Multiplan files give text or values only. See [docs/FORMATS.md](docs/FORMATS.md).
+- **Legacy formats are import-only**, and some open with less than everything: Lotus 1-2-3 Release 4+ and Quattro Pro for Windows files keep values and formulas but not number formats; .qpw, AppleWorks, SuperCalc and binary Multiplan files give text or values only. See [docs/FORMATS.md](docs/FORMATS.md).
 - **No network functions in cells.** WEBSERVICE returns #VALUE!; STOCKHISTORY and linked data types have no data source. ENCODEURL and FILTERXML work.
 - **External workbook links** are kept as their last values; they are not refreshed from the other file.
 - **Solver** uses simplex with branch and bound for linear models (integer and binary constraints supported) and a penalty Nelder–Mead search for nonlinear ones, which finds local optima only; the AllDifferent constraint is not supported.

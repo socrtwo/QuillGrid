@@ -1,0 +1,15 @@
+>A1:"ITEM
+>B1:/FR"COST
+>A2:"PENS
+>B2:/F$2.5
+>A3:"PADS
+>B3:/F$4
+>B4:/F$@SUM(B2...B3)
+>C4:2+3*4
+>D4:+B2*(1+B3)
+>A5:/-=
+/W1
+/GOC
+/GRA
+/GC12
+/X>A1:>A1:

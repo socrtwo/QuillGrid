@@ -5,6 +5,7 @@ import { importFile, sniff } from '../../src/io/index';
 import { registerSniffer } from '../../src/io/sniff';
 import type { Workbook } from '../../src/model/workbook';
 import { CellError } from '../../src/model/types';
+import { formatValue } from '../../src/model/numfmt';
 import { snum, lnum, f80, lmbcs, codepage } from '../../src/io/legacy/bin';
 import { lotusNumFmt, lotusVariant } from '../../src/io/legacy/lotus';
 import { lotusCodeToText } from '../../src/io/legacy/lotusfmla';
@@ -43,7 +44,7 @@ describe('content sniffing', () => {
   it('opens by content when the extension is wrong, with a note', () => {
     const r = sniff(buildWk1(), 'report.xls');
     expect(r.format).toBe('lotus');
-    expect(r.note).toMatch(/named \.xls .*Lotus 1-2-3/);
+    expect(r.note).toBe('"report.xls" is named .xls but contains a Lotus 1-2-3 Release 2 worksheet (WK1); it was opened by its contents.');
     expect(sniff(buildWk1(), 'report').note).toMatch(/no extension/);
     expect(sniff(buildWk1(), 'report.wk1').note).toBeUndefined();
   });
@@ -59,7 +60,7 @@ describe('content sniffing', () => {
     expect(sniff(load('documents/quick.msg'), 'x')).toMatchObject({ format: 'msg', category: 'email' });
     expect(sniff(new TextEncoder().encode('From alice@example.com Mon Jan  1 00:00:00 2024\nFrom: a@b.c\nSubject: hi\n\nbody\n'), 'box')).toMatchObject({ format: 'mbox', category: 'email' });
     expect(sniff(new TextEncoder().encode('!BDN' + '\0'.repeat(60)), 'x')).toMatchObject({ format: 'pst', category: 'email' });
-    expect(sniff(new TextEncoder().encode('%PDF-1.4\n'), 'x')).toMatchObject({ format: 'pdf', category: 'document' });
+    expect(sniff(new TextEncoder().encode('%PDF-1.4\n'), 'x')).toMatchObject({ format: 'wordtext', label: 'PDF document', category: 'document' });
     expect(sniff(Uint8Array.from([0xff, 0x57, 0x50, 0x43, 16, 0, 0, 0, 1, 10, 0, 0]), 'x')).toMatchObject({ category: 'document', label: expect.stringContaining('WordPerfect') });
   });
 
@@ -244,6 +245,11 @@ describe('Excel 2.x-5.0', () => {
     const b = (await importFile(load(`legacy/${f}`), f)).book;
     expect(cell(b, 'A1')?.v).toBe(a1);
     expect(cell(b, ref)?.v).toBe(value);
+  });
+
+  it('shows "General" inside a format with literal text', () => {
+    expect(formatValue(2, '\\(General\\)').text).toBe('(2)');
+    expect(formatValue(1.5, '[Red]General').text).toBe('1.5');
   });
 
   it('treats a "GENERAL" format as General', async () => {

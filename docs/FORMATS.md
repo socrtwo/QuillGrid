@@ -43,8 +43,8 @@ Fidelity tiers: **full** (everything the format stores that QuillGrid can repres
 | Lotus 1-2-3 | Release 1A | 1983 | .wks | BOF record (type 0, 2 bytes) version 0x0404 | full | |
 | Lotus 1-2-3 | Release 2.x | 1985-1993 | .wk1 | BOF version 0x0406 | full | Allways/WYSIWYG .fmt files are not applied |
 | Lotus Symphony | 1.0-2.x | 1984-1990 | .wrk, .wr1 | BOF version 0x0405/0x0406 | values + formulas | Symphony windows, forms and documents are ignored |
-| Lotus 1-2-3 | Release 3.x | 1989-1992 | .wk3 | BOF (26 bytes) version 0x1000-0x1002 | values + formulas | Several sheets, sheet names, column widths, hidden columns, range names and cell notes are kept; number formats and fonts (in the record 0x13 runs and .fm3 files) are not applied |
-| Lotus 1-2-3 | Release 4 and 5 for Windows | 1993-1994 | .wk4 | BOF version 0x1003-0x1004 | values + formulas | As Release 3 |
+| Lotus 1-2-3 | Release 3.x | 1989-1992 | .wk3 | BOF (26 bytes) version 0x1000-0x1002 | high | Several sheets, sheet names, number formats (record 0x13 row runs), column widths, hidden columns, range names and cell notes are kept; fonts and colors (and .fm3 files) are not applied |
+| Lotus 1-2-3 | Release 4 and 5 for Windows | 1993-1994 | .wk4 | BOF version 0x1003-0x1004 | values + formulas | As Release 3, but number formats stored in the Release 4 style records are not decoded |
 | Lotus 1-2-3 | 97, Millennium Edition | 1997-2002 | .123 | BOF version 0x1005-0x1007 | values + formulas | As Release 3; pictures and charts are skipped |
 | Lotus 1-2-3 | formatting files | 1989-1993 | .fmt, .fm3 | BOF version 0x8000-0x8007 | recognized | Not applied; open the worksheet itself |
 | Quattro, Quattro Pro for DOS | 1-5 | 1987-1993 | .wq1, .wq2 | BOF version 0x5120 / 0x5121 | high | Quattro-only functions are kept as values with a note |
