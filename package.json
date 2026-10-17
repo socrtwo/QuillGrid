@@ -20,7 +20,8 @@
     "ios:sync": "npm run build && npx cap sync ios",
     "desktop": "npm run build && node scripts/prepare-desktop.mjs && electron build/desktop-app",
     "desktop:dist": "npm run build && node scripts/prepare-desktop.mjs && electron-builder --config electron-builder.config.cjs",
-    "icons": "node scripts/gen-android-icons.mjs && node scripts/gen-platform-icons.mjs"
+    "icons": "node scripts/gen-android-icons.mjs && node scripts/gen-platform-icons.mjs",
+    "e2e:layout": "node tests/e2e/layout.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",

@@ -35,6 +35,29 @@ function commandList(cmds: (Command | '|')[], selected: number, onSelect: (i: nu
   return box;
 }
 
+/** A button of the middle toolbar: icon plus a label that stays visible on phones (wrapping onto more rows). */
+function midButton(label: string, ic: string, fn: () => void, tip = label): HTMLElement {
+  return h('button', { class: 'ql-btn ql-cust-btn', type: 'button', onclick: fn, title: tip, 'aria-label': label }, icon(ic), h('span', { class: 'ql-cust-btn-label' }, label));
+}
+
+/**
+ * Empties the columns before a redraw and, once the redraw is done, puts their list boxes back where they
+ * were scrolled (a click must not jump the list back to the top), then scrolls each list just enough to show
+ * its selected row. Only the lists scroll, never the dialog around them.
+ */
+function clearKeepingScroll(...cols: HTMLElement[]): void {
+  const tops = cols.map((c) => [...c.querySelectorAll<HTMLElement>('.ql-cmdlist')].map((l) => l.scrollTop));
+  for (const c of cols) clear(c);
+  queueMicrotask(() => cols.forEach((c, j) => c.querySelectorAll<HTMLElement>('.ql-cmdlist').forEach((l, i) => {
+    if (tops[j][i]) l.scrollTop = tops[j][i];
+    const row = l.querySelector<HTMLElement>('.ql-sel');
+    if (!row) return;
+    const lr = l.getBoundingClientRect(), rr = row.getBoundingClientRect();
+    if (rr.top < lr.top) l.scrollTop -= lr.top - rr.top;
+    else if (rr.bottom > lr.bottom) l.scrollTop += rr.bottom - lr.bottom;
+  })));
+}
+
 export async function customizeQat(app: App): Promise<void> {
   const cats = categories(app);
   let cat = cats[0];
@@ -56,17 +79,16 @@ export async function customizeQat(app: App): Promise<void> {
   search.addEventListener('input', () => { filter = search.value.toLowerCase(); leftSel = 0; draw(); });
   const count = h('div', { class: 'ql-help' });
   const draw = () => {
-    clear(left); clear(right);
+    clearKeepingScroll(left, right);
     const items = leftItems();
     count.textContent = `${items.length} command(s)`;
     left.append(h('label', { class: 'ql-label' }, 'Choose commands from:'), catSel, search, count, commandList(items, leftSel, (i) => { leftSel = i; draw(); }, (i) => { leftSel = i; add(); }));
     right.append(h('label', { class: 'ql-label' }, 'Quick Access Bar:'), commandList(qatItems(), rightSel, (i) => { rightSel = i; draw(); }, (i) => { rightSel = i; remove(); }));
   };
-  const b = (label: string, ic: string, fn: () => void) => h('button', { class: 'ql-btn', type: 'button', onclick: fn, title: label }, icon(ic), h('span', { class: 'ql-hide-phone' }, ' ' + label));
-  mid.append(b('Add', 'arrow_forward', add), b('Remove', 'arrow_back', remove), b('Up', 'arrow_upward', () => move(-1)), b('Down', 'arrow_downward', () => move(1)),
-    b('Separator', 'more_vert', () => { const at = rightSel >= 0 ? rightSel + 1 : qat.length; qat.splice(at, 0, '|'); rightSel = at; draw(); }),
-    b('Add All A–Z', 'sort_by_alpha', () => { qat = addAllQatChoices(qat, (id) => getCommand(id)?.label); rightSel = -1; draw(); }),
-    b('Reset', 'restart_alt', () => { qat = [...DEFAULT_QAT]; rightSel = -1; draw(); }));
+  mid.append(midButton('Add', 'arrow_forward', add), midButton('Remove', 'arrow_back', remove), midButton('Up', 'arrow_upward', () => move(-1)), midButton('Down', 'arrow_downward', () => move(1)),
+    midButton('Separator', 'more_vert', () => { const at = rightSel >= 0 ? rightSel + 1 : qat.length; qat.splice(at, 0, '|'); rightSel = at; draw(); }),
+    midButton('Add All A–Z', 'sort_by_alpha', () => { qat = addAllQatChoices(qat, (id) => getCommand(id)?.label); rightSel = -1; draw(); }, 'Add every Quick Access Bar choice: Save and Print first, then the rest A to Z'),
+    midButton('Reset', 'restart_alt', () => { qat = [...DEFAULT_QAT]; rightSel = -1; draw(); }, 'Reset to the default Quick Access Bar'));
   root.append(left, mid, right);
   draw();
   const r = await openDialog({
@@ -123,7 +145,7 @@ export async function customizeRibbon(app: App): Promise<void> {
   const search = h('input', { placeholder: 'Filter commands…' }) as HTMLInputElement;
   search.addEventListener('input', () => { filter = search.value.toLowerCase(); leftSel = 0; draw(); });
   const draw = () => {
-    clear(left); clear(right);
+    clearKeepingScroll(left, right);
     left.append(h('label', { class: 'ql-label' }, 'Choose commands from:'), catSel, search, commandList(leftItems(), leftSel, (i) => { leftSel = i; draw(); }, (i) => { leftSel = i; addCmd(); }));
     const tabList = h('div', { class: 'ql-cmdlist' });
     for (const id of order) {
@@ -153,7 +175,7 @@ export async function customizeRibbon(app: App): Promise<void> {
     if (selItem < 0) { const oi = order.indexOf(selTab); const j = oi + d; if (j >= 0 && j < order.length) { [order[oi], order[j]] = [order[j], order[oi]]; draw(); } return; }
     const t = ensureCustom(); const g = t.groups[selGroup]; const j = selItem + d; if (j < 0 || j >= g.items.length) return; [g.items[selItem], g.items[j]] = [g.items[j], g.items[selItem]]; selItem = j; draw();
   };
-  const b = (label: string, ic: string, fn: () => void) => h('button', { class: 'ql-btn', type: 'button', onclick: fn, title: label }, icon(ic), h('span', { class: 'ql-hide-phone' }, ' ' + label));
+  const b = midButton;
   mid.append(
     b('Add', 'arrow_forward', addCmd), b('Remove', 'arrow_back', removeSel), b('Up', 'arrow_upward', () => moveSel(-1)), b('Down', 'arrow_downward', () => moveSel(1)),
     b('New Tab', 'tab', async () => { const n = await promptDialog('New Tab', 'Tab name:', 'My Tab'); if (!n) return; const t: CustomTab = { id: `custom-${Date.now().toString(36)}`, label: n, groups: [{ id: 'g1', label: 'New Group', items: [] }] }; customTabs.push(t); order.push(t.id); selTab = t.id; selGroup = 0; selItem = -1; draw(); }),
@@ -212,7 +234,7 @@ export async function customizeKeyboard(app: App, initialId?: string): Promise<v
     owner.textContent = o ? `Currently assigned to: ${getCommand(o)?.label || o}` : 'Currently unassigned';
   });
   const draw = () => {
-    clear(left); clear(right);
+    clearKeepingScroll(left, right);
     const list = items();
     left.append(h('label', { class: 'ql-label' }, 'Categories:'), catSel, search, commandList(list, sel, (i) => { sel = i; pending = null; capture.value = ''; owner.textContent = ''; draw(); }));
     const c = list[sel];

@@ -1,6 +1,7 @@
 /** QuillLattice entry point. */
 import 'material-symbols/outlined.css';
 import './styles/app.css';
+import './ui/scrollcue.css';
 import { installFonts, onFontsReady } from './fonts';
 import './calc/functions';
 import './commands';
@@ -10,8 +11,23 @@ import { launchFile, onFileOpened, onBackButton, isNative, isDesktop, isCapacito
 import { closeMenus, inDialog, toast } from './ui/dialog';
 import { kvKeys } from './util/store';
 import { allCommands, getCommand } from './commands/registry';
+import { installScrollCues } from './ui/scrollcue';
 
 installFonts();
+
+// Scroll cues (thin bars, edge shadows and a "More" chip) on every scroll container that can hold choices:
+// menus, dialog bodies and their list boxes, panes, Backstage, the command palette, the cell editor's
+// autocomplete, galleries. Not on the grid itself, the ribbon or the other horizontal strips.
+installScrollCues({
+  selector: [
+    '.ql-menu', '.ql-dialog-body', '.ql-cmdlist', '.ql-listbox', '.ql-pane-body', '.ql-bs-nav', '.ql-bs-body',
+    '.ql-palette-list', '.ql-ac-popup', '.ql-symbol-grid', '.ql-notices', '.ql-dialog-preview', '.ql-ai-out',
+    '.ql-spell-context', '.ql-dict-list', '.ql-pp-side', '.ql-pp-view', '.ql-fx-args', '.ql-namemgr-list',
+    '.ql-cfmgr-list', '.ql-pvt-fields', '.ql-pvt-rec-list', '.ql-pvt-rec-preview', '.ql-objgal', '.ql-ai-log',
+    '.ql-ai-diff-wrap', '.ql-ai-chips', '.ql-ai-result', '.ql-macro-mods', '.ql-macro-out', '.ql-data-checklist',
+    '.ql-data-preview',
+  ].join(', '),
+});
 
 const host = document.getElementById('app')!;
 const app = new App(host);

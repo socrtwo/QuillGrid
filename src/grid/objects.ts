@@ -203,14 +203,14 @@ export class ObjectLayer {
       const r = Math.floor(k / 16384), c = k % 16384;
       const rc = g.cellRect(r, c);
       el.append(...commentContent(cm));
-      el.style.left = `${rc.x + rc.w + 8}px`; el.style.top = `${rc.y}px`;
       el.classList.add('ql-show');
+      this.fitPopup(el, rc, 'side');
     } else if (dv && !g.editing) {
       const rc = g.cellRect(sel.r, sel.c);
       if (dv.inputTitle) el.appendChild(h('b', null, dv.inputTitle));
       el.appendChild(h('div', null, dv.inputMessage!));
-      el.style.left = `${rc.x + 12}px`; el.style.top = `${rc.y + rc.h + 6}px`;
       el.classList.add('ql-show');
+      this.fitPopup(el, rc, 'below');
     } else el.classList.remove('ql-show');
     // "Show All Notes" mode
     g.overlay.querySelectorAll('.ql-note-pinned').forEach((x) => x.remove());
@@ -220,9 +220,26 @@ export class ObjectLayer {
         const r = Math.floor(ck / 16384), c = ck % 16384;
         const rc = g.cellRect(r, c);
         if (rc.x > g.width || rc.y > g.height || rc.x + rc.w < 0 || rc.y + rc.h < 0) continue;
-        g.overlay.appendChild(h('div', { class: 'ql-comment-pop ql-show ql-note-pinned', style: `left:${rc.x + rc.w + 8}px;top:${rc.y}px` }, ...commentContent(c2)));
+        const pin = h('div', { class: 'ql-comment-pop ql-show ql-note-pinned' }, ...commentContent(c2));
+        g.overlay.appendChild(pin);
+        this.fitPopup(pin, rc, 'side');
       }
     }
+  }
+
+  /**
+   * Places a note or input message next to its cell ('side': to the right, else to the left) or under it
+   * ('below': else above), keeping it inside the grid so that it is not cut off at the window's edge.
+   */
+  private fitPopup(el: HTMLElement, rc: { x: number; y: number; w: number; h: number }, where: 'side' | 'below'): void {
+    const g = this.g;
+    const w = el.offsetWidth, hh = el.offsetHeight;
+    let x = where === 'side' ? rc.x + rc.w + 8 : rc.x + 12;
+    let y = where === 'side' ? rc.y : rc.y + rc.h + 6;
+    if (x + w > g.width - 2) x = where === 'side' && rc.x - 8 - w >= 2 ? rc.x - 8 - w : g.width - 2 - w;
+    if (y + hh > g.height - 2) y = where === 'below' && rc.y - 6 - hh >= 2 ? rc.y - 6 - hh : g.height - 2 - hh;
+    el.style.left = `${Math.max(2, x)}px`;
+    el.style.top = `${Math.max(2, y)}px`;
   }
 }
 

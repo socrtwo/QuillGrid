@@ -384,14 +384,31 @@ export class CellEditor {
     (this.popup.children[this.acIndex] as HTMLElement | undefined)?.scrollIntoView({ block: 'nearest' });
   }
 
+  /**
+   * Shows the autocomplete list or the argument tip under the text being edited, or above it when the cell is
+   * near the bottom of the visible grid (the end of the sheet area, or the on-screen keyboard) and there is
+   * more room above. The list is kept inside the grid horizontally and shortened to the room it has.
+   */
   private placeBelow(el: HTMLElement, tipRow: boolean): void {
     const g = this.g;
     const inBar = this.bar && document.activeElement === this.bar;
     const base = inBar ? this.bar!.getBoundingClientRect() : this.ta.getBoundingClientRect();
     const host = g.el.getBoundingClientRect();
-    el.style.left = `${Math.max(0, base.left - host.left)}px`;
-    el.style.top = `${base.bottom - host.top + (tipRow ? 2 : this.tip.classList.contains('ql-show') ? 26 : 2)}px`;
+    el.style.maxHeight = '';
     el.classList.add('ql-show');
+    const vv = window.visualViewport;
+    const visTop = Math.max(host.top, vv ? vv.offsetTop : 0), visBottom = Math.min(host.bottom, vv ? vv.offsetTop + vv.height : innerHeight);
+    const gap = tipRow ? 2 : this.tip.classList.contains('ql-show') && !this.tip.classList.contains('ql-above') ? 26 : 2;
+    const tipAbove = !tipRow && this.tip.classList.contains('ql-show') && this.tip.classList.contains('ql-above') ? this.tip.offsetHeight + 2 : 0;
+    const below = visBottom - (base.bottom + gap) - 4, above = base.top - visTop - 6 - tipAbove;
+    const hgt = el.offsetHeight;
+    const up = hgt > below && above > below && !inBar;
+    const room = Math.max(40, up ? above : below);
+    if (hgt > room) el.style.maxHeight = `${room}px`;
+    const shownH = Math.min(hgt, room);
+    el.classList.toggle('ql-above', up);
+    el.style.top = `${(up ? base.top - 2 - tipAbove - shownH : base.bottom + gap) - host.top}px`;
+    el.style.left = `${Math.max(0, Math.min(base.left - host.left, host.width - el.offsetWidth - 2))}px`;
   }
 
   private hidePopup(): void { this.popup.classList.remove('ql-show'); this.acItems = []; }
