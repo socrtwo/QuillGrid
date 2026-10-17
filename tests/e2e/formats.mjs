@@ -38,6 +38,9 @@ const cases = [
   { file: 'documents/deck.pptx', as: 'deck.pptx', dialog: 'Import into QuillGrid', expect: { sheets: ['Slide 1', 'Slide 2'], A1: 'Plan' } },
   { file: 'documents/mail.eml', as: 'mail', dialog: 'Import into QuillGrid', expect: { sheets: ['Message', 'numbers'], B4: 'Weekly numbers' } },
   { file: 'documents/quick.msg', as: 'quick.msg', dialog: 'Import into QuillGrid', expect: { A1: 'From' } },
+  // Formats of the modern-format set, through the same detector
+  { file: 'io/b/third-party/tika-testNumbers2013.numbers', as: 'figures', note: /no extension/, expect: {} },
+  { file: 'io/b/sample.sqlite', as: 'data.bin', expect: {} },
 ];
 
 try {
@@ -76,6 +79,8 @@ try {
       return out;
     }, Object.keys(c.expect).filter((k) => k !== 'sheets'));
     for (const [k, v] of Object.entries(c.expect)) check(`${c.as} ${k}`, got[k], v);
+    const filled = await p.evaluate(() => ql.active.book.sheets.some((s) => s.cells.size > 0));
+    if (!filled) failures.push(`${c.as}: the workbook is empty`);
     if (c.note && !c.note.test(toast)) failures.push(`${c.as}: note missing from toast "${toast}"`);
     if (shots) await p.screenshot({ path: `${shots}/${c.as}.png` });
     await p.evaluate(() => document.querySelectorAll('.ql-toast').forEach((t) => t.remove()));
