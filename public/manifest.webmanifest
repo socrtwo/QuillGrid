@@ -1,6 +1,6 @@
 {
-  "name": "QuillLattice",
-  "short_name": "QuillLattice",
+  "name": "QuillGrid",
+  "short_name": "QuillGrid",
   "description": "An open-source spreadsheet that opens and saves Excel, OpenDocument and CSV files, with a complete, customizable command library.",
   "id": "./",
   "start_url": "./",
@@ -73,10 +73,12 @@
           ".tsv",
           ".tab"
         ],
-        "application/x-quilllattice": [
+        "application/x-quillgrid": [
+          ".qgw",
           ".qlw"
         ],
-        "application/x-quilllattice-encrypted": [
+        "application/x-quillgrid-encrypted": [
+          ".qgwe",
           ".qlwe"
         ]
       }

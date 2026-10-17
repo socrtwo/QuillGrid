@@ -79,4 +79,35 @@ describe('structure', () => {
     t.b.transact('ins', () => insertCellsShift(t.s, { r1: 0, c1: 0, r2: 0, c2: 0 }, 'down'));
     expect(t.v(t.s, 'A2')).toBe(1); expect(t.v(t.s, 'A3')).toBe(2); expect(t.v(t.s, 'B1')).toBe(9);
   });
+
+  it('inserting rows moves PivotTable sources and anchors', () => {
+    const t = setup();
+    const d = new Sheet(t.b, 'Data'); t.b.sheets.push(d);
+    t.s.pivots.push({ source: 'Data!A1:C10', target: { sheet: 'Data', r: 20, c: 0 } } as any);
+    t.b.transact('ins', () => shiftCells(d, 'row', 0, 2));
+    expect(t.s.pivots[0].source).toBe('Data!A3:C12');
+    expect(t.s.pivots[0].target.r).toBe(22);
+  });
+  it('renaming a sheet updates rule formulas but not string literals', () => {
+    const t = setup();
+    const d = new Sheet(t.b, 'Data'); t.b.sheets.push(d);
+    t.s.cf.push({ id: 'x', ranges: [{ r1: 0, c1: 0, r2: 0, c2: 0 }], type: 'expression', formulas: ['A1>Data!$B$1'] } as any);
+    t.put(t.s, 'C1', '="see Data!A1 "&Data!A1');
+    t.b.transact('ren', () => renameSheet(t.b, d, 'Src'));
+    expect(t.s.cf[0].formulas![0]).toBe('A1>Src!$B$1');
+    expect(t.f(t.s, 'C1')).toBe('"see Data!A1 "&Src!A1');
+  });
+  it('moving cells updates chart series and other sheets, and undo restores them', () => {
+    const t = setup();
+    const o = new Sheet(t.b, 'Other'); t.b.sheets.push(o);
+    t.put(t.s, 'A1', 7);
+    t.put(o, 'A1', '=Sheet1!A1');
+    t.s.charts.push({ id: 'c', series: [{ values: 'Sheet1!$A$1:$A$1' }] } as any);
+    t.b.transact('mv', () => moveBlock(t.s, { r1: 0, c1: 0, r2: 0, c2: 0 }, 0, 3));
+    expect(t.f(o, 'A1')).toBe('Sheet1!D1');
+    expect(t.s.charts[0].series[0].values).toBe('Sheet1!$D$1:$D$1');
+    t.b.undo();
+    const o2 = t.b.sheetByName('Other')!;
+    expect(o2.get(0, 0)?.f).toBe('Sheet1!A1');
+  });
 });

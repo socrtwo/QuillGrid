@@ -5,11 +5,11 @@
 // armv7l (Raspberry Pi OS 32-bit).
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
-  appId: 'io.github.socrtwo.quilllattice',
-  productName: 'QuillLattice',
-  copyright: 'QuillLattice contributors, MIT License',
+  appId: 'io.github.socrtwo.quillgrid',
+  productName: 'QuillGrid',
+  copyright: 'QuillGrid contributors, MIT License',
   directories: { app: 'build/desktop-app', output: 'release', buildResources: 'resources' },
-  artifactName: 'QuillLattice-${version}-${os}-${arch}.${ext}',
+  artifactName: 'QuillGrid-${version}-${os}-${arch}.${ext}',
   asar: true,
   // Everything the app needs is bundled into dist/ by Vite; ship no node_modules.
   files: ['dist/**/*', 'electron/**/*', 'package.json', '!**/node_modules/**'],
@@ -23,18 +23,20 @@ module.exports = {
     { ext: 'fods', name: 'Flat OpenDocument Spreadsheet', role: 'Editor', mimeType: 'application/vnd.oasis.opendocument.flat-spreadsheet' },
     { ext: 'csv', name: 'Comma-Separated Values', role: 'Editor', mimeType: 'text/csv' },
     { ext: 'tsv', name: 'Tab-Separated Values', role: 'Editor', mimeType: 'text/tab-separated-values' },
-    { ext: 'qlw', name: 'QuillLattice Workbook', role: 'Editor', mimeType: 'application/x-quilllattice' },
-    { ext: 'qlwe', name: 'Encrypted QuillLattice Workbook', role: 'Editor', mimeType: 'application/x-quilllattice-encrypted' },
+    { ext: 'qgw', name: 'QuillGrid Workbook', role: 'Editor', mimeType: 'application/x-quillgrid' },
+    { ext: 'qgwe', name: 'Encrypted QuillGrid Workbook', role: 'Editor', mimeType: 'application/x-quillgrid-encrypted' },
+    { ext: 'qlw', name: 'QuillGrid Workbook (QuillLattice)', role: 'Editor', mimeType: 'application/x-quillgrid' }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+    { ext: 'qlwe', name: 'Encrypted QuillGrid Workbook (QuillLattice)', role: 'Editor', mimeType: 'application/x-quillgrid-encrypted' }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
   ],
   win: {
     target: [{ target: 'nsis', arch: ['x64', 'arm64'] }, { target: 'portable', arch: ['x64'] }],
   },
-  nsis: { oneClick: false, perMachine: false, allowToChangeInstallationDirectory: true, artifactName: 'QuillLattice-${version}-windows-${arch}-setup.${ext}' },
-  portable: { artifactName: 'QuillLattice-${version}-windows-portable.${ext}' },
+  nsis: { oneClick: false, perMachine: false, allowToChangeInstallationDirectory: true, artifactName: 'QuillGrid-${version}-windows-${arch}-setup.${ext}' },
+  portable: { artifactName: 'QuillGrid-${version}-windows-portable.${ext}' },
   mac: {
     target: [{ target: 'dmg', arch: ['universal'] }, { target: 'zip', arch: ['universal'] }],
     category: 'public.app-category.productivity',
-    extendInfo: { CFBundleDisplayName: 'QuillLattice' },
+    extendInfo: { CFBundleDisplayName: 'QuillGrid' },
     // Ad-hoc signature: runs on Apple silicon without a paid Developer ID, but is not notarized,
     // so Gatekeeper asks once (docs/INSTALL.md). Hardened runtime would reject Electron's own signature.
     identity: '-',
@@ -45,9 +47,9 @@ module.exports = {
     target: [{ target: 'AppImage', arch: ['x64', 'arm64', 'armv7l'] }, { target: 'deb', arch: ['x64', 'arm64', 'armv7l'] }],
     category: 'Office;Spreadsheet',
     synopsis: 'Spreadsheet with a complete, customizable command library',
-    description: 'QuillLattice is an open-source spreadsheet that opens and saves Excel (.xlsx, .xls), OpenDocument (.ods) and CSV files. Every feature is a command you can put on the ribbon, the Quick Access Bar, a shortcut or a macro.',
+    description: 'QuillGrid is an open-source spreadsheet that opens and saves Excel (.xlsx, .xls), OpenDocument (.ods) and CSV files. Every feature is a command you can put on the ribbon, the Quick Access Bar, a shortcut or a macro.',
     maintainer: 'socrtwo <socrtwo@users.noreply.github.com>',
-    executableName: 'quilllattice',
+    executableName: 'quillgrid',
     syncDesktopName: true,
   },
   publish: null,

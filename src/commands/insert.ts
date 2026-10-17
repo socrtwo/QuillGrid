@@ -53,7 +53,7 @@ export async function pictureDataUrl(file: Blob): Promise<string | null> {
 export async function insertPictureFile(app: App, file: Blob, name = 'Picture'): Promise<DrawingObject | null> {
   if (!canEditObjects(app)) return null;
   const src = await pictureDataUrl(file);
-  if (!src) { toast('That file is not a picture QuillLattice can show.'); return null; }
+  if (!src) { toast('That file is not a picture QuillGrid can show.'); return null; }
   const sz = await imageSize(src);
   const k = Math.min(1, 640 / Math.max(sz.w, sz.h));
   return addDrawing(app, { kind: 'image', at: { ...cellAnchor(app), w: Math.round(sz.w * k), h: Math.round(sz.h * k) }, src, alt: name.replace(/\.[^.]+$/, ''), lockAspect: true }, 'Insert Picture');
@@ -121,7 +121,7 @@ const SPECIAL_CHARS: [string, string][] = [
   ['±', 'Plus-Minus'], ['×', 'Multiplication'], ['÷', 'Division'], ['≠', 'Not Equal'], ['≤', 'Less or Equal'], ['≥', 'Greater or Equal'], ['∞', 'Infinity'], ['€', 'Euro'], ['£', 'Pound'], ['¥', 'Yen'],
   ['½', 'One Half'], ['¼', 'One Quarter'], ['¾', 'Three Quarters'], ['→', 'Right Arrow'], ['✓', 'Check Mark'], ['✗', 'Ballot X'], ['★', 'Star'],
 ];
-const RECENT_KEY = 'quilllattice.recentSymbols';
+const RECENT_KEY = 'quillgrid.recentSymbols';
 function recentSymbols(): string[] { try { const v = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, 20) : []; } catch { return []; } }
 function rememberSymbol(ch: string): void { try { const r = [ch, ...recentSymbols().filter((x) => x !== ch)].slice(0, 20); localStorage.setItem(RECENT_KEY, JSON.stringify(r)); } catch { /* storage off */ } }
 

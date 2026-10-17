@@ -11,6 +11,8 @@ import { parseNumberInput, isTextFormat, isDateFormat, formatValue } from '../mo
 import { parseDateTime } from '../model/dates';
 import { shiftFormula } from '../calc/parser';
 import { BUILTIN_LISTS } from '../prefs';
+import { getFn } from '../calc/functions/registry';
+import { lotusEntry, lotusLabel } from '../heritage/lotus';
 
 export const selRanges = (app: App): Range[] => app.sheet.sel.ranges;
 export const activeRange = (app: App): Range => { const s = app.sheet.sel; return s.ranges[s.ranges.length - 1]; };
@@ -110,7 +112,7 @@ export function toggleStyle(app: App, key: keyof CellStyle, label: string): void
 // --------------------------------------------------------------------------------------------
 // Entering values
 
-export interface ParsedInput { cell: Cell; format?: string }
+export interface ParsedInput { cell: Cell; format?: string; /** Alignment from a 1-2-3 label prefix. */ align?: 'left' | 'right' | 'center' | 'fill' }
 
 /**
  * Converts typed text to a cell: formulas, numbers (with currency/percent/thousands), dates and times,
@@ -121,6 +123,14 @@ export function parseInput(app: App, text: string, r: number, c: number, sheet: 
   if (isTextFormat(st.numFmt)) return { cell: text === '' ? {} : { v: text } };
   if (text === '') return { cell: {} };
   if (text.startsWith("'")) return { cell: { v: text.slice(1) } };
+  if (app.prefs.lotusLabels) {
+    const lb = lotusLabel(text);
+    if (lb && lb.align !== 'left') return { cell: { v: lb.text }, align: lb.align };
+  }
+  if (app.prefs.lotusFormulas && /^[@+=-]/.test(text)) {
+    const lf = lotusEntry(text, (n) => !!getFn(n), { sheetNames: sheet.book.sheets.map((x) => x.name) });
+    if (lf) return { cell: { f: lf } };
+  }
   if ((text.startsWith('=') || ((text.startsWith('+') || text.startsWith('-')) && text.length > 1 && !parseNumberInput(text))) && text.length > 1) {
     let f = text.startsWith('=') ? text.slice(1) : text;
     if (f.startsWith('=')) f = f.slice(1);
@@ -149,6 +159,7 @@ export function setInput(app: App, sheet: Sheet, r: number, c: number, text: str
   const next: Cell = { ...p.cell };
   let sid = cur?.s ?? sheet.rowStyle.get(r) ?? sheet.colStyle.get(c);
   if (p.format) sid = sheet.book.derivedStyle(sid ?? 0, { numFmt: p.format });
+  if (p.align) sid = sheet.book.derivedStyle(sid ?? 0, { hAlign: p.align });
   // Typing a hyperlink-looking address makes a hyperlink (AutoCorrect: internet paths).
   if (typeof next.v === 'string' && app.prefs.autoCorrect && /^(https?:\/\/|www\.|mailto:)[^\s]+$/i.test(next.v)) {
     next.link = /^www\./i.test(next.v) ? 'https://' + next.v : next.v;

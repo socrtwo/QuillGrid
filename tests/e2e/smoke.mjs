@@ -8,7 +8,9 @@ const PORT = 4179;
 let server = null;
 let url = process.env.QL_URL;
 if (!url) {
-  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
+  // Own process group, so that stopping it also stops the vite process npx starts (a server left
+  // running would answer the next run with an old build).
+  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', detached: true });
   url = `http://localhost:${PORT}/`;
   for (let i = 0; i < 60; i++) {
     try { if ((await fetch(url)).ok) break; } catch { /* not up yet */ }
@@ -26,7 +28,7 @@ try {
   const errs = [];
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-  await p.addInitScript(() => localStorage.setItem('quilllattice.prefs.v1', JSON.stringify({ firstRun: false })));
+  await p.addInitScript(() => localStorage.setItem('quillgrid.prefs.v1', JSON.stringify({ firstRun: false })));
   await p.goto(url, { waitUntil: 'networkidle' });
   await p.waitForSelector('.ql-grid-scroller');
   await p.waitForTimeout(500);
@@ -67,7 +69,7 @@ try {
   if (process.argv[2]) await p.screenshot({ path: process.argv[2] });
 } finally {
   await browser.close();
-  server?.kill();
+  if (server) { try { process.kill(-server.pid); } catch { server.kill(); } }
 }
 
 if (failures.length) { console.error('E2E smoke FAILED\n' + failures.join('\n')); process.exit(1); }

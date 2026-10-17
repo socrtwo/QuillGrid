@@ -86,7 +86,7 @@ function makeBook(): Workbook {
 
 describe('format registry', () => {
   it('lists the formats', () => {
-    for (const id of ['xlsx', 'xlsm', 'xltx', 'ods', 'fods', 'csv', 'tsv', 'txt', 'html', 'json', 'qlw', 'qlwe', 'xls', 'sylk', 'dif', 'xml', 'md']) expect(formatById(id), id).toBeTruthy();
+    for (const id of ['xlsx', 'xlsm', 'xltx', 'ods', 'fods', 'csv', 'tsv', 'txt', 'html', 'json', 'qgw', 'qgwe', 'xls', 'sylk', 'dif', 'xml', 'md']) expect(formatById(id), id).toBeTruthy();
     expect(formatForName('a.XLSX')!.id).toBe('xlsx');
     expect(formatForName('report.slk')!.id).toBe('sylk');
     expect(FORMATS.find((f) => f.id === 'md')!.canImport).toBe(false);
@@ -416,10 +416,10 @@ describe('html and markdown', () => {
 });
 
 describe('native formats', () => {
-  it('round-trips json, qlw and qlwe', async () => {
+  it('round-trips json, qgw and qgwe', async () => {
     const book = makeBook();
     book.sheets[0].drawings.push({ id: 'i', kind: 'image', at: { r: 0, c: 0, dx: 0, dy: 0, w: 1, h: 1 }, src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' });
-    for (const id of ['json', 'qlw']) {
+    for (const id of ['json', 'qgw']) {
       const data = await buf(await exportFile(book, id));
       const res = await importFile(data, `x.${id}`);
       expect(res.format).toBe(id);
@@ -429,11 +429,11 @@ describe('native formats', () => {
       expect(s.drawings[0].src).toBe(book.sheets[0].drawings[0].src);
       expect(res.book.sheets[1].name).toBe('Data & More');
     }
-    const enc = await buf(await exportFile(book, 'qlwe', { password: 'secret' }));
-    expect(sniffFormat(enc, 'noext')!.id).toBe('qlwe');
-    await expect(importFile(enc, 'x.qlwe')).rejects.toBeInstanceOf(PasswordError);
-    await expect(importFile(enc, 'x.qlwe', { password: 'wrong' })).rejects.toBeInstanceOf(PasswordError);
-    const res = await importFile(enc, 'x.qlwe', { password: 'secret' });
+    const enc = await buf(await exportFile(book, 'qgwe', { password: 'secret' }));
+    expect(sniffFormat(enc, 'noext')!.id).toBe('qgwe');
+    await expect(importFile(enc, 'x.qgwe')).rejects.toBeInstanceOf(PasswordError);
+    await expect(importFile(enc, 'x.qgwe', { password: 'wrong' })).rejects.toBeInstanceOf(PasswordError);
+    const res = await importFile(enc, 'x.qgwe', { password: 'secret' });
     expect(res.encrypted).toBe(true);
     expect(cell(res.book.sheets[0], 'A1')!.v).toBe('Name');
   }, 30000);
@@ -534,7 +534,7 @@ describe('files written by LibreOffice', () => {
     expect(s.rowH.get(0)).toBe(30);
     expect(s.print.area).toBe('$A$1:$D$5');
     expect(s.drawings.filter((d) => d.kind === 'image').length).toBe(1);
-    expect(res.warnings.join(' ')).toMatch(/Charts/);
+    expect(s.charts.length).toBeGreaterThan(0); // charts in OpenDocument files are read
     expect(b.names).toEqual([{ name: 'Rate', ref: 'Sheet1!$C$2', sheet: null }]);
     expect(b.sheets[1].visibility).toBe('hidden');
   });

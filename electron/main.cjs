@@ -1,4 +1,4 @@
-// QuillLattice desktop app (Windows, macOS, Linux, Raspberry Pi OS): Electron main process.
+// QuillGrid desktop app (Windows, macOS, Linux, Raspberry Pi OS): Electron main process.
 //
 // The web build (dist/) is served from the privileged app:// scheme so module workers, fetch and
 // IndexedDB behave as on the web. The renderer is sandboxed with context isolation and no Node;
@@ -9,13 +9,28 @@
 const { app, BrowserWindow, protocol, net, ipcMain, dialog, shell, clipboard, safeStorage, powerSaveBlocker, Menu } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+
+// QuillGrid was formerly named QuillLattice: on the first start after the rename, copy the old data
+// folder (settings, drafts, granted files, stored keys) to the new one before anything writes there.
+try {
+  const userData = app.getPath('userData');
+  const legacy = path.join(path.dirname(userData), 'QuillLattice'); // rename:keep
+  if (!fs.existsSync(userData) && fs.existsSync(legacy)) fs.cpSync(legacy, userData, { recursive: true });
+} catch { /* first run, or no access: start fresh */ }
 const http = require('node:http');
 const { pathToFileURL, fileURLToPath } = require('node:url');
 
 const DIST = path.join(__dirname, '..', 'dist');
 const SCHEME = 'app';
-const ORIGIN = `${SCHEME}://quilllattice`;
-const OPENABLE = ['xlsx', 'xlsm', 'xltx', 'xltm', 'xls', 'xlt', 'xlw', 'ods', 'ots', 'fods', 'csv', 'tsv', 'tab', 'txt', 'prn', 'html', 'htm', 'xml', 'slk', 'dif', 'qlw', 'qlwe', 'json'];
+// The page's origin keeps the app's former name so settings, drafts and keys stored by earlier
+// versions stay readable.
+const ORIGIN = `${SCHEME}://quilllattice`; // rename:keep
+const OPENABLE = ['xlsx', 'xlsm', 'xltx', 'xltm', 'xls', 'xlt', 'xlw', 'ods', 'ots', 'fods', 'csv', 'tsv', 'tab', 'txt', 'prn', 'html', 'htm', 'xml', 'slk', 'dif', 'qgw', 'qgwe', 'json', 'qlw', 'qlwe',
+  // legacy spreadsheets
+  'wk1', 'wks', 'wk3', 'wk4', '123', 'wrk', 'wr1', 'wq1', 'wq2', 'wb1', 'wb2', 'wb3', 'qpw', 'xlr', 'dbf', 'vc', 'cwk'];
+/** Documents, slides and mail the app can import or hand to a sibling Quill app (never programs or scripts). */
+const DOCUMENTS = ['docx', 'docm', 'dotx', 'doc', 'dot', 'odt', 'ott', 'fodt', 'rtf', 'wpd', 'wps', 'wri', 'sxw', 'abw', 'pages', 'epub', 'pdf', 'txt', 'md',
+  'pptx', 'pptm', 'ppsx', 'potx', 'ppt', 'pps', 'pot', 'odp', 'otp', 'fodp', 'sxi', 'key', 'eml', 'emlx', 'msg', 'mbox', 'mht', 'mhtml']; // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
 
 protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
 
@@ -23,7 +38,9 @@ if (!app.requestSingleInstanceLock()) app.quit();
 
 /** @type {BrowserWindow | null} */
 let win = null;
-let pendingLaunch = null; // file opened before the window was ready
+/** Files opened before the page could receive them. Flushed when the page registers its fileOpened listener. */
+const pendingFiles = [];
+let rendererReady = false;
 let wakeId = -1;
 
 // ------------------------------------------------------------------------------------------
@@ -44,7 +61,7 @@ function grant(p) {
 function grantedPath(uri) {
   if (typeof uri !== 'string' || !uri.startsWith('file:')) throw new Error('Not a file address');
   const p = path.resolve(fileURLToPath(uri));
-  if (!grants.has(p)) throw new Error('QuillLattice has no permission for this file; open it again.');
+  if (!grants.has(p)) throw new Error('QuillGrid has no permission for this file; open it again.');
   return p;
 }
 const MIME = {
@@ -58,7 +75,8 @@ const MIME = {
   fods: 'application/vnd.oasis.opendocument.flat-spreadsheet',
   csv: 'text/csv', tsv: 'text/tab-separated-values', tab: 'text/tab-separated-values',
   txt: 'text/plain', prn: 'text/plain', html: 'text/html', htm: 'text/html', xml: 'application/xml',
-  qlw: 'application/x-quilllattice', qlwe: 'application/x-quilllattice-encrypted', json: 'application/json',
+  qgw: 'application/x-quillgrid', qgwe: 'application/x-quillgrid-encrypted', json: 'application/json',
+  qlw: 'application/x-quillgrid', qlwe: 'application/x-quillgrid-encrypted', // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
 };
 function fileResult(p) {
   const data = fs.readFileSync(p);
@@ -69,15 +87,22 @@ function fileFromArgs(argv) {
   for (const a of argv.slice(1)) {
     if (!a || a.startsWith('-')) continue;
     const ext = path.extname(a).slice(1).toLowerCase();
-    if (OPENABLE.includes(ext) && fs.existsSync(a)) return path.resolve(a);
+    // Files are recognized by their contents, so names without an extension open too.
+    const known = OPENABLE.includes(ext) || DOCUMENTS.includes(ext) || (!ext && !a.includes('desktop-app'));
+    try { if (known && fs.statSync(a).isFile()) return path.resolve(a); } catch { /* not a file */ }
   }
   return null;
 }
 function openExternalFile(p) {
   grant(p);
-  if (win && !win.webContents.isLoading()) win.webContents.send('ql:fileOpened', fileResult(p));
-  else pendingLaunch = p;
+  if (win && rendererReady) win.webContents.send('ql:fileOpened', fileResult(p));
+  else pendingFiles.push(p);
+  // macOS keeps running with no window: opening a file from Finder must bring one back.
+  if (!win && app.isReady()) createWindow();
   if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
+}
+function flushPendingFiles() {
+  while (win && rendererReady && pendingFiles.length) win.webContents.send('ql:fileOpened', fileResult(pendingFiles.shift()));
 }
 
 // ------------------------------------------------------------------------------------------
@@ -115,7 +140,7 @@ function registerIpc() {
   handle('openDocument', async () => {
     const r = await dialog.showOpenDialog(win, {
       properties: ['openFile'],
-      filters: [{ name: 'Spreadsheets', extensions: OPENABLE }, { name: 'All files', extensions: ['*'] }],
+      filters: [{ name: 'Spreadsheets', extensions: OPENABLE }, { name: 'Documents, slides and mail', extensions: DOCUMENTS }, { name: 'All files', extensions: ['*'] }],
     });
     if (r.canceled || !r.filePaths[0]) return { canceled: true };
     grant(r.filePaths[0]);
@@ -148,10 +173,11 @@ function registerIpc() {
     if (!r.canceled && r.filePath) { fs.writeFileSync(r.filePath, Buffer.from(String(data || ''), 'base64')); grant(r.filePath); }
   });
   handle('getLaunchFile', async () => {
-    const p = pendingLaunch;
-    pendingLaunch = null;
+    const p = pendingFiles.shift();
     return p ? fileResult(p) : {};
   });
+  // Sent by the preload script once the page listens for fileOpened: deliver anything that arrived earlier.
+  ipcMain.on('ql:fileListenerReady', (e) => { if (win && e.sender === win.webContents) { rendererReady = true; flushPendingFiles(); } });
   handle('keepAwake', async ({ on }) => {
     if (on && wakeId < 0) wakeId = powerSaveBlocker.start('prevent-display-sleep');
     if (!on && wakeId >= 0) { powerSaveBlocker.stop(wakeId); wakeId = -1; }
@@ -179,6 +205,18 @@ function registerIpc() {
   });
   handle('stopLoopback', async () => stopLoop());
   handle('openExternal', async ({ url }) => { if (safeUrl(url)) await shell.openExternal(url); });
+  // Hand a document to the program registered for its type (QuillPen, QuillPost or QuillStage when installed).
+  handle('openWith', async ({ name, data }) => {
+    const base = path.basename(String(name || 'document')).replace(/[\\/:*?"<>|]/g, '_');
+    const ext = path.extname(base).slice(1).toLowerCase();
+    if (!DOCUMENTS.includes(ext)) return { ok: false, error: 'This kind of file is not handed to other programs.' };
+    const dir = path.join(app.getPath('temp'), 'quillgrid-handoff');
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, `${Date.now().toString(36)}-${base}`);
+    fs.writeFileSync(file, Buffer.from(String(data || ''), 'base64'));
+    const err = await shell.openPath(file);
+    return err ? { ok: false, error: err } : { ok: true };
+  });
   handle('http', async ({ url, method, headers, data }) => {
     if (typeof url !== 'string' || !/^https:\/\//i.test(url)) throw new Error('Only https requests are allowed');
     const res = await net.fetch(url, { method: method || 'GET', headers: headers || {}, body: data == null ? undefined : typeof data === 'string' ? data : JSON.stringify(data) });
@@ -237,7 +275,7 @@ function createWindow() {
     height: 860,
     minWidth: 360,
     minHeight: 480,
-    title: 'QuillLattice',
+    title: 'QuillGrid',
     backgroundColor: '#ffffff',
     autoHideMenuBar: process.platform !== 'darwin',
     icon: path.join(__dirname, 'icon.png'),
@@ -247,7 +285,7 @@ function createWindow() {
       sandbox: true,
       nodeIntegration: false,
       webSecurity: true,
-      spellcheck: false, // QuillLattice has its own spelling checker
+      spellcheck: false, // QuillGrid has its own spelling checker
     },
   });
   // Links open in the system browser; the window never navigates away from the app.
@@ -255,10 +293,12 @@ function createWindow() {
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(ORIGIN)) { e.preventDefault(); if (safeUrl(url)) void shell.openExternal(url); } });
   // The page asks before unloading with unsaved workbooks: confirm here, as the browser would.
   win.webContents.on('will-prevent-unload', (e) => {
-    const choice = dialog.showMessageBoxSync(win, { type: 'question', buttons: ['Close without saving', 'Cancel'], defaultId: 1, cancelId: 1, title: 'Unsaved changes', message: 'Some workbooks have unsaved changes. Close QuillLattice anyway?' });
+    const choice = dialog.showMessageBoxSync(win, { type: 'question', buttons: ['Close without saving', 'Cancel'], defaultId: 1, cancelId: 1, title: 'Unsaved changes', message: 'Some workbooks have unsaved changes. Close QuillGrid anyway?' });
     if (choice === 0) e.preventDefault();
   });
-  win.on('closed', () => { win = null; });
+  // A reload or navigation drops the page's listeners until it registers them again.
+  win.webContents.on('did-start-loading', () => { rendererReady = false; });
+  win.on('closed', () => { win = null; rendererReady = false; });
   void win.loadURL(`${ORIGIN}/index.html`);
 }
 
@@ -268,12 +308,13 @@ app.on('second-instance', (_e, argv) => {
   else if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
 });
 // macOS: files opened from Finder (before or after launch).
-app.on('open-file', (e, p) => { e.preventDefault(); if (app.isReady()) openExternalFile(p); else pendingLaunch = p; });
+app.on('open-file', (e, p) => { e.preventDefault(); if (app.isReady()) openExternalFile(p); else pendingFiles.push(p); });
 
 app.whenReady().then(() => {
   loadGrants();
-  const p = pendingLaunch || fileFromArgs(process.argv);
-  if (p) { grant(p); pendingLaunch = p; }
+  const p = fileFromArgs(process.argv);
+  if (p) pendingFiles.unshift(p);
+  for (const f of pendingFiles) grant(f);
   serveApp();
   registerIpc();
   buildMenu();

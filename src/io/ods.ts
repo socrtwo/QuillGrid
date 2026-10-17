@@ -15,6 +15,7 @@ import { isDateFormat, isPercentFormat } from '../model/numfmt';
 import { partsToSerial, serialToParts } from '../model/dates';
 import { tokenize, parseRefText, type Token } from '../calc/parser';
 import { parseXml, kids, kid, desc, esc, XML_HEADER, normColor, decodeText, parseDataUrl, extForMime, mimeForExt, bytesToBase64, stripXlfn } from './index';
+import { readValidations, applyValidations, noteValidation, noteStyleMap, readConditionalFormats, styleMapRules, readChart } from './ods-extras';
 
 const NS = {
   office: 'urn:oasis:names:tc:opendocument:xmlns:office:1.0',
@@ -461,7 +462,7 @@ function parseIsoDate(s: string, date1904: boolean): number | null {
   return partsToSerial(+m[1], +m[2], +m[3], date1904) + ((+(m[4] || 0)) * 3600 + (+(m[5] || 0)) * 60 + (+(m[6] || 0))) / 86400;
 }
 
-interface OdfDocs { content: Document; styles: Document | null; settings: Document | null; meta: Document | null; files?: JSZip }
+export interface OdfDocs { content: Document; styles: Document | null; settings: Document | null; meta: Document | null; files?: JSZip }
 
 export async function importOds(data: ArrayBuffer, warnings: string[] = []): Promise<Workbook> {
   const zip = await JSZip.loadAsync(data);
@@ -477,7 +478,7 @@ export async function importFods(text: string, warnings: string[] = []): Promise
   return readOdf({ content: doc, styles: doc, settings: doc, meta: doc }, warnings);
 }
 
-async function readOdf(docs: OdfDocs, warnings: string[]): Promise<Workbook> {
+export async function readOdf(docs: OdfDocs, warnings: string[]): Promise<Workbook> {
   const book = new Workbook(false);
   const defs = collectStyles([docs.styles !== docs.content ? docs.styles : null, docs.content]);
   const body = desc(docs.content, 'spreadsheet')[0];
@@ -486,6 +487,7 @@ async function readOdf(docs: OdfDocs, warnings: string[]): Promise<Workbook> {
   const nd = desc(body, 'null-date')[0];
   if (nd && /^1904-01-01/.test(a(nd, 'table', 'date-value') || '')) book.calc.date1904 = true;
   const dateSerial = (s: string) => parseIsoDate(s, book.calc.date1904);
+  const validity = readValidations(body, odfToFormula);
   const iter = desc(body, 'iteration')[0];
   if (iter && a(iter, 'table', 'status') === 'enable') {
     book.calc.iterative = true;
@@ -511,6 +513,7 @@ async function readOdf(docs: OdfDocs, warnings: string[]): Promise<Workbook> {
     const pr = a(t, 'table', 'print-ranges');
     if (pr) sheet.print.area = pr.split(/\s+/).map((x) => splitSheetRef(odfRefToA1(x)).ref).join(',');
     await readTable(book, sheet, t, defs, docs, dateSerial, warnings);
+    readTableExtras(sheet, t, defs, validity, warnings);
     // Sheet-local names
     for (const ne of kids(kid(t, 'named-expressions'))) readName(book, ne, sheet.name);
   }
@@ -638,6 +641,9 @@ async function readRow(book: Workbook, sheet: Sheet, r: number, cells: Element[]
     }
     const styleName = a(el, 'table', 'style-name');
     const sid = styleName ? styleIdFor(book, defs, styleName) : rowDefault || 0;
+    const valName = a(el, 'table', 'content-validation-name');
+    if (valName) noteValidation(sheet, valName, r, c, rep);
+    if (styleName && kids(defs.cell.get(styleName) || null, 'map').length) noteStyleMap(sheet, styleName, r, c, rep);
     const vt = a(el, 'office', 'value-type') || a(el, 'calcext', 'value-type');
     const formula = a(el, 'table', 'formula');
     const paras = kids(el, 'p');
@@ -659,7 +665,13 @@ async function readRow(book: Workbook, sheet: Sheet, r: number, cells: Element[]
       const isErr = a(el, 'calcext', 'value-type') === 'error' || (vt === 'string' && /^(#[A-Z/0!?]+|Err:\d+)$/.test(text));
       if (isErr) cell.v = errorFromCode(text.trim()) || new CellError('#VALUE!');
     }
-    const effSid = sid || colDefault[c] || 0;
+    let effSid = sid || colDefault[c] || 0;
+    // Dates, times and percentages without a data style still display as such.
+    if ((vt === 'time' || vt === 'date' || vt === 'percentage') && cell.v != null && !book.styles[effSid]?.numFmt) {
+      const fmt = vt === 'time' ? (typeof cell.v === 'number' && cell.v >= 1 ? '[h]:mm:ss' : 'h:mm:ss') : vt === 'date' ? (typeof cell.v === 'number' && cell.v % 1 ? 'yyyy-mm-dd hh:mm:ss' : 'yyyy-mm-dd') : '0%';
+      effSid = book.derivedStyle(effSid, { numFmt: fmt });
+      if (effSid !== colDefault[c]) cell.s = effSid;
+    }
     if (effSid && effSid !== colDefault[c]) cell.s = effSid;
     else if (effSid && (cell.v != null || cell.f)) cell.s = effSid;
     const link = desc(el, 'a').find((x) => x.localName === 'a' && a(x, 'xlink', 'href'));
@@ -713,8 +725,21 @@ async function readFrame(sheet: Sheet, fr: Element, at: { r: number; c: number }
     while (yy >= sheet.rowHeight(r) && r < 100000) { yy -= sheet.rowHeight(r); r++; }
     pos = { r, c, dx: Math.round(xx), dy: Math.round(yy), w, h };
   }
-  if (kid(fr, 'object') || kid(fr, 'object-ole')) {
-    if (!warnings.includes('Charts and embedded objects in OpenDocument files are not opened.')) warnings.push('Charts and embedded objects in OpenDocument files are not opened.');
+  const obj = kid(fr, 'object');
+  if (obj || kid(fr, 'object-ole')) {
+    let chart: Partial<import('../model/types').ChartDef> | null = null;
+    try {
+      const inline = obj && kid(obj, 'document');
+      const href = (obj && a(obj, 'xlink', 'href')) || '';
+      let cdoc: Document | Element | null = inline;
+      if (!cdoc && docs.files && href) {
+        const f = docs.files.file(href.replace(/^\.\//, '').replace(/\/$/, '') + '/content.xml');
+        if (f) cdoc = parseXml(decodeText(await f.async('uint8array')), href);
+      }
+      if (cdoc) chart = readChart(cdoc, chartRef);
+    } catch { chart = null; }
+    if (chart) { sheet.charts.push({ id: newId('ch'), at: pos, ...chart } as import('../model/types').ChartDef); return; }
+    if (!warnings.includes('Some embedded objects in OpenDocument files are not opened.')) warnings.push('Some embedded objects in OpenDocument files are not opened.');
     return;
   }
   const img = kid(fr, 'image');
@@ -736,6 +761,33 @@ async function readFrame(sheet: Sheet, fr: Element, at: { r: number; c: number }
     const text = desc(fr, 'p').map(odfText).join('\n');
     sheet.drawings.push({ id: newId('shp'), kind: tb ? 'textbox' : 'shape', at: pos, shape: fr.localName === 'ellipse' ? 'ellipse' : 'rect', ...(text ? { text } : {}) });
     return;
+  }
+}
+
+/** First range of an ODF chart range address list ("Data.B2:Data.B4 Data.B1") as an A1 reference. */
+function chartRef(addr: string): string | null {
+  const first = addr.trim().split(/\s+/)[0];
+  if (!first) return null;
+  const r = odfRefToA1(first);
+  return /#REF!/.test(r) ? null : r;
+}
+
+/** Validity rules, conditional formats and style:map conditions of one table. */
+function readTableExtras(sheet: Sheet, t: Element, defs: StyleDefs, validity: ReturnType<typeof readValidations>, warnings: string[]): void {
+  applyValidations(sheet, validity);
+  const addr = (s: string): Range[] => s.trim().split(/\s+/).filter(Boolean).map((x) => parseRange(splitSheetRef(odfRefToA1(x)).ref)).filter((x): x is Range => !!x);
+  const base = baseStyle(defs);
+  const styleOf = (name: string): Partial<CellStyle> => {
+    const st: Partial<CellStyle> = cellStyleOf(defs, name);
+    for (const k of ['font', 'size', 'color', 'numFmt'] as const) if (st[k] != null && st[k] === base[k]) delete st[k];
+    return st;
+  };
+  const conv = (f: string) => (/\[/.test(f) ? odfToFormula(f) : f.replace(/;/g, ','));
+  const cf = readConditionalFormats(t, addr, styleOf, conv, warnings);
+  if (cf.length) sheet.cf.push(...cf);
+  else {
+    const maps = (style: string) => kids(defs.cell.get(style) || null, 'map').map((m) => ({ condition: a(m, 'style', 'condition') || '', apply: a(m, 'style', 'apply-style-name') || '' }));
+    sheet.cf.push(...styleMapRules(sheet, maps, styleOf, conv));
   }
 }
 
@@ -1140,7 +1192,7 @@ function buildOds(book: Workbook, out: OdsOut, flat: boolean): { content: string
   const commonStyles = `<office:styles><style:default-style style:family="table-cell"><style:paragraph-properties style:tab-stop-distance="0.5in"/><style:text-properties style:font-name="${esc(body)}" fo:font-size="11pt" fo:language="en" fo:country="US"/></style:default-style><number:number-style style:name="N0"><number:number number:min-integer-digits="1"/></number:number-style><style:style style:name="Default" style:family="table-cell" style:data-style-name="N0"/></office:styles>`;
   const masters = `<office:automatic-styles><style:page-layout style:name="pm1"><style:page-layout-properties style:writing-mode="lr-tb"/></style:page-layout></office:automatic-styles><office:master-styles><style:master-page style:name="Default" style:page-layout-name="pm1"><style:header style:display="false"/><style:footer style:display="false"/></style:master-page></office:master-styles>`;
   const p = book.props;
-  const metaInner = `<office:meta><meta:generator>QuillLattice</meta:generator>${p.title ? `<dc:title>${esc(p.title)}</dc:title>` : ''}${p.subject ? `<dc:subject>${esc(p.subject)}</dc:subject>` : ''}${p.comments ? `<dc:description>${esc(p.comments)}</dc:description>` : ''}${p.author ? `<meta:initial-creator>${esc(p.author)}</meta:initial-creator>` : ''}${p.lastModifiedBy || p.author ? `<dc:creator>${esc(p.lastModifiedBy || p.author)}</dc:creator>` : ''}${p.keywords ? p.keywords.split(/\s*,\s*/).map((k) => `<meta:keyword>${esc(k)}</meta:keyword>`).join('') : ''}<meta:creation-date>${new Date(p.created || Date.now()).toISOString().replace(/Z$/, '')}</meta:creation-date><dc:date>${new Date(p.modified || Date.now()).toISOString().replace(/Z$/, '')}</dc:date>${Object.entries(p.custom || {}).map(([k, v]) => `<meta:user-defined meta:name="${esc(k)}">${esc(v)}</meta:user-defined>`).join('')}</office:meta>`;
+  const metaInner = `<office:meta><meta:generator>QuillGrid</meta:generator>${p.title ? `<dc:title>${esc(p.title)}</dc:title>` : ''}${p.subject ? `<dc:subject>${esc(p.subject)}</dc:subject>` : ''}${p.comments ? `<dc:description>${esc(p.comments)}</dc:description>` : ''}${p.author ? `<meta:initial-creator>${esc(p.author)}</meta:initial-creator>` : ''}${p.lastModifiedBy || p.author ? `<dc:creator>${esc(p.lastModifiedBy || p.author)}</dc:creator>` : ''}${p.keywords ? p.keywords.split(/\s*,\s*/).map((k) => `<meta:keyword>${esc(k)}</meta:keyword>`).join('') : ''}<meta:creation-date>${new Date(p.created || Date.now()).toISOString().replace(/Z$/, '')}</meta:creation-date><dc:date>${new Date(p.modified || Date.now()).toISOString().replace(/Z$/, '')}</dc:date>${Object.entries(p.custom || {}).map(([k, v]) => `<meta:user-defined meta:name="${esc(k)}">${esc(v)}</meta:user-defined>`).join('')}</office:meta>`;
   const settingsInner = settingsXml(book);
   if (flat) return { content: `${fontDecls}${commonStyles.replace('</office:styles>', '</office:styles>')}${automatic.replace('</office:automatic-styles>', '<style:page-layout style:name="pm1"><style:page-layout-properties style:writing-mode="lr-tb"/></style:page-layout></office:automatic-styles>')}<office:master-styles><style:master-page style:name="Default" style:page-layout-name="pm1"><style:header style:display="false"/><style:footer style:display="false"/></style:master-page></office:master-styles>${spreadsheet}`, styles: '', meta: metaInner, settings: settingsInner };
   return {

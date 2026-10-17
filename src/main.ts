@@ -1,17 +1,34 @@
-/** QuillLattice entry point. */
+/** QuillGrid entry point. */
+import './util/legacy'; // first: carries data over from the app's former name
 import 'material-symbols/outlined.css';
 import './styles/app.css';
+import './ui/scrollcue.css';
 import { installFonts, onFontsReady } from './fonts';
 import './calc/functions';
 import './commands';
 import { App } from './app';
 import { Shell } from './ui/shell';
-import { launchFile, onFileOpened, onBackButton, isNative, isDesktop, isCapacitor } from './platform/native';
+import { launchFile, onFileOpened, onBackButton, isNative, isDesktop, isCapacitor, type OpenedFile } from './platform/native';
 import { closeMenus, inDialog, toast } from './ui/dialog';
 import { kvKeys } from './util/store';
 import { allCommands, getCommand } from './commands/registry';
+import { installScrollCues } from './ui/scrollcue';
 
 installFonts();
+
+// Scroll cues (thin bars, edge shadows and a "More" chip) on every scroll container that can hold choices:
+// menus, dialog bodies and their list boxes, panes, Backstage, the command palette, the cell editor's
+// autocomplete, galleries. Not on the grid itself, the ribbon or the other horizontal strips.
+installScrollCues({
+  selector: [
+    '.ql-menu', '.ql-dialog-body', '.ql-cmdlist', '.ql-listbox', '.ql-pane-body', '.ql-bs-nav', '.ql-bs-body',
+    '.ql-palette-list', '.ql-ac-popup', '.ql-symbol-grid', '.ql-notices', '.ql-dialog-preview', '.ql-ai-out',
+    '.ql-spell-context', '.ql-dict-list', '.ql-pp-side', '.ql-pp-view', '.ql-fx-args', '.ql-namemgr-list',
+    '.ql-cfmgr-list', '.ql-pvt-fields', '.ql-pvt-rec-list', '.ql-pvt-rec-preview', '.ql-objgal', '.ql-ai-log',
+    '.ql-ai-diff-wrap', '.ql-ai-chips', '.ql-ai-result', '.ql-macro-mods', '.ql-macro-out', '.ql-data-checklist',
+    '.ql-data-preview', '.ql-slash-items', '.ql-depgraph', '.ql-ai-delib-text',
+  ].join(', '),
+});
 
 const host = document.getElementById('app')!;
 const app = new App(host);
@@ -40,18 +57,24 @@ async function start() {
           if (!s.active) s.active = 'openrouter';
         });
       });
-      if (ok) toast('Signed in to OpenRouter and saved the key. You can close this tab and return to QuillLattice.', { ms: 15000 });
+      if (ok) toast('Signed in to OpenRouter and saved the key. You can close this tab and return to QuillGrid.', { ms: 15000 });
     } catch (e: any) {
       toast(`OpenRouter sign-in did not complete: ${e?.message || e}`, { ms: 10000 });
     }
   }
   const { openBuffer } = await import('./commands/file');
+  // Listen first, so a file opened while the launch file loads is queued rather than lost.
+  let ready = false;
+  const queued: OpenedFile[] = [];
+  onFileOpened((f) => { if (ready) void openBuffer(app, f.data, f.name, f.uri); else queued.push(f); });
   const lf = await launchFile();
   if (lf) await openBuffer(app, lf.data, lf.name, lf.uri);
-  onFileOpened((f) => openBuffer(app, f.data, f.name, f.uri));
+  const openedAny = !!lf || queued.length > 0;
+  for (const f of queued.splice(0)) await openBuffer(app, f.data, f.name, f.uri);
+  ready = true;
   const drafts = await kvKeys('draft:');
   if (drafts.length) toast(`${drafts.length} unsaved workbook(s) can be recovered.`, { action: 'Recover', onAction: () => app.exec('file.recover'), ms: 8000 });
-  if (app.prefs.firstRun && !lf) setTimeout(() => app.ui.tour(), 600);
+  if (app.prefs.firstRun && !openedAny) setTimeout(() => app.ui.tour(), 600);
   app.focus();
 }
 start();

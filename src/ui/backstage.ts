@@ -55,7 +55,7 @@ export function renderBackstage(app: App, root: HTMLElement, page: string): void
     case 'open': {
       body.append(h('h1', null, 'Open'),
         card('Browse…', 'Open a file from this device, Drive, or any document provider', 'folder_open', () => app.exec('file.open')),
-        card('Encrypted workbook…', 'Open a password-protected .qlwe file', 'lock_open', () => app.exec('file.openEncrypted')),
+        card('Encrypted workbook…', 'Open a password-protected .qgwe file', 'lock_open', () => app.exec('file.openEncrypted')),
         card('Open and Repair…', 'Rebuild a damaged .xlsx, .xls or .ods and show what was recovered', 'healing', () => app.exec('file.openRepair')),
         card('Recover Data from Any File…', 'Pull readable values and text out of any file, however damaged', 'text_snippet', () => app.exec('file.recoverText')),
         card('Text Import Wizard…', 'Import delimited or fixed-width text with column types', 'input', () => app.exec('data.fromText')),
@@ -89,7 +89,7 @@ export function renderBackstage(app: App, root: HTMLElement, page: string): void
       const grid = h('div', { class: 'ql-bs-cards' });
       for (const f of FORMATS.filter((x) => x.canExport)) grid.appendChild(card(f.label, `.${f.ext[0]}`, 'description', () => (page === 'saveas' ? app.exec('file.saveAsFormat', f.id) : app.exec('file.exportAs', f.id))));
       grid.appendChild(card('PDF', 'Through the system print service ("Save as PDF")', 'picture_as_pdf', () => app.exec('file.exportPdf')));
-      grid.appendChild(card('Encrypted QuillLattice (.qlwe)', 'AES-256 password protected', 'enhanced_encryption', () => app.exec('file.encrypt')));
+      grid.appendChild(card('Encrypted QuillGrid (.qgwe)', 'AES-256 password protected', 'enhanced_encryption', () => app.exec('file.encrypt')));
       grid.appendChild(card('Template', 'Reuse this workbook as a starting point', 'bookmark_add', () => app.exec('file.saveTemplate')));
       body.appendChild(grid);
       break;

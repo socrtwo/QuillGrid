@@ -1,19 +1,19 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# Build the QuillLattice Android APK on an Android device with Termux (https://termux.dev, the
+# Build the QuillGrid Android APK on an Android device with Termux (https://termux.dev, the
 # F-Droid or GitHub build; the Play Store build is outdated).
 #
-#   curl -fsSLO https://raw.githubusercontent.com/socrtwo/QuillLattice/main/scripts/termux-build.sh
+#   curl -fsSLO https://raw.githubusercontent.com/socrtwo/QuillGrid/main/scripts/termux-build.sh
 #   bash termux-build.sh            # first run installs everything (about 2.5 GB, 20-40 minutes)
 #   bash termux-build.sh --web      # only the web build (dist/), no Android SDK needed
 #
-# Environment overrides: QL_DIR (checkout, default ~/QuillLattice), QL_BRANCH (default main),
+# Environment overrides: QL_DIR (checkout, default ~/QuillGrid), QL_BRANCH (default main),
 # ANDROID_HOME (default ~/android-sdk), QL_HEAP (Gradle heap, default 1536m).
 #
 # Google's Android SDK has no ARM build of aapt2, so the build uses Termux's own aapt2 via
 # android.aapt2FromMavenOverride. Needs a 64-bit ARM device with about 4 GB of RAM.
 set -euo pipefail
 
-QL_DIR="${QL_DIR:-$HOME/QuillLattice}"
+QL_DIR="${QL_DIR:-$HOME/QuillGrid}"
 QL_BRANCH="${QL_BRANCH:-main}"
 ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
 QL_HEAP="${QL_HEAP:-1536m}"
@@ -35,7 +35,7 @@ if [[ -d "$QL_DIR/.git" ]]; then
   git -C "$QL_DIR" fetch --depth 1 origin "$QL_BRANCH"
   git -C "$QL_DIR" checkout -q FETCH_HEAD
 else
-  git clone --depth 1 --branch "$QL_BRANCH" https://github.com/socrtwo/QuillLattice "$QL_DIR"
+  git clone --depth 1 --branch "$QL_BRANCH" https://github.com/socrtwo/QuillGrid "$QL_DIR"
 fi
 cd "$QL_DIR"
 
@@ -81,7 +81,7 @@ chmod +x gradlew
 
 VERSION=$(node -p "require('../package.json').version")
 APK=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
-OUT="$QL_DIR/QuillLattice-$VERSION.apk"
+OUT="$QL_DIR/QuillGrid-$VERSION.apk"
 cp "$APK" "$OUT"
 if [[ -d "$HOME/storage/downloads" ]]; then
   cp "$OUT" "$HOME/storage/downloads/"

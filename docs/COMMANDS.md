@@ -1,8 +1,8 @@
-# QuillLattice Command Reference
+# QuillGrid Command Reference
 
-QuillLattice ships **659 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
+QuillGrid ships **687 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).
 
-345 of them are "Commands Not in the Tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, the command search, or menus — so nothing the app can do is hidden.
+349 of them are "Commands Not in the Tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, the command search, or menus — so nothing the app can do is hidden.
 
 This file is generated from the source by `npm run catalog`.
 
@@ -12,12 +12,12 @@ This file is generated from the source by `npm run catalog`.
 - **Insert**: Tables · Illustrations · Charts · Sparklines · Filters · Links · Comments · Text · Symbols
 - **Draw**: Drawing Tools · Convert · Replay
 - **Page Layout**: Themes · Page Setup · Scale to Fit · Sheet Options · Arrange
-- **Formulas**: Function Library · Defined Names · Formula Auditing · Calculation
-- **Data**: Get & Transform Data · Queries & Connections · Data Types · Sort & Filter · Data Tools · Forecast · Outline · Analyze
+- **Formulas**: Function Library · Defined Names · Formula Auditing · Calculation · Insight
+- **Data**: Get & Transform Data · Queries & Connections · Data Types · Sort & Filter · Data Tools · Records · Forecast · Outline · Analyze
 - **Review**: Proofing · Accessibility · Insights · Language · Comments · Notes · Protect · Ink
 - **View**: Sheet View · Workbook Views · Show · Zoom · Window · Appearance · Macros
-- **Tools**: Clean Up · Transform · Compare · Analyze · Generate
-- **AI**: Formulas · Data · Generate · Text · Assistant · Setup
+- **Tools**: Clean Up · Transform · Compare · Analyze · Generate · Classic
+- **AI**: Formulas · Data · Generate · Text · Assistant · Setup · Providers
 - **Developer**: Code · Controls · Data
 - **Help**: Help
 - **Table Design** (contextual): Properties · Tools · Table Style Options · Table Styles
@@ -34,7 +34,7 @@ This file is generated from the source by `npm run catalog`.
 | Close Workbook | Close | Ctrl+w, Ctrl+F4 | `file.close` | not in tabs |
 | Exit | Close |  | `file.exit` | not in tabs |
 | Export as CSV (Comma delimited) (.csv) | Export |  | `file.export.csv` | not in tabs |
-| Export as Encrypted QuillLattice Workbook (.qlwe) | Export |  | `file.export.qlwe` | not in tabs |
+| Export as Encrypted QuillGrid Workbook (.qgwe) | Export |  | `file.export.qgwe` | not in tabs |
 | Export as Excel Macro-Enabled Workbook (.xlsm) | Export |  | `file.export.xlsm` | not in tabs |
 | Export as Excel Template (.xltx) | Export |  | `file.export.xltx` | not in tabs |
 | Export as Excel Workbook (.xlsx) | Export |  | `file.export.xlsx` | not in tabs |
@@ -42,8 +42,8 @@ This file is generated from the source by `npm run catalog`.
 | Export as Markdown table (.md) | Export |  | `file.export.md` | not in tabs |
 | Export as OpenDocument Spreadsheet (.ods) | Export |  | `file.export.ods` | not in tabs |
 | Export as PDF | Export |  | `file.exportPdf` | not in tabs |
-| Export as QuillLattice JSON (.json) | Export |  | `file.export.json` | not in tabs |
-| Export as QuillLattice Workbook (.qlw) | Export |  | `file.export.qlw` | not in tabs |
+| Export as QuillGrid JSON (.json) | Export |  | `file.export.json` | not in tabs |
+| Export as QuillGrid Workbook (.qgw) | Export |  | `file.export.qgw` | not in tabs |
 | Export as Tab-separated values (.tsv) | Export |  | `file.export.tsv` | not in tabs |
 | Export as Text (Tab delimited) (.txt) | Export |  | `file.export.txt` | not in tabs |
 | Export as Web Page (.html) | Export |  | `file.export.html` | not in tabs |
@@ -370,7 +370,7 @@ This file is generated from the source by `npm run catalog`.
 | Fonts | Themes |  | `layout.themeFonts` | has options menu |
 | Themes | Themes |  | `layout.themes` | has options menu |
 
-## Formulas (30)
+## Formulas (36)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
@@ -404,12 +404,19 @@ This file is generated from the source by `npm run catalog`.
 | More Functions | Function Library |  | `formulas.more` | has options menu |
 | Recently Used | Function Library |  | `formulas.recent` | has options menu |
 | Text | Function Library |  | `formulas.text` | has options menu |
+| Cell History | Insight |  | `formulas.cellHistory` | inspired by Cell edit history in online spreadsheets |
+| Dependency Diagram | Insight |  | `formulas.dependencyDiagram` | inspired by Javelin diagram view |
+| Explain Value | Insight |  | `formulas.explainValue` | inspired by Javelin's model views; explainable models in Causal |
+| Formula Rules | Insight |  | `formulas.formulaRules` | inspired by Lotus Improv formula pane; Multiplan R1C1 notation |
+| Info Window | Insight |  | `formulas.infoWindow` | inspired by Excel for Macintosh Info window |
+| Select Inconsistent Formulas | Insight |  | `formulas.selectInconsistent` | inspired by Multiplan R1C1 notation (copies of a formula read identically) |
 
-## Data (49)
+## Data (56)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
 | Data Analysis | Analyze |  | `data.analysisTools` |  |
+| Matrix | Analyze |  | `data.matrix` | has options menu; inspired by Lotus 1-2-3 /Data Matrix |
 | Solver | Analyze |  | `data.solver` |  |
 | Circle Invalid Data | Data Tools |  | `data.circleInvalid` | not in tabs |
 | Clear Validation Circles | Data Tools |  | `data.clearCircles` | not in tabs |
@@ -427,8 +434,10 @@ This file is generated from the source by `npm run catalog`.
 | Data Table | Forecast |  | `data.dataTable` | not in tabs |
 | Forecast Sheet | Forecast |  | `data.forecastSheet` |  |
 | Goal Seek | Forecast |  | `data.goalSeek` | not in tabs |
+| Monte Carlo Simulation | Forecast |  | `data.monteCarlo` | inspired by Uncertain inputs in Causal; spreadsheet risk-analysis add-ins |
 | Scenario Manager | Forecast |  | `data.scenarios` | not in tabs |
 | What-If Analysis | Forecast |  | `data.whatIf` | has options menu |
+| What-If Sliders | Forecast |  | `data.whatIfSliders` | inspired by Live model controls in Causal and reactive notebooks |
 | From Clipboard | Get & Transform Data |  | `data.fromClipboard` |  |
 | From Table/Range | Get & Transform Data |  | `data.fromTable` |  |
 | From Text/CSV | Get & Transform Data |  | `data.fromText` |  |
@@ -447,6 +456,10 @@ This file is generated from the source by `npm run catalog`.
 | Edit Links | Queries & Connections |  | `data.editLinks` |  |
 | Queries & Connections | Queries & Connections |  | `data.connections` |  |
 | Refresh All | Queries & Connections | Ctrl+Alt+F5 | `data.refreshAll` |  |
+| Categorize by Rules | Records |  | `data.categorize` | inspired by Lotus Agenda categories |
+| Column Type | Records |  | `data.columnType` | has options menu; inspired by Airtable and Grist field types |
+| Data Form | Records |  | `data.dataForm` | inspired by Lotus Symphony FORM window; 1-2-3 /Range Input |
+| Delete Matching Records | Records |  | `data.queryDelete` | inspired by Lotus 1-2-3 /Data Query Delete |
 | Advanced Filter | Sort & Filter |  | `data.advancedFilter` |  |
 | Clear Filter | Sort & Filter |  | `data.clearFilter` |  |
 | Custom Sort | Sort & Filter |  | `data.sort` |  |
@@ -496,20 +509,25 @@ This file is generated from the source by `npm run catalog`.
 | Protect Sheet | Protect |  | `review.protectSheet` |  |
 | Protect Workbook | Protect |  | `review.protectWorkbook` |  |
 
-## View (33)
+## View (39)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
+| Add All Quick Access Choices (A–Z) | Appearance |  | `view.qatAddAll` | not in tabs |
 | Collapse the Ribbon | Appearance | Ctrl+F1 | `view.collapseRibbon` | not in tabs |
 | Dark Cells | Appearance |  | `view.darkSheet` |  |
 | Full Screen | Appearance | Ctrl+Shift+F1 | `view.fullScreen` |  |
 | Navigator | Appearance |  | `view.navigator` | inspired by LibreOffice Calc Navigator |
+| Quick Access Bar at the Bottom | Appearance |  | `view.qatAtBottom` | not in tabs |
 | Search Commands | Appearance | Alt+q | `view.cmdSearch` | not in tabs |
+| Show Quick Access Bar | Appearance |  | `view.showQat` | not in tabs |
+| Touch/Mouse Mode | Appearance |  | `view.touchMode` | not in tabs |
 | Sheet View | Sheet View |  | `view.sheetViewMenu` | has options menu |
 | Formula Bar | Show |  | `view.formulaBar` |  |
 | Gridline Color… | Show |  | `view.gridColor` | not in tabs |
 | Gridlines | Show |  | `view.gridlines` |  |
 | Headings | Show |  | `view.headings` |  |
+| Map View | Show |  | `view.mapView` | inspired by Lotus 1-2-3 Release 3 map view |
 | Ruler | Show |  | `view.ruler` |  |
 | Show Zero Values | Show |  | `view.showZeros` | not in tabs |
 | Arrange All | Window |  | `view.arrangeAll` |  |
@@ -523,6 +541,7 @@ This file is generated from the source by `npm run catalog`.
 | Switch Windows | Window |  | `view.switchWindows` | has options menu |
 | Unfreeze Panes | Window |  | `view.unfreeze` | not in tabs |
 | Unhide Window… | Window |  | `view.unhideWindow` |  |
+| Chart Slide Show | Workbook Views |  | `view.chartSlideShow` | inspired by Quattro Pro slide shows; 1-2-3 /Graph View |
 | Custom Views… | Workbook Views |  | `view.customViews` |  |
 | Normal | Workbook Views |  | `view.normal` |  |
 | Page Break Preview | Workbook Views |  | `view.pageBreak` |  |
@@ -534,7 +553,7 @@ This file is generated from the source by `npm run catalog`.
 | Zoom to Selection | Zoom |  | `view.zoomSelection` |  |
 | Zoom… | Zoom |  | `view.zoom` |  |
 
-## Tools (36)
+## Tools (42)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
@@ -543,6 +562,12 @@ This file is generated from the source by `npm run catalog`.
 | Descriptive Statistics | Analyze |  | `tools.descriptiveStats` |  |
 | Histogram | Analyze |  | `tools.histogram` |  |
 | Summarize by Category… | Analyze |  | `tools.groupSummary` | not in tabs; inspired by Categories in tabular spreadsheet apps |
+| / Key Opens Menu | Classic |  | `tools.slashKey` | inspired by Lotus 1-2-3 (and the menu-key option spreadsheets offered 1-2-3 users) |
+| 1-2-3 Formula Entry | Classic |  | `tools.lotusEntry` | inspired by Lotus 1-2-3 @functions; transition formula entry in later spreadsheets |
+| 1-2-3 Label Prefixes | Classic |  | `tools.lotusLabels` | inspired by Lotus 1-2-3 label prefixes |
+| Convert 1-2-3 Formulas | Classic |  | `tools.convertLotus` | inspired by Lotus 1-2-3 |
+| Export as Code | Classic |  | `tools.exportCode` | has options menu; inspired by Resolver One (every spreadsheet is a Python program) |
+| Slash Menu | Classic | Alt+/ | `tools.slashMenu` | inspired by Lotus 1-2-3 / command menu |
 | Change Case | Clean Up |  | `tools.changeCase` | has options menu; inspired by Word processors (Change Case) |
 | Clean Up OCR Text | Clean Up |  | `tools.ocrCleanup` | inspired by Transcription and genealogy tools |
 | Convert Text to Numbers | Clean Up |  | `tools.textToNumbers` |  |
@@ -575,7 +600,7 @@ This file is generated from the source by `npm run catalog`.
 | Unmerge and Fill | Transform |  | `tools.unmergeFill` | not in tabs |
 | Unpivot Columns… | Transform |  | `tools.unpivot` | inspired by Query editors (Unpivot) |
 
-## AI (43)
+## AI (46)
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
@@ -608,6 +633,9 @@ This file is generated from the source by `npm run catalog`.
 | Suggest PivotTable | Generate |  | `ai.suggestPivot` | not in tabs |
 | Summarize | Generate |  | `ai.summarize` | has options menu |
 | Write Macro… | Generate |  | `ai.writeMacro` | not in tabs |
+| Choose AIs… | Providers |  | `ai.ensembleMembers` |  |
+| Several AIs | Providers |  | `ai.ensembleMode` | has options menu |
+| Show AI Discussion | Providers |  | `ai.showDeliberation` |  |
 | Active AI | Setup |  | `ai.chooseProvider` | has options menu; not in tabs |
 | AI & Privacy | Setup |  | `ai.privacy` | not in tabs |
 | AI Settings | Setup |  | `ai.settings` |  |
@@ -648,7 +676,7 @@ This file is generated from the source by `npm run catalog`.
 
 | Command | Group | Shortcut | ID | Notes |
 |---|---|---|---|---|
-| About QuillLattice | Help |  | `help.about` |  |
+| About QuillGrid | Help |  | `help.about` |  |
 | Command Reference | Help |  | `help.commandReference` |  |
 | Function Reference | Help |  | `help.functionReference` |  |
 | Help | Help | F1 | `help.help` |  |

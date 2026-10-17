@@ -1,6 +1,6 @@
 /**
  * OpenRouter sign-in with OAuth PKCE: the user signs in on openrouter.ai in the default
- * browser and OpenRouter hands back a code that QuillLattice exchanges for an API key. No
+ * browser and OpenRouter hands back a code that QuillGrid exchanges for an API key. No
  * copying or pasting.
  *
  * OpenRouter accepts https callbacks and http://localhost / 127.0.0.1 on any port.
@@ -13,13 +13,13 @@
  *
  * Each sign-in puts a random nonce in the callback address (a path on the loopback, a query
  * parameter in the browser). Redirects without it are ignored: another app on the device could
- * otherwise end the sign-in with a bogus code, or hand QuillLattice a code for an account of its own.
+ * otherwise end the sign-in with a bogus code, or hand QuillGrid a code for an account of its own.
  */
 import { isNative, openExternal, startOAuthLoopback, stopOAuthLoopback, onOAuthCallback } from '../platform/native';
 
 const AUTH_URL = 'https://openrouter.ai/auth';
 const EXCHANGE_URL = 'https://openrouter.ai/api/v1/auth/keys';
-const SESSION_KEY = 'quilllattice.oauth.openrouter';
+const SESSION_KEY = 'quillgrid.oauth.openrouter';
 
 function b64url(bytes: Uint8Array): string {
   let s = '';
@@ -90,7 +90,7 @@ export async function startOpenRouterSignIn(timeoutMs = 10 * 60 * 1000): Promise
   let callback: string;
   if (isNative()) {
     const path = `/callback/${nonce}`;
-    const port = await startOAuthLoopback(timeoutMs, '<!doctype html><meta name="viewport" content="width=device-width"><body style="font:16px system-ui;padding:24px;text-align:center"><h2>Signed in</h2><p>QuillLattice received your OpenRouter key. You can close this tab and return to QuillLattice.</p></body>', path);
+    const port = await startOAuthLoopback(timeoutMs, '<!doctype html><meta name="viewport" content="width=device-width"><body style="font:16px system-ui;padding:24px;text-align:center"><h2>Signed in</h2><p>QuillGrid received your OpenRouter key. You can close this tab and return to QuillGrid.</p></body>', path);
     callback = `http://127.0.0.1:${port}${path}`;
     const h = await onOAuthCallback((url) => {
       if (!isOurCallback(url, path)) return;
@@ -101,7 +101,7 @@ export async function startOpenRouterSignIn(timeoutMs = 10 * 60 * 1000): Promise
     });
     cleanup.push(() => h.remove(), () => void stopOAuthLoopback());
   } else {
-    // The callback page is QuillLattice itself in a new tab; it finishes the exchange and broadcasts.
+    // The callback page is QuillGrid itself in a new tab; it finishes the exchange and broadcasts.
     const session = JSON.stringify({ verifier, nonce });
     sessionStorage.setItem(SESSION_KEY, session);
     try { localStorage.setItem(SESSION_KEY, session); } catch { /* storage off */ }
@@ -109,7 +109,7 @@ export async function startOpenRouterSignIn(timeoutMs = 10 * 60 * 1000): Promise
     u.search = `?ql-oauth=openrouter&ql-state=${nonce}`;
     u.hash = '';
     callback = u.toString();
-    const bc = new BroadcastChannel('quilllattice-oauth');
+    const bc = new BroadcastChannel('quillgrid-oauth');
     bc.onmessage = (e) => { if (e.data?.type === 'openrouter-key' && e.data.key) { done = true; cleanup.forEach((f) => f()); settle.resolve(e.data.key); } };
     cleanup.push(() => bc.close(), () => { try { localStorage.removeItem(SESSION_KEY); } catch { /* */ } });
   }
@@ -148,7 +148,7 @@ export async function handleOAuthRedirect(save: (key: string) => Promise<void>):
   if (!code || !session.verifier || !session.nonce || u.searchParams.get('ql-state') !== session.nonce) return false;
   const key = await exchangeCode(code, session.verifier);
   await save(key);
-  try { new BroadcastChannel('quilllattice-oauth').postMessage({ type: 'openrouter-key', key }); } catch { /* */ }
+  try { new BroadcastChannel('quillgrid-oauth').postMessage({ type: 'openrouter-key', key }); } catch { /* */ }
   try { localStorage.removeItem(SESSION_KEY); } catch { /* */ }
   return true;
 }

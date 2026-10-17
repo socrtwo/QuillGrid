@@ -1,12 +1,12 @@
-# QuillLattice for Android
+# QuillGrid for Android
 
-The Android app is the QuillLattice web app (TypeScript/Vite, built into `dist/`) wrapped with
+The Android app is the QuillGrid web app (TypeScript/Vite, built into `dist/`) wrapped with
 [Capacitor 8](https://capacitorjs.com/). The native project lives in `android/` and is committed;
 `npx cap sync android` copies the web build into it and regenerates the Capacitor plugin glue.
 
 | Item | Value |
 | --- | --- |
-| Application ID | `io.github.socrtwo.quilllattice` |
+| Application ID | `io.github.socrtwo.quillgrid` |
 | minSdk / targetSdk / compileSdk | 24 (Android 7.0) / 36 / 36 (`android/variables.gradle`) |
 | versionName | `version` from the root `package.json` |
 | versionCode | `VERSION_CODE` environment variable, default `1` (CI uses the workflow run number) |
@@ -52,7 +52,7 @@ and git-ignored.
 3. `npx cap sync android`.
 4. Decode the release keystore from secrets, if configured.
 5. `./gradlew assembleRelease bundleRelease`.
-6. Upload `QuillLattice-<version>.apk` and `QuillLattice-<version>.aab` as workflow artifacts
+6. Upload `QuillGrid-<version>.apk` and `QuillGrid-<version>.aab` as workflow artifacts
    (Actions run page -> *Artifacts*).
 
 Publishing:
@@ -65,7 +65,7 @@ Publishing:
   match `package.json`.
 - **Prerelease from any branch, without tagging:** Actions -> *Android* -> *Run workflow*, choose the
   branch, tick **prerelease**. This publishes a GitHub prerelease called
-  `QuillLattice <version> (build <run number>)` under the tag `v<version>-build.<run number>` pointing at
+  `QuillGrid <version> (build <run number>)` under the tag `v<version>-build.<run number>` pointing at
   that commit.
 
 ## Signing
@@ -90,10 +90,10 @@ the Android debug key**. That APK installs fine for sideloading and testing, but
 
 ```bash
 keytool -genkeypair -v \
-  -keystore quilllattice-release.jks \
-  -alias quilllattice \
+  -keystore quillgrid-release.jks \
+  -alias quillgrid \
   -keyalg RSA -keysize 4096 -validity 10000 \
-  -dname "CN=QuillLattice, O=QuillLattice, C=US"
+  -dname "CN=QuillGrid, O=QuillGrid, C=US"
 ```
 
 Keep the `.jks` file and its passwords somewhere safe and **never commit it** (`*.jks` and `*.keystore`
@@ -102,16 +102,16 @@ are git-ignored). If you lose it you can no longer publish updates under the sam
 ### Add it to GitHub
 
 ```bash
-base64 -w 0 quilllattice-release.jks > quilllattice-release.jks.b64   # macOS: base64 -i quilllattice-release.jks
+base64 -w 0 quillgrid-release.jks > quillgrid-release.jks.b64   # macOS: base64 -i quillgrid-release.jks
 ```
 
 Repository -> *Settings* -> *Secrets and variables* -> *Actions* -> *New repository secret*:
 
 | Secret | Value |
 | --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | contents of `quilllattice-release.jks.b64` |
+| `ANDROID_KEYSTORE_BASE64` | contents of `quillgrid-release.jks.b64` |
 | `ANDROID_KEYSTORE_PASSWORD` | the store password |
-| `ANDROID_KEY_ALIAS` | `quilllattice` (or the alias you chose) |
+| `ANDROID_KEY_ALIAS` | `quillgrid` (or the alias you chose) |
 | `ANDROID_KEY_PASSWORD` | the key password |
 
 The workflow decodes the keystore to `$RUNNER_TEMP` and exports `ANDROID_KEYSTORE_PATH`; release
@@ -121,18 +121,18 @@ upload key.
 Signing locally works the same way:
 
 ```bash
-export ANDROID_KEYSTORE_PATH=$PWD/quilllattice-release.jks ANDROID_KEYSTORE_PASSWORD=... \
-       ANDROID_KEY_ALIAS=quilllattice ANDROID_KEY_PASSWORD=...
+export ANDROID_KEYSTORE_PATH=$PWD/quillgrid-release.jks ANDROID_KEYSTORE_PASSWORD=... \
+       ANDROID_KEY_ALIAS=quillgrid ANDROID_KEY_PASSWORD=...
 cd android && ./gradlew assembleRelease bundleRelease
 ```
 
 ## Install (sideload) the APK
 
-1. Download `QuillLattice-<version>.apk` from a GitHub Release (or a workflow run's artifacts - those are
+1. Download `QuillGrid-<version>.apk` from a GitHub Release (or a workflow run's artifacts - those are
    zipped, unzip first).
 2. On the phone, open the APK from the browser or file manager. Android asks to allow installing apps
    from that source (*Settings -> Apps -> Special app access -> Install unknown apps*); allow it.
-3. Or from a computer with USB debugging: `adb install -r QuillLattice-<version>.apk`.
+3. Or from a computer with USB debugging: `adb install -r QuillGrid-<version>.apk`.
 
 If the installer says the package conflicts with an existing one, the installed copy was signed with a
 different key - uninstall it first (this deletes app data).
@@ -144,22 +144,22 @@ The `.aab` is for Google Play only; it cannot be installed directly.
 - **Open / Save As** use the system file picker (Storage Access Framework), so files in Drive,
   Dropbox, SD cards, etc. work and no storage permission is needed. Ctrl+S writes back to the same
   workbook via a persisted URI permission.
-- **Open with QuillLattice** (`ACTION_VIEW`) for `.xlsx`, `.xlsm`, `.xltx`, `.xls`, `.ods`, `.fods`,
-  `.csv`, `.tsv`, `.txt`, `.qlw` and `.qlwe`. Files are matched by MIME type
+- **Open with QuillGrid** (`ACTION_VIEW`) for `.xlsx`, `.xlsm`, `.xltx`, `.xls`, `.ods`, `.fods`,
+  `.csv`, `.tsv`, `.txt`, `.qgw` and `.qgwe`. Files are matched by MIME type
   (`…spreadsheetml.sheet`, `…ms-excel.sheet.macroEnabled.12`, `…spreadsheetml.template`,
   `application/vnd.ms-excel`, `…opendocument.spreadsheet`, `text/csv`, `text/comma-separated-values`,
   `text/tab-separated-values`, `text/plain`), and by file extension when the provider reports only
   `application/octet-stream`.
-- **Share to QuillLattice** (`ACTION_SEND`) for the same types. Text shared without a file arrives
+- **Share to QuillGrid** (`ACTION_SEND`) for the same types. Text shared without a file arrives
   as a `.txt` file and opens through the text import.
 - **Print** goes through Android's print service, which also offers *Save as PDF*.
 - **Share** sends the exported file to any app via the share sheet.
-- The activity is `singleTask`, so opening another file while QuillLattice runs delivers it to the running
+- The activity is `singleTask`, so opening another file while QuillGrid runs delivers it to the running
   instance (`fileOpened` event).
 
 ## Native plugin API (`QuillNative`)
 
-Implemented in `android/app/src/main/java/io/github/socrtwo/quilllattice/QuillNativePlugin.java`,
+Implemented in `android/app/src/main/java/io/github/socrtwo/quillgrid/QuillNativePlugin.java`,
 registered in `MainActivity`, consumed by `src/platform/native.ts`. All file contents cross the bridge as
 base64 strings (no line breaks); `data:` URL prefixes are tolerated on input.
 
@@ -186,14 +186,18 @@ Notes:
 
 ## App icon
 
-The launcher icon (a mint quill with a gold nib writing into the active cell of a cream worksheet,
-on deep green `#1E5F3A`) is generated from one set of vector shapes by
-`node scripts/gen-android-icons.mjs`, which writes:
+The launcher icon is the Quill suite icon for this app: a white worksheet card and a white quill on a
+green tile. Its sources are `resources/icon.svg` (the full tile), `resources/icon-foreground.svg` (the
+adaptive-icon foreground, artwork inside the safe zone) and `resources/icon-background.txt` (the
+adaptive background color, `#1E7A46`). `node scripts/gen-android-icons.mjs` writes from them:
 
-- `resources/icon.svg`, `resources/icon-square.svg`, `resources/icon-foreground.svg`, `resources/icon-512.png`, `public/favicon.svg`
-- adaptive icon vectors `res/drawable/ic_launcher_{foreground,background,monochrome}.xml`
+- `resources/icon-square.svg` (full bleed), `resources/icon-512.png`, `public/favicon.svg`
+- the adaptive icon layers: `res/drawable/ic_launcher_background.xml` (solid color) and the bitmaps
+  `res/drawable-*dpi/ic_launcher_{foreground,monochrome}.png` (the monochrome layer is the artwork as a
+  white silhouette for Android 13+ themed icons)
 - the background color `res/values/ic_launcher_background.xml` (also the splash color)
 - legacy PNGs `res/mipmap-*/ic_launcher{,_round}.png` (for Android 7.x) rendered with Playwright Chromium
 
-Edit the shapes in the script and run `npm run icons` (it also renders the iOS, desktop and web icons); do not hand-edit the generated files. The launch screen
-(`res/drawable/splash.xml`) is the same deep green.
+Replace the three source files and run `npm run icons` (it also renders the iOS, desktop and web icons);
+do not hand-edit the generated files. The launch screen (`res/drawable/splash.xml`) shows the foreground
+on the background color.

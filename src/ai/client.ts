@@ -8,8 +8,10 @@
  */
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { desktopHttp } from '../platform/native';
-import { resolveProvider, recordUsage, type ResolvedProvider } from './store';
-import type { ProviderDef } from './providers';
+import { aiSettings, resolveProvider, recordUsage, type ResolvedProvider } from './store';
+import { providerById, type ProviderDef } from './providers';
+import { AiError } from './errors';
+import { planEnsemble, runEnsemble, type EnsembleInfo, type EnsemblePlan } from './ensemble';
 
 export type ContentPart = { type: 'text'; text: string } | { type: 'image'; dataUrl: string };
 export interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string | ContentPart[] }
@@ -23,20 +25,24 @@ export interface ChatRequest {
   maxTokens?: number;
   signal?: AbortSignal;
   onToken?: (delta: string, full: string) => void;
-  /** Use a specific provider instead of the active one. */
+  /** Use a specific provider instead of the active one (never uses several AIs). */
   provider?: string;
+  /** Progress lines while several AIs work on the request ("Asking 3 AIs…", "Round 2 of 3: 1 objection"). */
+  onStatus?: (text: string) => void;
 }
 
 /** `truncated`: the answer stopped early (length limit, content filter), so it is not the whole text asked for. */
-export interface ChatResult { text: string; model: string; provider: string; providerName: string; usage?: { in: number; out: number }; truncated?: boolean }
+export interface ChatResult {
+  text: string; model: string; provider: string; providerName: string; usage?: { in: number; out: number }; truncated?: boolean;
+  /** Set when several AIs answered: each member's answer, the rounds and the outcome. model/provider then name the master or clerk. */
+  ensemble?: EnsembleInfo;
+}
 
 /** Finish reasons (OpenAI, Anthropic, Gemini) meaning the model did not end the answer itself. */
 const CUT = new Set(['length', 'content_filter', 'max_tokens', 'refusal', 'model_context_window_exceeded', 'MAX_TOKENS', 'SAFETY', 'RECITATION', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'LANGUAGE']);
 const cutShort = (reason: unknown) => typeof reason === 'string' && CUT.has(reason);
 
-export class AiError extends Error {
-  constructor(message: string, public code: 'no-provider' | 'auth' | 'quota' | 'model' | 'network' | 'cors' | 'aborted' | 'unsupported' | 'other' = 'other', public status?: number) { super(message); }
-}
+export { AiError };
 
 /** Native HTTP (no CORS) exists: the Android or iOS app, or the desktop app. */
 const isNativeApp = () => Capacitor.isNativePlatform() || !!desktopHttp;
@@ -93,12 +99,23 @@ function networkError(def: ProviderDef, e: unknown, url = def.baseUrl, native = 
   // cleartext policy, mixed content, the desktop content policy).
   const httpPage = typeof location !== 'undefined' && location.protocol === 'http:';
   if (/^http:\/\//i.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1|10\.0\.2\.2|\[::1\])([:/]|$)/i.test(url) && !httpPage) {
-    return new AiError(`Could not reach ${url}: QuillLattice can use plain http:// only for a server on this device (localhost). Serve the other computer's AI server over https instead. (${why})`, 'network');
+    return new AiError(`Could not reach ${url}: QuillGrid can use plain http:// only for a server on this device (localhost). Serve the other computer's AI server over https instead. (${why})`, 'network');
   }
   if (def.kind === 'openai' && /localhost|127\.0\.0\.1|192\.168\.|10\./.test(url)) {
     return new AiError(`Could not reach the local server. Is it running, and is cross-origin access enabled? (${why})`, 'network');
   }
   return new AiError(`Could not reach ${def.name}: ${why}. Check the connection.`, 'network');
+}
+
+/** Splits complete server-sent-event blocks off the buffer. Events end with a blank line; servers mix \n and \r\n, so the separator is 2 to 4 characters. */
+export function takeSseBlocks(buf: string): [string[], string] {
+  const blocks: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = /\r?\n\r?\n/.exec(buf))) {
+    blocks.push(buf.slice(0, m.index));
+    buf = buf.slice(m.index + m[0].length);
+  }
+  return [blocks, buf];
 }
 
 /** Streaming SSE request; returns null if streaming is unavailable here (caller retries without). */
@@ -116,24 +133,26 @@ async function sse(def: ProviderDef, r: HttpReq, onEvent: (data: string, event: 
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = '';
+  const dispatch = (block: string) => {
+    let event = 'message';
+    const data: string[] = [];
+    for (const line of block.split(/\r?\n/)) {
+      if (line.startsWith('event:')) event = line.slice(6).trim();
+      else if (line.startsWith('data:')) data.push(line.slice(5).replace(/^ /, ''));
+    }
+    if (data.length) onEvent(data.join('\n'), event);
+  };
   try {
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       buf += dec.decode(value, { stream: true });
-      let idx: number;
-      while ((idx = buf.search(/\r?\n\r?\n/)) >= 0) {
-        const block = buf.slice(0, idx);
-        buf = buf.slice(idx + (buf[idx] === '\r' ? 4 : 2));
-        let event = 'message';
-        const data: string[] = [];
-        for (const line of block.split(/\r?\n/)) {
-          if (line.startsWith('event:')) event = line.slice(6).trim();
-          else if (line.startsWith('data:')) data.push(line.slice(5).replace(/^ /, ''));
-        }
-        if (data.length) onEvent(data.join('\n'), event);
-      }
+      const [blocks, rest] = takeSseBlocks(buf);
+      buf = rest;
+      blocks.forEach(dispatch);
     }
+    buf += dec.decode();
+    if (buf.trim()) dispatch(buf);
   } catch (e: any) {
     if (e?.name === 'AbortError') throw new AiError('Stopped', 'aborted');
     void reader.cancel().catch(() => undefined);
@@ -351,7 +370,30 @@ async function builtinChat(model: string, req: ChatRequest): Promise<ChatResult>
 // ------------------------------------------------------------------------------------------
 // Public API
 
+/** The ensemble plan for normal commands (no provider named), or null for a single AI. */
+export function activeEnsemble(req: Pick<ChatRequest, 'provider'> = {}): EnsemblePlan | null {
+  const s = aiSettings();
+  return planEnsemble(req, s.ensemble, (id) => {
+    const def = providerById(id);
+    const cfg = s.providers[id];
+    return def && cfg ? { model: cfg.model || def.models.quality, sequential: def.kind === 'local' } : null;
+  });
+}
+
+/**
+ * Sends a request. Normal commands go to the active provider, or to several AIs when AI Settings ▸
+ * "Use several AIs" is on; a request that names a provider (key tests, "Try it") always goes to
+ * that provider alone.
+ */
 export async function chat(req: ChatRequest): Promise<ChatResult> {
+  const plan = activeEnsemble(req);
+  if (plan) {
+    return runEnsemble(req, plan, (provider, model, r) => chatOne({ ...r, provider, model }), { name: (id) => providerById(id)?.name || id });
+  }
+  return chatOne(req);
+}
+
+async function chatOne(req: ChatRequest): Promise<ChatResult> {
   const rp = await resolveProvider(req.provider);
   if (!rp) throw new AiError('No AI provider is set up yet.', 'no-provider');
   const { def, cfg } = rp;

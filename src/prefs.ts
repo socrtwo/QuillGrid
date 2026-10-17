@@ -69,9 +69,43 @@ export interface Prefs {
   miniToolbar: boolean;
   quickAnalysis: boolean;
   touchHandles: boolean;
+  /** Touch/Mouse Mode: more space between commands for fingers. */
+  touchMode: boolean;
+  /** Hide Quick Access Bar. */
+  qatHidden: boolean;
+  /** Lotus 1-2-3 formula entry: @SUM(A1..A5), +A1*@AVG(B1..B3), #AND# are translated when typed. */
+  lotusFormulas: boolean;
+  /** Lotus 1-2-3 label prefixes: "right, ^centered, \repeating (' is always left-aligned text). */
+  lotusLabels: boolean;
+  /** The / key opens the slash menu when a cell is selected and not being edited. */
+  slashKey: boolean;
 }
 
 export const DEFAULT_QAT = ['file.save', 'edit.undo', 'edit.redo', 'file.saveAs', 'file.print', 'view.cmdSearch'];
+
+/**
+ * The Quick Access Bar drop-down checklist: the desktop spreadsheet's standard choices (AutoSave, New,
+ * Open, Save, Email, Quick Print, Print Preview and Print, Spelling, Undo, Redo, Sort Ascending,
+ * Sort Descending, Touch/Mouse Mode), then frequently used extras.
+ */
+export const QAT_STANDARD = ['file.autosave', 'file.new', 'file.open', 'file.save', 'file.email', 'file.quickPrint', 'file.print', 'file.printPreview', 'review.spelling', 'edit.undo', 'edit.redo', 'data.sortAZ', 'data.sortZA', 'view.touchMode'];
+export const QAT_EXTRAS = ['file.saveAs', 'file.share', 'data.filter', 'edit.autoSum', 'edit.find', 'formulas.calcNow', 'insert.chartColumn', 'view.freezePanes', 'fmt.borders', 'view.cmdSearch'];
+export const QAT_CHOICES = [...QAT_STANDARD, ...QAT_EXTRAS];
+/** Kept first, in this order, by addAllQatChoices. */
+export const QAT_PINNED_FIRST = ['file.save', 'file.print'];
+
+/**
+ * Adds every drop-down choice to the bar: Save and Print first, then the remaining choices sorted by
+ * label (case-insensitive), then anything else already on the bar, in its existing order.
+ */
+export function addAllQatChoices(current: string[], labelOf: (id: string) => string | undefined, choices: string[] = QAT_CHOICES): string[] {
+  const known = choices.filter((id) => labelOf(id) !== undefined);
+  const first = QAT_PINNED_FIRST.filter((id) => known.includes(id));
+  const rest = known.filter((id) => !first.includes(id))
+    .sort((a, b) => labelOf(a)!.localeCompare(labelOf(b)!, undefined, { sensitivity: 'base' }));
+  const head = [...first, ...rest];
+  return [...head, ...current.filter((id) => id === '|' || !head.includes(id))];
+}
 
 export const BUILTIN_LISTS: CustomList[] = [
   { items: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] },
@@ -139,10 +173,15 @@ export function defaultPrefs(): Prefs {
     miniToolbar: true,
     quickAnalysis: true,
     touchHandles: true,
+    touchMode: false,
+    qatHidden: false,
+    lotusFormulas: true,
+    lotusLabels: false,
+    slashKey: false,
   };
 }
 
-const KEY = 'quilllattice.prefs.v1';
+const KEY = 'quillgrid.prefs.v1';
 
 export function loadPrefs(): Prefs {
   const d = defaultPrefs();

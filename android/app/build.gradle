@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 // ---------------------------------------------------------------------------
 // Versioning: versionName comes from the root package.json, versionCode from
-// the VERSION_CODE environment variable (CI passes the workflow run number).
+// the VERSION_CODE environment variable (CI passes minutes since 2024-01-01, so it always increases).
 // ---------------------------------------------------------------------------
 def rootPackageJson = new groovy.json.JsonSlurper().parse(file('../../package.json'))
 def appVersionName = rootPackageJson.version.toString()
@@ -18,14 +18,14 @@ def releaseKeystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
 def hasReleaseKeystore = releaseKeystorePath != null && !releaseKeystorePath.trim().isEmpty() &&
         new File(releaseKeystorePath.trim()).isFile()
 if (!hasReleaseKeystore) {
-    logger.lifecycle('QuillLattice: ANDROID_KEYSTORE_PATH not set or missing - release build will be signed with the DEBUG key (sideloading/testing only).')
+    logger.lifecycle('QuillGrid: ANDROID_KEYSTORE_PATH not set or missing - release build will be signed with the DEBUG key (sideloading/testing only).')
 }
 
 android {
-    namespace = "io.github.socrtwo.quilllattice"
+    namespace = "io.github.socrtwo.quillgrid"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.github.socrtwo.quilllattice"
+        applicationId "io.github.socrtwo.quillgrid"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode

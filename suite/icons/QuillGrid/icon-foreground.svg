@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><g transform="translate(256 256) scale(.6) translate(-256 -256)"><rect x="112" y="128" width="232" height="272" rx="24" fill="#fff"/>
+      <g fill="#1E7A46"><rect x="144" y="162" width="168" height="34" rx="8"/></g>
+      <g fill="#1E7A46" opacity=".85"><rect x="144" y="210" width="50" height="34" rx="7"/><rect x="202" y="210" width="50" height="34" rx="7"/><rect x="260" y="210" width="50" height="34" rx="7"/><rect x="144" y="254" width="50" height="34" rx="7"/><rect x="202" y="254" width="50" height="34" rx="7"/><rect x="260" y="254" width="50" height="34" rx="7"/><rect x="144" y="298" width="50" height="34" rx="7"/><rect x="202" y="298" width="50" height="34" rx="7"/><rect x="260" y="298" width="50" height="34" rx="7"/><rect x="144" y="342" width="50" height="34" rx="7"/><rect x="202" y="342" width="50" height="34" rx="7"/><rect x="260" y="342" width="50" height="34" rx="7"/></g><g>
+    <path d="M436 70 C 376 84 316 140 290 214 C 274 260 268 300 270 338 C 300 300 330 280 360 262 C 330 262 312 262 300 258 C 336 240 368 218 392 188 C 368 190 350 190 336 186 C 378 160 410 120 436 70 Z" fill="#fff" stroke="#12532F" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M430 78 C 360 150 300 250 262 380" fill="none" stroke="#12532F" stroke-width="9" stroke-linecap="round"/>
+    <path d="M262 380 L252 420 L276 392 Z" fill="#12532F"/>
+  </g></g></svg>

@@ -15,7 +15,7 @@ import { keyRow, keyCol, type Range } from '../model/address';
 import { installedDictionaries, dictionaryFor, loadDictionary } from './dictionaries';
 
 // --------------------------------------------------------------------------------------------
-// Worker protocol (same messages as QuillForge's proofing engine)
+// Worker protocol (same messages as QuillPen's proofing engine)
 
 let worker: Worker | null = null;
 let workerFailures = 0;

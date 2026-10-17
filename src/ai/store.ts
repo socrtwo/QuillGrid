@@ -9,6 +9,7 @@
 import { kvGet, kvSet, kvDel } from '../util/store';
 import { isNative, secureGet, secureSet, secureRemove } from '../platform/native';
 import { providerById, type ProviderDef } from './providers';
+import { defaultEnsemble, normalizeEnsemble, type EnsembleSettings } from './ensemble';
 
 export interface ProviderConfig {
   id: string;
@@ -48,15 +49,17 @@ export interface AiSettings {
   prompts: SavedPrompt[];
   usage: { requests: number; tokensIn: number; tokensOut: number; since: number };
   privacyAck: string[];
+  /** Several AIs on one request (provider ids and models only; never keys). */
+  ensemble: EnsembleSettings;
 }
 
-const KEY = 'quilllattice.ai.v1';
+const KEY = 'quillgrid.ai.v1';
 
 export function defaultAiSettings(): AiSettings {
   return {
     enabled: true, active: null, providers: {}, trackAsRevisions: false, confirmDocument: true, clipboardWatch: true, clearClipboard: true,
     alternatives: 3, language: 'auto', styleGuide: '', voiceProfile: '', prompts: [],
-    usage: { requests: 0, tokensIn: 0, tokensOut: 0, since: Date.now() }, privacyAck: [],
+    usage: { requests: 0, tokensIn: 0, tokensOut: 0, since: Date.now() }, privacyAck: [], ensemble: defaultEnsemble(),
   };
 }
 
@@ -73,6 +76,7 @@ export function aiSettings(): AiSettings {
   if (!s.providers || typeof s.providers !== 'object') s.providers = {};
   if (!Array.isArray(s.prompts)) s.prompts = [];
   s.prompts = s.prompts.filter((p) => p && typeof p.name === 'string' && typeof p.prompt === 'string');
+  s.ensemble = normalizeEnsemble(s.ensemble);
   cache = s;
   return s;
 }
@@ -81,7 +85,7 @@ export function saveAiSettings(mut?: (s: AiSettings) => void): void {
   const s = aiSettings();
   mut?.(s);
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* quota */ }
-  try { new BroadcastChannel('quilllattice-ai').postMessage({ type: 'settings' }); } catch { /* unsupported */ }
+  try { new BroadcastChannel('quillgrid-ai').postMessage({ type: 'settings' }); } catch { /* unsupported */ }
   listeners.forEach((f) => f());
 }
 
@@ -100,7 +104,7 @@ export function reloadAiSettings(): void {
 // tooling that imports this module under Node can exit.
 if (typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined') {
   try {
-    const bc = new BroadcastChannel('quilllattice-ai');
+    const bc = new BroadcastChannel('quillgrid-ai');
     bc.onmessage = () => reloadAiSettings();
     (bc as unknown as { unref?: () => void }).unref?.();
   } catch { /* unsupported */ }

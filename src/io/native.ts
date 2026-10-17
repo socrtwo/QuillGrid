@@ -1,8 +1,8 @@
 /**
- * Native QuillLattice formats:
+ * Native QuillGrid formats:
  *   .json  the workbook model as JSON (Workbook.toJSON, errors as {"#err": code})
- *   .qlw   a ZIP with workbook.json, pictures extracted to media/
- *   .qlwe  the same JSON encrypted with a password (PBKDF2 + AES-256-GCM, src/util/crypto.ts)
+ *   .qgw   a ZIP with workbook.json, pictures extracted to media/
+ *   .qgwe  the same JSON encrypted with a password (PBKDF2 + AES-256-GCM, src/util/crypto.ts)
  */
 import JSZip from 'jszip';
 import { Workbook, Sheet, errReplacer } from '../model/workbook';
@@ -27,8 +27,8 @@ export function exportJson(book: Workbook): Blob {
 
 export function importJson(text: string): Workbook {
   const j = JSON.parse(text.replace(/^﻿/, ''));
-  if (j && typeof j === 'object' && !Array.isArray(j) && (j.format === 'quilllattice' || Array.isArray(j.sheets))) return finish(Workbook.fromJSON(j.workbook || j));
-  if (j && j.qlw && j.workbook) return finish(Workbook.fromJSON(j.workbook));
+  if (j && typeof j === 'object' && !Array.isArray(j) && (j.format === 'quillgrid' || Array.isArray(j.sheets))) return finish(Workbook.fromJSON(j.workbook || j));
+  if (j && j.qgw && j.workbook) return finish(Workbook.fromJSON(j.workbook));
   // Generic JSON data: an array of rows (arrays) or records (objects).
   const rows: any[] = Array.isArray(j) ? j : Array.isArray(j?.data) ? j.data : Array.isArray(j?.rows) ? j.rows : [j];
   const book = new Workbook(false);
@@ -51,11 +51,11 @@ export function importJson(text: string): Workbook {
 }
 
 // --------------------------------------------------------------------------------------------
-// .qlw (zip)
+// .qgw (zip)
 
 export async function exportQlw(book: Workbook): Promise<Blob> {
   const zip = new JSZip();
-  zip.file('mimetype', 'application/x-quilllattice', { compression: 'STORE' });
+  zip.file('mimetype', 'application/x-quillgrid', { compression: 'STORE' });
   const json = plain(book);
   let n = 0;
   for (const sh of json.sheets || []) {
@@ -70,15 +70,15 @@ export async function exportQlw(book: Workbook): Promise<Blob> {
   }
   const vba: Uint8Array | undefined = (book as any).vbaProject;
   if (vba instanceof Uint8Array) zip.file('vbaProject.bin', vba);
-  zip.file('workbook.json', JSON.stringify({ qlw: 1, app: 'QuillLattice', saved: new Date().toISOString(), workbook: json }));
+  zip.file('workbook.json', JSON.stringify({ qgw: 1, app: 'QuillGrid', saved: new Date().toISOString(), workbook: json }));
   const data = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-  return new Blob([data as BlobPart], { type: 'application/x-quilllattice' });
+  return new Blob([data as BlobPart], { type: 'application/x-quillgrid' });
 }
 
 export async function importQlw(data: ArrayBuffer): Promise<Workbook> {
   const zip = await JSZip.loadAsync(data);
   const f = zip.file('workbook.json');
-  if (!f) throw new Error('workbook.json is missing from this QuillLattice file');
+  if (!f) throw new Error('workbook.json is missing from this QuillGrid file');
   const env = JSON.parse(await f.async('string'));
   const json = env.workbook || env;
   for (const sh of json.sheets || []) {
@@ -97,11 +97,11 @@ export async function importQlw(data: ArrayBuffer): Promise<Workbook> {
 }
 
 // --------------------------------------------------------------------------------------------
-// .qlwe (encrypted)
+// .qgwe (encrypted)
 
 export async function exportQlwe(book: Workbook, password: string): Promise<Blob> {
-  const bytes = await encryptJson({ qlw: 1, app: 'QuillLattice', workbook: plain(book) }, password);
-  return new Blob([bytes as BlobPart], { type: 'application/x-quilllattice-encrypted' });
+  const bytes = await encryptJson({ qgw: 1, app: 'QuillGrid', workbook: plain(book) }, password);
+  return new Blob([bytes as BlobPart], { type: 'application/x-quillgrid-encrypted' });
 }
 
 export async function importQlwe(data: ArrayBuffer, password: string): Promise<Workbook> {

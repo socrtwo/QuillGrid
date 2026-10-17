@@ -1133,10 +1133,11 @@ async function subtotalDialog(app: App): Promise<void> {
 // Get & Transform
 
 interface StoredQuery { kind: 'web' | 'text'; name: string; url?: string; table?: number; sheet: string; r: number; c: number; rows: number; cols: number; time: number }
-const Q_PREFIX = 'QuillLattice.Query.';
+const Q_PREFIX = 'QuillGrid.Query.';
+const Q_LEGACY = 'QuillLattice.Query.'; // rename:keep — queries saved before the rename
 
 export function storedQueries(book: Workbook): StoredQuery[] {
-  return Object.entries(book.props.custom || {}).filter(([k]) => k.startsWith(Q_PREFIX)).map(([, v]) => { try { return JSON.parse(v) as StoredQuery; } catch { return null; } }).filter((x): x is StoredQuery => !!x);
+  return Object.entries(book.props.custom || {}).filter(([k]) => k.startsWith(Q_PREFIX) || k.startsWith(Q_LEGACY)).map(([, v]) => { try { return JSON.parse(v) as StoredQuery; } catch { return null; } }).filter((x): x is StoredQuery => !!x);
 }
 
 function saveQuery(book: Workbook, q: StoredQuery | null, name: string): void {
@@ -1179,12 +1180,14 @@ async function chooseDestination(app: App, title: string, extra: Field[] = []): 
 
 async function fromText(app: App): Promise<void> {
   const { openDocument } = await import('../platform/native');
-  const { parseCsv, detectDelimiter, decodeText } = await import('../io/index');
+  const { parseCsv, detectDelimiter } = await import('../io/index');
   const { fillSheet } = await import('../io/csv');
   const f = await openDocument('.csv,.tsv,.txt,.tab,.prn,.dat', ['text/csv', 'text/plain', 'text/tab-separated-values']);
   if (!f) return;
-  const encs = [{ value: 'utf-8', label: 'Unicode (UTF-8)' }, { value: 'windows-1252', label: 'Western European (Windows)' }, { value: 'iso-8859-1', label: 'Western European (ISO)' }, { value: 'utf-16le', label: 'Unicode (UTF-16 LE)' }, { value: 'utf-16be', label: 'Unicode (UTF-16 BE)' }, { value: 'shift_jis', label: 'Japanese (Shift-JIS)' }, { value: 'gbk', label: 'Chinese Simplified (GBK)' }, { value: 'macintosh', label: 'Western European (Mac)' }];
-  let text = decodeText(f.data);
+  const { detectEncoding, decodeAuto } = await import('../io/encoding');
+  const encs = [{ value: 'utf-8', label: 'Unicode (UTF-8)' }, { value: 'windows-1252', label: 'Western European (Windows)' }, { value: 'iso-8859-1', label: 'Western European (ISO)' }, { value: 'utf-16le', label: 'Unicode (UTF-16 LE)' }, { value: 'utf-16be', label: 'Unicode (UTF-16 BE)' }, { value: 'shift_jis', label: 'Japanese (Shift-JIS)' }, { value: 'euc-jp', label: 'Japanese (EUC-JP)' }, { value: 'gbk', label: 'Chinese Simplified (GBK)' }, { value: 'big5', label: 'Chinese Traditional (Big5)' }, { value: 'euc-kr', label: 'Korean (EUC-KR)' }, { value: 'macintosh', label: 'Western European (Mac)' }, { value: 'windows-1250', label: 'Central European (Windows)' }, { value: 'windows-1251', label: 'Cyrillic (Windows)' }, { value: 'koi8-r', label: 'Cyrillic (KOI8-R)' }, { value: 'windows-1253', label: 'Greek (Windows)' }, { value: 'windows-1254', label: 'Turkish (Windows)' }, { value: 'windows-1255', label: 'Hebrew (Windows)' }, { value: 'windows-1256', label: 'Arabic (Windows)' }, { value: 'windows-1257', label: 'Baltic (Windows)' }, { value: 'windows-1258', label: 'Vietnamese (Windows)' }, { value: 'cp437', label: 'OEM United States (DOS 437)' }, { value: 'cp850', label: 'Western European (DOS 850)' }];
+  const detected = detectEncoding(new Uint8Array(f.data)).encoding;
+  let text = decodeAuto(new Uint8Array(f.data)).text;
   const det = detectDelimiter(text);
   const delimOpts = [{ value: ',', label: 'Comma' }, { value: ';', label: 'Semicolon' }, { value: '\t', label: 'Tab' }, { value: '|', label: 'Pipe' }, { value: ' ', label: 'Space' }, { value: 'other', label: 'Other…' }];
   const types: string[] = [];
@@ -1217,7 +1220,7 @@ async function fromText(app: App): Promise<void> {
   const res = await openDialog({
     title: `Import ${f.name}`, wide: true,
     fields: [
-      { key: 'enc', type: 'select', label: 'File origin (encoding)', options: encs, value: 'utf-8', half: true },
+      { key: 'enc', type: 'select', label: 'File origin (encoding)', options: encs.some((e) => e.value === detected) ? encs : [{ value: detected, label: detected }, ...encs], value: detected, half: true },
       { key: 'delim', type: 'select', label: 'Delimiter', options: delimOpts, value: delimOpts.some((o) => o.value === det) ? det : ',', half: true },
       { key: 'other', type: 'text', label: 'Other delimiter', value: '', visibleIf: (v) => v.delim === 'other', width: '4em' },
       { key: 'quote', type: 'select', label: 'Text qualifier', options: [{ value: '"', label: '"' }, { value: "'", label: "'" }, { value: 'none', label: '{none}' }], value: '"', half: true },
@@ -1227,7 +1230,7 @@ async function fromText(app: App): Promise<void> {
       { key: 'where', type: 'radio', label: 'Put the data in', options: [{ value: 'new', label: 'New worksheet' }, { value: 'here', label: 'Existing worksheet at the active cell' }], value: 'new' },
     ],
     content: h('div', null, h('div', { class: 'ql-label' }, 'Preview (choose a type above each column)'), preview),
-    onChange: (v, _ctl, key) => { if (key === 'enc') text = decodeText(f.data, v.enc); render(v); },
+    onChange: (v, _ctl, key) => { if (key === 'enc') text = decodeAuto(new Uint8Array(f.data), v.enc).text; render(v); },
   });
   if (!res) return;
   const rows = parse(res);
@@ -1304,7 +1307,10 @@ async function fromWeb(app: App): Promise<void> {
     else book.recordSheet(target);
     size = copySheetCells(tables[idx], target, r0, c0);
     if (res.keep) {
-      const name = `Web ${storedQueries(book).length + 1}`;
+      const taken = new Set(storedQueries(book).map((x) => x.name.toLowerCase()));
+      let n = 1;
+      while (taken.has(`web ${n}`)) n++;
+      const name = `Web ${n}`;
       saveQuery(book, { kind: 'web', name, url: url.trim(), table: wb.sheets.indexOf(tables[idx]), sheet: target.name, r: r0, c: c0, rows: size.rows, cols: size.cols, time: Date.now() }, name);
     }
   });
@@ -1492,12 +1498,12 @@ function editLinks(app: App): void {
   }
   for (const n of app.book.names) for (const m of n.ref.matchAll(/'?\[([^\]]+)\]/g)) found.add(m[1]);
   if (!found.size) { void alertDialog('Edit Links', 'This workbook has no links to other workbooks.'); return; }
-  void alertDialog('Edit Links', `This workbook refers to ${found.size} other workbook${found.size === 1 ? '' : 's'}:\n${[...found].join('\n')}\nLinks to other workbooks can't be updated in QuillLattice; formulas that use them keep their last values or show #REF!. Open the source workbook and copy the data in, or use Find & Replace to point the formulas at this workbook.`);
+  void alertDialog('Edit Links', `This workbook refers to ${found.size} other workbook${found.size === 1 ? '' : 's'}:\n${[...found].join('\n')}\nLinks to other workbooks can't be updated in QuillGrid; formulas that use them keep their last values or show #REF!. Open the source workbook and copy the data in, or use Find & Replace to point the formulas at this workbook.`);
 }
 
 function relationships(app: App): void {
   const tables = app.book.sheets.flatMap((s) => s.tables.map((t) => `${t.name} — ${s.name}!${addrText(t.range)} (${t.columns.map((c) => c.name).join(', ')})`));
-  void alertDialog('Relationships', `${tables.length ? `Tables in this workbook:\n${tables.join('\n')}` : 'This workbook has no tables. Use Insert ▸ Table to create one.'}\nQuillLattice doesn't keep a data model of related tables. To combine tables, look up related rows with XLOOKUP or use Get Data ▸ From Table/Range to group and reshape them.`);
+  void alertDialog('Relationships', `${tables.length ? `Tables in this workbook:\n${tables.join('\n')}` : 'This workbook has no tables. Use Insert ▸ Table to create one.'}\nQuillGrid doesn't keep a data model of related tables. To combine tables, look up related rows with XLOOKUP or use Get Data ▸ From Table/Range to group and reshape them.`);
 }
 
 // --------------------------------------------------------------------------------------------

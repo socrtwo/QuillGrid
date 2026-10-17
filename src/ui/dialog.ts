@@ -10,8 +10,30 @@ export function toast(msg: string, opts: { action?: string; onAction?: () => voi
   const t = h('div', { class: 'ql-toast', role: 'status' }, h('span', null, msg));
   if (opts.action) t.appendChild(h('button', { class: 'ql-link', onclick: () => { opts.onAction?.(); t.remove(); } }, opts.action));
   host.appendChild(t);
+  placeToasts(host as HTMLElement);
   setTimeout(() => t.classList.add('ql-out'), opts.ms ?? 2800);
   setTimeout(() => t.remove(), (opts.ms ?? 2800) + 400);
+}
+
+/**
+ * Keeps toasts off buttons: above the topmost dialog's button row when it would cover it (bottom sheets on
+ * phones), otherwise above the sheet tabs, bottom Quick Access Bar and status bar, and above the keyboard.
+ */
+function placeToasts(host: HTMLElement): void {
+  host.style.bottom = '';
+  const overlays = document.querySelectorAll('.ql-overlay');
+  const top = overlays[overlays.length - 1];
+  const obstacles = top ? [...top.querySelectorAll<HTMLElement>('.ql-dialog-foot')] : [...document.querySelectorAll<HTMLElement>('.ql-sheetbar, .ql-qat-bottom, .ql-status')];
+  const r = host.getBoundingClientRect();
+  let lift = 0;
+  // Lowest obstacle first, so that lifting the toast above one is checked against the next one up.
+  const rects = obstacles.filter((o) => o.getClientRects().length).map((o) => o.getBoundingClientRect()).sort((a, b) => b.top - a.top);
+  for (const or of rects) {
+    if (or.height && r.bottom - lift > or.top && r.top - lift < or.bottom && r.right > or.left && r.left < or.right) lift = r.bottom - or.top + 8;
+  }
+  const vv = window.visualViewport;
+  if (vv && vv.offsetTop + vv.height < r.bottom - lift) lift = r.bottom - (vv.offsetTop + vv.height) + 8;
+  if (lift > 0) host.style.bottom = `${innerHeight - r.bottom + lift}px`;
 }
 
 // ------------------------------------------------------------------------------------------
@@ -488,15 +510,14 @@ export function showMenu(entries: MenuEntry[], opts: MenuOptions): HTMLElement {
   openMenus.push(menu);
   (menu as any)._back = prior;
   menu.addEventListener('keydown', (ev) => menuKey(ev, menu, opts.level || 0));
-  // position
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const mr = menu.getBoundingClientRect();
-  let x = opts.x ?? 0, y = opts.y ?? 0;
-  if (opts.anchor) { const r = opts.anchor.getBoundingClientRect(); x = r.left; y = r.bottom + 2; if (y + mr.height > vh - 8 && r.top - mr.height > 8) y = r.top - mr.height - 2; }
-  if (x + mr.width > vw - 4) x = Math.max(4, vw - mr.width - 4);
-  if (y + mr.height > vh - 4) y = Math.max(4, vh - mr.height - 4);
-  menu.style.left = x + 'px';
-  menu.style.top = y + 'px';
+  const place = () => placeMenu(menu, opts);
+  (menu as any)._place = place;
+  place();
+  // Callers may add to the menu after it opens (a search box, more items): keep it on screen.
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => { if (menu.isConnected) place(); else ro.disconnect(); });
+    ro.observe(menu);
+  }
   if (opts.focus ?? keyboardInput) menuItems(menu)[0]?.focus();
   if (!opts.level) {
     setTimeout(() => {
@@ -505,6 +526,53 @@ export function showMenu(entries: MenuEntry[], opts: MenuOptions): HTMLElement {
     }, 0);
   }
   return menu;
+}
+
+/**
+ * Positions a menu at its anchor (below it, or above when there is no room below) or at its point, inside
+ * the area not covered by status, navigation or gesture bars or by the on-screen keyboard, and no taller
+ * than that area. Called again when the window or the visual viewport changes size (keyboard, rotation).
+ */
+function placeMenu(menu: HTMLElement, opts: MenuOptions): void {
+  const sa = safeInsets();
+  const vv = window.visualViewport;
+  const vvBottom = vv && vv.scale === 1 ? vv.offsetTop + vv.height : window.innerHeight;
+  const left = sa.left + 4, top = sa.top + 4, right = window.innerWidth - sa.right - 4, bottom = Math.min(window.innerHeight - sa.bottom, vvBottom) - 4;
+  menu.style.maxHeight = '';
+  const cssMax = parseFloat(getComputedStyle(menu).maxHeight);
+  if (!(cssMax <= bottom - top)) menu.style.maxHeight = `${Math.max(80, bottom - top)}px`;
+  const mr = menu.getBoundingClientRect();
+  const anchor = opts.anchor?.isConnected ? opts.anchor : null;
+  let x = opts.x ?? 0, y = opts.y ?? 0;
+  if (anchor) { const r = anchor.getBoundingClientRect(); x = r.left; y = r.bottom + 2; if (y + mr.height > bottom && r.top - mr.height - 2 >= top) y = r.top - mr.height - 2; }
+  if (x + mr.width > right) x = right - mr.width;
+  if (y + mr.height > bottom) y = bottom - mr.height;
+  x = Math.max(left, x); y = Math.max(top, y);
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+
+/** Keyboard height not already taken out of the layout viewport (an overlaying keyboard), as --kb. */
+function viewportChanged(): void {
+  const vv = window.visualViewport;
+  const kb = vv && vv.scale === 1 ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
+  document.documentElement.style.setProperty('--kb', `${kb}px`);
+  for (const m of openMenus) (m as any)._place?.();
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', viewportChanged);
+  window.visualViewport?.addEventListener('resize', viewportChanged);
+}
+
+/** Current system-bar insets in CSS pixels (the --sat/--sab/--sal/--sar variables in app.css). */
+export function safeInsets(): { top: number; bottom: number; left: number; right: number } {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:var(--sat) var(--sar) var(--sab) var(--sal)';
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const r = { top: parseFloat(cs.paddingTop) || 0, bottom: parseFloat(cs.paddingBottom) || 0, left: parseFloat(cs.paddingLeft) || 0, right: parseFloat(cs.paddingRight) || 0 };
+  probe.remove();
+  return r;
 }
 
 // ------------------------------------------------------------------------------------------

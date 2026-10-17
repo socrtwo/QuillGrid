@@ -1,0 +1,43 @@
+/* Heritage features: slash menu, chart slide show, insight panes. */
+
+.ql-slash { background: var(--surface); color: var(--text); border-radius: 12px; width: min(860px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.35); padding: 10px 12px; outline: none; font-family: ui-monospace, "Cousine", "Courier Prime", monospace; }
+.ql-slash-path { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: flex; gap: 6px; align-items: center; }
+.ql-slash-mode { background: var(--accent); color: var(--surface); border-radius: 4px; padding: 1px 6px; font-weight: 700; letter-spacing: .06em; }
+.ql-slash-items { display: flex; flex-wrap: wrap; gap: 2px 4px; max-height: 40vh; overflow: auto; }
+.ql-slash-item { background: transparent; border: 0; border-radius: 4px; padding: 5px 8px; font: inherit; font-size: 14px; color: inherit; cursor: pointer; white-space: nowrap; }
+.ql-slash-item u { text-decoration: underline; text-decoration-thickness: 2px; font-weight: 700; }
+.ql-slash-item.ql-sel { background: var(--accent); color: var(--surface); }
+.ql-slash-item.ql-disabled { opacity: .45; }
+.ql-slash-more, .ql-slash-k { opacity: .7; }
+.ql-slash-desc { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; font-size: 12.5px; color: var(--muted); min-height: 1.4em; font-family: var(--font-ui); }
+.ql-slash-hint { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: var(--font-ui); }
+
+.ql-slideshow { position: fixed; inset: 0; z-index: 950; background: #111; color: #eee; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ql-slideshow-stage { background: #fff; border-radius: 6px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.ql-slideshow-cap { margin-top: 12px; font: 14px var(--font-ui); opacity: .85; text-align: center; }
+.ql-slideshow-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.12); color: #fff; border: 0; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; font-size: 22px; }
+.ql-slideshow-prev { left: 12px; } .ql-slideshow-next { right: 12px; }
+.ql-slideshow-close { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,.12); color: #fff; border: 0; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+
+.ql-explain details { margin-left: 12px; }
+.ql-explain summary { cursor: pointer; padding: 2px 0; list-style-position: outside; }
+.ql-explain .ql-x-leaf { margin-left: 24px; padding: 2px 0; }
+.ql-explain .ql-x-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ql-explain .ql-x-f { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); word-break: break-all; }
+.ql-explain .ql-x-note { font-size: 11.5px; color: var(--muted); font-style: italic; }
+.ql-depgraph { width: 100%; overflow: auto; }
+.ql-depgraph svg { display: block; }
+.ql-depgraph .ql-dg-node { cursor: pointer; }
+.ql-rule { border-bottom: 1px solid var(--border); padding: 6px 2px; }
+.ql-rule code { font-size: 12px; word-break: break-all; display: block; }
+.ql-rule .ql-help { margin: 2px 0; }
+.ql-info-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ql-info-table th { text-align: left; color: var(--muted); font-weight: 500; padding: 4px 6px 4px 0; vertical-align: top; white-space: nowrap; }
+.ql-info-table td { padding: 4px 0; word-break: break-word; }
+.ql-slider { padding: 6px 0; border-bottom: 1px solid var(--border); }
+.ql-slider input[type=range] { width: 100%; }
+.ql-slider-head { display: flex; justify-content: space-between; gap: 6px; font-size: 13px; }
+.ql-slider-out { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; margin: 4px 0 8px; }
+.ql-history-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; border-bottom: 1px solid var(--border); padding: 6px 0; }
+.ql-history-row code { word-break: break-all; }
+.ql-code-out { width: 100%; font: 12px ui-monospace, monospace; white-space: pre; }

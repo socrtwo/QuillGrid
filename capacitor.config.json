@@ -1,6 +1,6 @@
 {
-  "appId": "io.github.socrtwo.quilllattice",
-  "appName": "QuillLattice",
+  "appId": "io.github.socrtwo.quillgrid",
+  "appName": "QuillGrid",
   "webDir": "dist",
   "android": {
     "allowMixedContent": false,

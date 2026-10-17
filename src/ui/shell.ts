@@ -15,6 +15,7 @@ import { formatValue } from '../model/numfmt';
 import { FONT_LIST } from '../fonts';
 import { activeStyle } from '../commands/ops';
 import { editText } from '../grid/editor';
+import { QAT_STANDARD, QAT_EXTRAS } from '../prefs';
 
 export class Shell {
   root: HTMLElement;
@@ -130,23 +131,30 @@ export class Shell {
   }
 
   qatMenu(anchor: HTMLElement): void {
-    const common = ['file.new', 'file.open', 'file.save', 'file.saveAs', 'edit.undo', 'edit.redo', 'file.print', 'file.printPreview', 'file.share', 'review.spelling', 'data.sortAZ', 'data.sortZA', 'data.filter', 'edit.autoSum', 'insert.chartColumn', 'edit.find', 'formulas.calcNow', 'view.cmdSearch', 'view.freezePanes', 'fmt.borders'];
     const q = this.app.prefs.qat;
+    const item = (id: string) => ({ id, label: getCommand(id)?.label || id, checked: q.includes(id), arg: '__toggle' });
+    const present = (id: string) => !!getCommand(id);
     showMenu([
       { heading: 'Customize Quick Access Bar' },
-      ...common.map((id) => ({ id, label: getCommand(id)?.label || id, checked: q.includes(id), arg: '__toggle' })),
+      ...QAT_STANDARD.filter(present).map(item),
       { separator: true },
+      ...QAT_EXTRAS.filter(present).map(item),
+      { separator: true },
+      { id: '__addAll', label: 'Add All Choices (Save, Print, then A–Z)', icon: 'sort_by_alpha' },
       { id: '__more', label: 'More Commands…', icon: 'library_add' },
       { id: '__pos', label: this.app.prefs.qatPosition === 'bottom' ? 'Show Above the Ribbon' : 'Show at the Bottom (near keyboard)', icon: 'swap_vert' },
       { id: '__labels', label: this.app.prefs.qatLabels ? 'Hide Command Labels' : 'Show Command Labels', icon: 'label' },
+      { id: '__hide', label: 'Hide Quick Access Bar', icon: 'visibility_off' },
       { id: '__ribbon', label: this.app.prefs.ribbon === 'full' ? 'Collapse the Ribbon' : 'Show the Ribbon', icon: 'expand_less' },
     ], {
       anchor, onPick: (e) => {
         const p = this.app.prefs;
         if (e.arg === '__toggle' && e.id) { p.qat = q.includes(e.id) ? q.filter((x) => x !== e.id) : [...q, e.id]; }
+        else if (e.id === '__addAll') { this.app.exec('view.qatAddAll'); return; }
         else if (e.id === '__more') { this.customizeQat(); return; }
-        else if (e.id === '__pos') p.qatPosition = p.qatPosition === 'bottom' ? 'top' : 'bottom';
+        else if (e.id === '__pos') { this.app.exec('view.qatAtBottom'); return; }
         else if (e.id === '__labels') p.qatLabels = !p.qatLabels;
+        else if (e.id === '__hide') { p.qatHidden = true; toast('Quick Access Bar hidden. Show it again from View ▸ Show Quick Access Bar or by long-pressing any ribbon command.', { ms: 5000 }); }
         else if (e.id === '__ribbon') p.ribbon = p.ribbon === 'full' ? 'tabs' : 'full';
         this.app.savePrefs();
         this.applyPrefs();
@@ -236,12 +244,14 @@ export class Shell {
     const inQat = this.app.prefs.qat.includes(c.id);
     showMenu([
       { id: '__qat', label: inQat ? 'Remove from Quick Access Bar' : 'Add to Quick Access Bar', icon: inQat ? 'remove_circle' : 'add_circle' },
+      ...(this.app.prefs.qatHidden ? [{ id: '__showQat', label: 'Show Quick Access Bar', icon: 'bolt' }] : []),
       ...(c.id === 'edit.painter' ? [{ id: '__sticky', label: 'Keep Format Painter On', icon: 'format_paint' }] : []),
       { id: '__key', label: 'Assign Shortcut…', icon: 'keyboard' },
       { id: '__info', label: `About: ${c.label}`, icon: 'info' },
     ], {
       anchor: el, onPick: (e) => {
         if (e.id === '__qat') { this.app.prefs.qat = inQat ? this.app.prefs.qat.filter((x) => x !== c.id) : [...this.app.prefs.qat, c.id]; this.app.savePrefs(); this.renderQat(); this.refresh(); toast(inQat ? 'Removed from Quick Access Bar' : 'Added to Quick Access Bar'); }
+        if (e.id === '__showQat') this.app.exec('view.showQat');
         if (e.id === '__sticky') this.app.exec('edit.painter', 'sticky');
         if (e.id === '__key') this.customizeKeyboard(c.id);
         if (e.id === '__info') toast(`${c.label} — ${c.tab}${c.group ? ' ▸ ' + c.group : ''}${c.keys?.length ? ' — ' + c.keys.map(prettyKey).join(', ') : ''}${c.origin ? ' — inspired by ' + c.origin : ''}`, { ms: 5000 });
@@ -764,6 +774,8 @@ export class Shell {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     this.root.classList.toggle('ql-ribbon-collapsed', p.ribbon !== 'full');
     this.root.classList.toggle('ql-qat-at-bottom', p.qatPosition === 'bottom');
+    this.root.classList.toggle('ql-qat-hidden', p.qatHidden);
+    this.root.classList.toggle('ql-touch', p.touchMode);
     this.root.classList.toggle('ql-high-contrast', p.highContrastUI);
     this.root.style.setProperty('--ql-ui-scale', String(p.uiScale || 1));
     if (!this.app.docs.length) return;
@@ -815,7 +827,7 @@ export class Shell {
 
   async tour(): Promise<void> {
     const steps = [
-      ['Everything is a command', 'Every feature of QuillLattice is a command you can find with the search button (or Alt+Q), place on the Quick Access Bar, put on your own tab, assign a key, or record in a macro.'],
+      ['Everything is a command', 'Every feature of QuillGrid is a command you can find with the search button (or Alt+Q), place on the Quick Access Bar, put on your own tab, assign a key, or record in a macro.'],
       ['Quick Access Bar', 'Tap ▾ at the end of the Quick Access Bar to add common commands, or choose More Commands… to pick from the full library. Long-press any ribbon button to add it. Options lets you move the bar to the bottom, near the keyboard.'],
       ['Cells and formulas', 'Type in a cell and press Enter. Start with = for a formula: click cells to insert references, and pick functions from the list as you type. Formulas that return several values spill into neighboring cells.'],
       ['Touch', 'On a phone or tablet, tap to select, double-tap to edit, drag the round handles to extend a selection, pinch to zoom, and long-press for the context menu.'],

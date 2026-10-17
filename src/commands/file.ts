@@ -2,8 +2,9 @@
 import { def, commandCount } from './registry';
 import type { App, BookTab } from '../app';
 import { Workbook } from '../model/workbook';
-import { FORMATS, formatById, formatForName, importFile, exportFile, PasswordError } from '../io';
-import { openDocument, saveAs, writeBack, printDocument, shareFile, readUri, openExternal, OPEN_ACCEPT, OPEN_MIMES } from '../platform/native';
+import { FORMATS, formatById, formatForName, importFile, exportFile, PasswordError, sniff, type SniffResult } from '../io';
+import { article } from '../io/sniff';
+import { openDocument, saveAs, writeBack, printDocument, shareFile, readUri, openExternal, OPEN_ACCEPT, OPEN_MIMES, openInQuillApp, isIOS, type QuillApp } from '../platform/native';
 import { openDialog, toast, confirmDialog, choiceDialog, alertDialog, promptDialog } from '../ui/dialog';
 import { kvGet, kvSet, kvKeys, kvDel } from '../util/store';
 import { TEMPLATES } from '../templates';
@@ -40,9 +41,47 @@ function isPristine(tab: BookTab): boolean {
   return !tab.dirty && !tab.uri && tab.book.sheets.length <= 1 && tab.book.sheet.cells.size === 0 && !tab.book.undoStack.length;
 }
 
-export async function openBuffer(app: App, data: ArrayBuffer, name: string, uri: string | null, opts: { repair?: boolean; key?: string; password?: string } = {}): Promise<BookTab | null> {
+const SIBLING: Record<string, { app: QuillApp; what: string }> = {
+  document: { app: 'QuillPen', what: 'its tables (one sheet each) and its text' },
+  presentation: { app: 'QuillStage', what: 'a sheet per slide with its text and tables' },
+  email: { app: 'QuillPost', what: 'the message headers and body, and its spreadsheet and CSV attachments as sheets' },
+};
+
+/**
+ * A document, presentation or message was opened: offer the Quill app made for it, and always
+ * offer to import it here. Resolves 'import', 'opened' (handed to the other app) or 'cancel'.
+ */
+async function chooseForeignOpen(sn: SniffResult, data: ArrayBuffer, name: string): Promise<'import' | 'opened' | 'cancel'> {
+  const sib = SIBLING[sn.category];
+  if (!sib) return 'import';
+  const short = name.replace(/^.*[\\/]/, '');
+  const canImport = !!formatById(sn.format)?.canImport;
+  const choices = [`Open in ${sib.app}`, ...(canImport ? ['Import into QuillGrid'] : [])];
+  const c = await choiceDialog(`Open ${sn.label}`, `${short} is ${article(sn.label)} ${sn.label}. ${sib.app} is the Quill app for it.${canImport ? ` QuillGrid can also import ${sib.what} into a new workbook.` : ''}`, choices);
+  if (c === 1) return 'import';
+  if (c !== 0) return 'cancel';
+  const mime = formatById(sn.format)?.mime || 'application/octet-stream';
+  const r = await openInQuillApp(sib.app, data, short, mime);
+  if (r.opened) { toast(`Opened ${short} in ${sib.app}`); return 'opened'; }
+  const why = r.reason === 'unsupported'
+    ? (isIOS() ? `On iPhone and iPad, apps cannot hand files to each other. Open ${short} from the Files app in ${sib.app}.` : `A web page cannot hand files to other apps. Open ${short} in ${sib.app} yourself (install it from the Quill suite if you do not have it).`)
+    : r.reason === 'not-installed' ? `${sib.app} does not seem to be installed${r.message ? ` (${r.message})` : ''}. Install it from the Quill suite to open ${short} there.`
+      : `${short} could not be handed to ${sib.app}${r.message ? `: ${r.message}` : '.'}`;
+  if (!canImport) { await alertDialog(`${sib.app} is not available`, why); return 'cancel'; }
+  const again = await choiceDialog(`${sib.app} is not available`, `${why} You can import it into QuillGrid instead.`, ['Import into QuillGrid']);
+  return again === 0 ? 'import' : 'cancel';
+}
+
+export async function openBuffer(app: App, data: ArrayBuffer, name: string, uri: string | null, opts: { repair?: boolean; key?: string; password?: string; importDocuments?: boolean } = {}): Promise<BookTab | null> {
   try {
     if (opts.repair) toast(`Repairing ${name}…`);
+    if (!opts.repair && !opts.password && !opts.importDocuments) {
+      const sn = sniff(data, name);
+      if (sn.category === 'document' || sn.category === 'presentation' || sn.category === 'email') {
+        const how = await chooseForeignOpen(sn, data, name);
+        if (how !== 'import') return null;
+      }
+    }
     let res;
     try {
       res = await importFile(data, name, { repair: opts.repair, password: opts.password });
@@ -54,7 +93,7 @@ export async function openBuffer(app: App, data: ArrayBuffer, name: string, uri:
       }
       throw e;
     }
-    const { book, format, recovery, warnings } = res;
+    const { book, format, recovery, warnings, note } = res;
     const fmt = formatById(format) || formatForName(name);
     const cur = app.tab;
     const base = name.replace(/\.[^.]+$/, '');
@@ -78,9 +117,12 @@ export async function openBuffer(app: App, data: ArrayBuffer, name: string, uri:
       await kvSet('file:' + docKey(tab), { name, data, uri, when: Date.now() });
     }
     app.activate(tab);
+    const lead = note ? `${note} ` : '';
+    const details = () => alertDialog('Import Notes', [note, ...(warnings || [])].filter(Boolean).join('\n'));
     if (recovery) toast(`${name} was damaged. ${recoverySummary(recovery)}`, { action: 'Details', onAction: () => app.exec('file.recoveryReport'), ms: 9000 });
-    else if (format === 'xls') toast(`Opened ${name}. Save as .xlsx to keep everything QuillLattice can edit.`, { ms: 6000 });
-    else if (warnings?.length) toast(`Opened ${name} (${warnings.length} note${warnings.length > 1 ? 's' : ''})`, { action: 'Details', onAction: () => alertDialog('Import Notes', warnings.join('\n')), ms: 7000 });
+    else if (warnings?.length) toast(`${lead}Opened ${name} (${warnings.length} note${warnings.length > 1 ? 's' : ''})`, { action: 'Details', onAction: details, ms: 9000 });
+    else if (format === 'xls' || (fmt && !fmt.canExport)) toast(`${lead}Opened ${name}. Save as .xlsx to keep your changes.`, { ms: note ? 9000 : 6000 });
+    else if (note) toast(`${lead}`, { ms: 8000 });
     else toast(`Opened ${name}`);
     return tab;
   } catch (e: any) {
@@ -123,7 +165,7 @@ export async function saveTab(app: App, tab: BookTab, opts: { as?: boolean; form
   tab.book.props.lastModifiedBy = app.prefs.author;
   const version = tab.book.version;
   let password: string | undefined;
-  if (format === 'qlwe') {
+  if (format === 'qgwe') {
     const r = await openDialog({ title: 'Encrypt Workbook', fields: [{ key: 'p1', label: 'Password', type: 'password' }, { key: 'p2', label: 'Confirm', type: 'password' }], validate: (x) => (!x.p1 ? 'Enter a password.' : x.p1 !== x.p2 ? 'Passwords do not match.' : null) });
     if (!r) return false;
     password = r.p1;
@@ -151,7 +193,7 @@ function markSaved(app: App, tab: BookTab, version: number) {
   tab.saved = Date.now();
   if (tab.book.version === version) { tab.dirty = false; kvDel('draft:' + tab.id); } else app.scheduleAutosave();
   app.ui.tabsChanged();
-  document.title = `${tab.displayName}${tab.dirty ? ' •' : ''} – QuillLattice`;
+  document.title = `${tab.displayName}${tab.dirty ? ' •' : ''} – QuillGrid`;
 }
 
 def([
@@ -277,7 +319,7 @@ def([
   {
     id: 'file.share', label: 'Share…', icon: 'share', tab: 'Backstage', group: 'Share', popular: true, noRecord: true,
     run: async (app) => {
-      const r = await openDialog({ title: 'Share', fields: [{ key: 'fmt', label: 'Send as', type: 'radio', options: [...FORMATS.filter((f) => f.canExport && f.id !== 'qlwe').map((f) => ({ value: f.id, label: f.label })), { value: 'pdf', label: 'PDF (via print service)' }], value: 'xlsx' }] });
+      const r = await openDialog({ title: 'Share', fields: [{ key: 'fmt', label: 'Send as', type: 'radio', options: [...FORMATS.filter((f) => f.canExport && f.id !== 'qgwe').map((f) => ({ value: f.id, label: f.label })), { value: 'pdf', label: 'PDF (via print service)' }], value: 'xlsx' }] });
       if (!r) return;
       if (r.fmt === 'pdf') return app.exec('file.exportPdf');
       const fmt = formatById(r.fmt)!;
@@ -375,11 +417,11 @@ def([
       toast('Workbook inspected and cleaned');
     },
   },
-  { id: 'file.encrypt', label: 'Encrypt with Password…', icon: 'enhanced_encryption', tab: 'Backstage', group: 'Info', noRecord: true, run: (app) => saveTab(app, app.tab, { copy: true, format: 'qlwe' }) },
+  { id: 'file.encrypt', label: 'Encrypt with Password…', icon: 'enhanced_encryption', tab: 'Backstage', group: 'Info', noRecord: true, run: (app) => saveTab(app, app.tab, { copy: true, format: 'qgwe' }) },
   {
     id: 'file.openEncrypted', label: 'Open Encrypted Workbook…', icon: 'lock_open', tab: 'Backstage', group: 'Open', noRecord: true,
     run: async (app) => {
-      const f = await openDocument('.qlwe', ['application/octet-stream', '*/*']);
+      const f = await openDocument('.qgwe', ['application/octet-stream', '*/*']);
       if (!f) return;
       await openBuffer(app, f.data, f.name, null);
     },
@@ -412,7 +454,7 @@ def([
     run: async (app) => {
       const p = app.prefs;
       const calc = app.book.calc;
-      const r = await openDialog({ title: 'QuillLattice Options', wide: true, fields: [
+      const r = await openDialog({ title: 'QuillGrid Options', wide: true, fields: [
         { key: 'h1', type: 'heading', label: 'General' },
         { key: 'author', label: 'User name', type: 'text', value: p.author, half: true },
         { key: 'initials', label: 'Initials', type: 'text', value: p.initials, half: true },
@@ -448,7 +490,7 @@ def([
         { key: 'h4', type: 'heading', label: 'Save and Proofing' },
         { key: 'autosave', label: 'AutoSave drafts', type: 'checkbox', value: p.autosave, half: true },
         { key: 'autosaveSeconds', label: 'Every (seconds)', type: 'number', value: p.autosaveSeconds, half: true },
-        { key: 'defaultSaveFormat', label: 'Default save format', type: 'select', options: FORMATS.filter((f) => f.canExport && f.id !== 'qlwe').map((f) => ({ value: f.id, label: f.label })), value: p.defaultSaveFormat, half: true },
+        { key: 'defaultSaveFormat', label: 'Default save format', type: 'select', options: FORMATS.filter((f) => f.canExport && f.id !== 'qgwe').map((f) => ({ value: f.id, label: f.label })), value: p.defaultSaveFormat, half: true },
         { key: 'confirmClose', label: 'Ask to save when closing', type: 'checkbox', value: p.confirmClose, half: true },
         { key: 'autoCorrect', label: 'AutoCorrect as you type', type: 'checkbox', value: p.autoCorrect, half: true },
         { key: 'spellDialect', label: 'English spelling', type: 'select', options: SPELL_DIALECTS, value: p.spellDialect || 'any', half: true },
@@ -538,18 +580,18 @@ def([
 
 // Help -------------------------------------------------------------------------------------------
 def([
-  { id: 'help.help', label: 'Help', icon: 'help', tab: 'Help', group: 'Help', keys: ['F1'], noRecord: true, run: () => openExternal('https://github.com/socrtwo/quill-lattice#readme') },
+  { id: 'help.help', label: 'Help', icon: 'help', tab: 'Help', group: 'Help', keys: ['F1'], noRecord: true, run: () => openExternal('https://github.com/socrtwo/QuillGrid#readme') },
   { id: 'help.shortcuts', label: 'Keyboard Shortcuts', icon: 'keyboard', tab: 'Help', group: 'Help', keys: ['Mod-/'], noRecord: true, run: (app) => app.ui.showShortcuts() },
   { id: 'help.commandReference', label: 'Command Reference', icon: 'menu_book', tab: 'Help', group: 'Help', noRecord: true, run: (app) => app.ui.showCommandReference() },
   { id: 'help.tour', label: 'Show the Quick Tour', icon: 'tour', tab: 'Help', group: 'Help', noRecord: true, run: (app) => app.ui.tour() },
   {
-    id: 'help.about', label: 'About QuillLattice', icon: 'info', tab: 'Help', group: 'Help', noRecord: true,
+    id: 'help.about', label: 'About QuillGrid', icon: 'info', tab: 'Help', group: 'Help', noRecord: true,
     run: async () => {
       const { functionNames } = await import('../calc/functions');
-      await alertDialog('About QuillLattice', h('div', { class: 'ql-msg' },
-        h('p', null, h('b', null, `QuillLattice ${__APP_VERSION__}`), ' — an original, open-source spreadsheet (MIT License). A companion to QuillForge.'),
+      await alertDialog('About QuillGrid', h('div', { class: 'ql-msg' },
+        h('p', null, h('b', null, `QuillGrid ${__APP_VERSION__}`), ' — an original, open-source spreadsheet (MIT License). A companion to QuillPen.'),
         h('p', null, `${commandCount()} commands and ${functionNames().length} worksheet functions. Every command is available to the Quick Access Bar, custom tabs, keyboard shortcuts, macros and command search.`),
-        h('p', null, 'QuillLattice is not affiliated with, endorsed by, or sponsored by Microsoft, Google, Apple, The Document Foundation, or any other vendor. Product names are used only to describe file-format compatibility or the origin of an idea.'),
+        h('p', null, 'QuillGrid is not affiliated with, endorsed by, or sponsored by Microsoft, Google, Apple, The Document Foundation, or any other vendor. Product names are used only to describe file-format compatibility or the origin of an idea.'),
         h('p', null, 'Open-source components: JSZip (MIT/GPLv3 dual, used under MIT), nspell and hunspell-asm (MIT) with SCOWL English dictionaries (MIT and BSD-style), Material Symbols (Apache 2.0), Capacitor (MIT), Electron (MIT), fonts Carlito, Caladea, Gelasio, EB Garamond, Courier Prime, Libre Baskerville, Lato, Merriweather, Open Sans (SIL OFL 1.1) and Tinos, Arimo, Cousine (Apache 2.0). Their licenses are in Help ▸ Third-Party Notices.')));
     },
   },
@@ -561,7 +603,7 @@ def([
       await alertDialog('Third-Party Notices', h('pre', { class: 'ql-notices' }, text || 'The notices file is missing from this build. The licenses are listed in docs/LEGAL.md.'));
     },
   },
-  { id: 'help.feedback', label: 'Report an Issue', icon: 'bug_report', tab: 'Help', group: 'Help', noRecord: true, run: () => openExternal('https://github.com/socrtwo/quill-lattice/issues') },
+  { id: 'help.feedback', label: 'Report an Issue', icon: 'bug_report', tab: 'Help', group: 'Help', noRecord: true, run: () => openExternal('https://github.com/socrtwo/QuillGrid/issues') },
   { id: 'help.functionReference', label: 'Function Reference', icon: 'functions', tab: 'Help', group: 'Help', noRecord: true, run: (app) => app.exec('formulas.insertFunction', { browse: true }) },
 ]);
 

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><defs><linearGradient id="gquillpost" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A9BA6"/><stop offset="1" stop-color="#075961"/></linearGradient></defs>
+  <rect width="512" height="512" rx="116" fill="url(#gquillpost)"/><rect x="88" y="168" width="280" height="200" rx="24" fill="#fff"/>
+      <path d="M104 188 L228 286 L352 188" fill="none" stroke="#0D7C86" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M104 352 L190 280 M352 352 L266 280" stroke="#0D7C86" stroke-width="14" stroke-linecap="round" opacity=".55"/><g>
+    <path d="M436 70 C 376 84 316 140 290 214 C 274 260 268 300 270 338 C 300 300 330 280 360 262 C 330 262 312 262 300 258 C 336 240 368 218 392 188 C 368 190 350 190 336 186 C 378 160 410 120 436 70 Z" fill="#fff" stroke="#075961" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M430 78 C 360 150 300 250 262 380" fill="none" stroke="#075961" stroke-width="9" stroke-linecap="round"/>
+    <path d="M262 380 L252 420 L276 392 Z" fill="#075961"/>
+  </g></svg>

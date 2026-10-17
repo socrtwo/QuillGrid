@@ -192,6 +192,7 @@ describe('ribbon coverage', () => {
   it('defines every AI, Tools, Developer and Draw ribbon command', async () => {
     await import('../../src/commands/ai');
     await import('../../src/commands/tools');
+    await import('../../src/commands/heritage');
     await import('../../src/commands/developer');
     await import('../../src/commands/draw');
     const { DEFAULT_TABS } = await import('../../src/ui/ribbonLayout');
@@ -200,5 +201,16 @@ describe('ribbon coverage', () => {
     expect(mine.length).toBeGreaterThan(40);
     expect(mine.filter((id) => !getCommand(id))).toEqual([]);
     expect(allCommands().filter((c) => c.tab === 'AI').length + 1).toBeGreaterThanOrEqual(40);
+  });
+});
+
+describe('SSE splitting', () => {
+  it('handles every blank-line separator', async () => {
+    const { takeSseBlocks } = await import('../../src/ai/client');
+    for (const sep of ['\n\n', '\r\n\r\n', '\r\n\n', '\n\r\n']) {
+      const [blocks, rest] = takeSseBlocks(`data: {"a":1}${sep}data: {"b":2}${sep}data: {"c"`);
+      expect(blocks).toEqual(['data: {"a":1}', 'data: {"b":2}']);
+      expect(rest).toBe('data: {"c"');
+    }
   });
 });

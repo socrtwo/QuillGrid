@@ -1,4 +1,4 @@
-# Building QuillLattice
+# Building QuillGrid
 
 All platforms share one web build (`npm run build` → `dist/`). Each platform wraps it:
 
@@ -71,7 +71,7 @@ You can build the APK on a 64-bit ARM phone or tablet with 4 GB of RAM or more, 
 ```bash
 pkg install -y curl
 termux-setup-storage        # optional: lets the script copy the APK to Downloads
-curl -fsSLO https://raw.githubusercontent.com/socrtwo/QuillLattice/main/scripts/termux-build.sh
+curl -fsSLO https://raw.githubusercontent.com/socrtwo/QuillGrid/main/scripts/termux-build.sh
 bash termux-build.sh
 ```
 
@@ -80,7 +80,7 @@ Options (environment variables):
 | Variable | Default | Meaning |
 |---|---|---|
 | `QL_BRANCH` | `main` | Branch to build |
-| `QL_DIR` | `~/QuillLattice` | Checkout folder |
+| `QL_DIR` | `~/QuillGrid` | Checkout folder |
 | `ANDROID_HOME` | `~/android-sdk` | SDK folder |
 | `QL_HEAP` | `1536m` | Gradle heap; lower it (`1024m`) if the build is killed for memory |
 
@@ -90,12 +90,12 @@ The manual steps the script performs, if you prefer to run them yourself:
 
 ```bash
 pkg update -y && pkg install -y git nodejs-lts openjdk-21 aapt aapt2 unzip wget zip
-git clone --depth 1 https://github.com/socrtwo/QuillLattice && cd QuillLattice
+git clone --depth 1 https://github.com/socrtwo/QuillGrid && cd QuillGrid
 ELECTRON_SKIP_BINARY_DOWNLOAD=1 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci
 npm run build
 mkdir -p ~/android-sdk/cmdline-tools && cd ~/android-sdk/cmdline-tools
 wget https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
-unzip commandlinetools-linux-*_latest.zip && mv cmdline-tools latest && cd ~/QuillLattice
+unzip commandlinetools-linux-*_latest.zip && mv cmdline-tools latest && cd ~/QuillGrid
 export ANDROID_HOME=~/android-sdk JAVA_HOME=$PREFIX/lib/jvm/java-21-openjdk
 yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0"
@@ -127,7 +127,7 @@ xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sd
 
 ## Icons
 
-`npm run icons` regenerates every icon from the vector shapes in `scripts/gen-android-icons.mjs`: the Android launcher icons, `public/favicon.svg`, and (through `scripts/gen-platform-icons.mjs`) the desktop, iOS and web-app PNGs. Rendering uses Playwright's Chromium.
+`npm run icons` regenerates every icon from the sources `resources/icon.svg`, `resources/icon-foreground.svg` and `resources/icon-background.txt` (the Quill suite icon family): `scripts/gen-android-icons.mjs` writes the Android launcher icons, `resources/icon-square.svg` and `public/favicon.svg`, and `scripts/gen-platform-icons.mjs` the desktop, iOS and web-app PNGs. Rendering uses Playwright's Chromium.
 
 ## Command reference
 

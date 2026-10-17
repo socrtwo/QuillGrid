@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>QuillLattice</string>
+	<string>QuillGrid</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -43,7 +43,7 @@
       </array>
     </dict>
 	</dict>
-	<!-- File types QuillLattice can open ("Open in" / Share sheet / Files app). -->
+	<!-- File types QuillGrid can open ("Open in" / Share sheet / Files app). -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -101,15 +101,15 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>QuillLattice Workbook</string>
+			<string>QuillGrid Workbook</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>io.github.socrtwo.quilllattice.qlw</string>
-				<string>io.github.socrtwo.quilllattice.qlwe</string>
+				<string>io.github.socrtwo.quillgrid.qgw</string>
+				<string>io.github.socrtwo.quillgrid.qgwe</string>
 			</array>
 		</dict>
 	</array>
@@ -254,14 +254,14 @@
 			</dict>
 		</dict>
 	</array>
-	<!-- Formats QuillLattice defines. -->
+	<!-- Formats QuillGrid defines. -->
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
 			<key>UTTypeIdentifier</key>
-			<string>io.github.socrtwo.quilllattice.qlw</string>
+			<string>io.github.socrtwo.quillgrid.qgw</string>
 			<key>UTTypeDescription</key>
-			<string>QuillLattice Workbook</string>
+			<string>QuillGrid Workbook</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
@@ -271,19 +271,19 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>qlw</string>
+					<string>qgw</string>
 				</array>
 				<key>public.mime-type</key>
 				<array>
-					<string>application/x-quilllattice</string>
+					<string>application/x-quillgrid</string>
 				</array>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeIdentifier</key>
-			<string>io.github.socrtwo.quilllattice.qlwe</string>
+			<string>io.github.socrtwo.quillgrid.qgwe</string>
 			<key>UTTypeDescription</key>
-			<string>Encrypted QuillLattice Workbook</string>
+			<string>Encrypted QuillGrid Workbook</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
@@ -293,11 +293,11 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>qlwe</string>
+					<string>qgwe</string>
 				</array>
 				<key>public.mime-type</key>
 				<array>
-					<string>application/x-quilllattice-encrypted</string>
+					<string>application/x-quillgrid-encrypted</string>
 				</array>
 			</dict>
 		</dict>
@@ -306,7 +306,7 @@
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
+	<false/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UILaunchStoryboardName</key>
