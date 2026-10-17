@@ -116,9 +116,10 @@ function importWb(b: Uint8Array, name: string, warnings: string[], opts: LegacyO
     else if (r.op === 0xcc && page >= 0) names[page] = cstr(r.data, 0, dec, 64);
   }
   const sheets: Sheet[] = [];
-  const sheetNames = (n: number) => { const out: string[] = []; for (let i = 0; i < n; i++) out.push(names[i] || `Page${i + 1}`); return out; };
+  // Unnamed pages are lettered A, B, C... as in Quattro Pro.
+  const sheetNames = (n: number) => { const out: string[] = []; for (let i = 0; i < n; i++) out.push(names[i] || colName(i)); return out; };
   const sheet = (i: number) => {
-    while (sheets.length <= i) { const s = new Sheet(book, names[sheets.length] || `Page${sheets.length + 1}`); s.defaultColW = charsToPx(9); sheets.push(s); }
+    while (sheets.length <= i) { const s = new Sheet(book, names[sheets.length] || colName(sheets.length)); s.defaultColW = charsToPx(9); sheets.push(s); }
     return sheets[i];
   };
   let maxPage = 0;
@@ -127,6 +128,40 @@ function importWb(b: Uint8Array, name: string, warnings: string[], opts: LegacyO
   const all = sheetNames(Math.max(maxPage + 1, names.length));
   const styles = new Map<string, number>();
   const sid = (st: CellStyle) => { const k = JSON.stringify(st); let id = styles.get(k); if (id == null) { id = Object.keys(st).length ? book.styleId(st) : 0; styles.set(k, id); } return id; };
+  // Notebook styles: fonts (0xCF: size in points, attributes, name) and cell styles (0xCE: number
+  // format, alignment, font number). A cell's style word holds (style number + 1) << 3.
+  const fonts: { size: number; attr: number; name: string }[] = [];
+  const cstyles: Uint8Array[] = [];
+  for (const r of recs) {
+    if (r.op === 0xcf && r.data.length >= 5) fonts.push({ size: u16(r.data, 0), attr: u16(r.data, 2), name: cstr(r.data, 4, dec, 32) });
+    else if (r.op === 0xce && r.data.length >= 8) cstyles.push(r.data);
+  }
+  const base = fonts[0];
+  const styleCache = new Map<number, CellStyle>();
+  const wbStyle = (word: number, isText: boolean): CellStyle => {
+    const key = word * 2 + (isText ? 1 : 0);
+    const hit = styleCache.get(key);
+    if (hit) return hit;
+    const st: CellStyle = {};
+    const e = cstyles[(word >> 3) - 1];
+    if (e) {
+      const nf = isText ? null : wbNumFmt(e[0]);
+      if (nf) st.numFmt = nf;
+      const al = e[1] & 7;
+      if (al === 1) st.hAlign = 'left'; else if (al === 2) st.hAlign = 'center'; else if (al === 3) st.hAlign = 'right'; else if (al === 6) st.hAlign = 'centerContinuous';
+      const f = fonts[e[4] - 1];
+      if (f) {
+        if (f.attr & 1) st.bold = true;
+        if (f.attr & 2) st.italic = true;
+        if (f.attr & 4) st.underline = 'single';
+        if (f.attr & 0x20) st.strike = true;
+        if (base && f.size !== base.size && f.size > 3 && f.size < 200) st.size = f.size;
+        if (base && f.name && f.name !== base.name) st.font = f.name;
+      }
+    }
+    styleCache.set(key, st);
+    return st;
+  };
   let bad = 0;
   let pending: { sh: Sheet; r: number; c: number } | null = null;
   for (const rec of recs) {
@@ -140,13 +175,17 @@ function importWb(b: Uint8Array, name: string, warnings: string[], opts: LegacyO
     const sh = sheet(s);
     try {
       switch (rec.op) {
-        case 0x0d: sh.setComputed(r, c, { v: i16(d, 6) }); break;
-        case 0x0e: sh.setComputed(r, c, { v: f64(d, 6) }); break;
+        case 0x0c: { const s = sid(wbStyle(u16(d, 4), false)); if (s) sh.setComputed(r, c, { s }); break; }
+        case 0x0d: sh.setComputed(r, c, { v: i16(d, 6), s: sid(wbStyle(u16(d, 4), false)) || undefined }); break;
+        case 0x0e: sh.setComputed(r, c, { v: f64(d, 6), s: sid(wbStyle(u16(d, 4), false)) || undefined }); break;
         case 0x0f: {
           const raw = cstr(d, 6, dec);
           const lab = lotusLabel(raw);
           const cell: Cell = { v: lab ? lab.text : raw.length === 1 && "'\"^\\".includes(raw) ? '' : raw };
-          if (lab && lab.align !== 'left') { const st = sid({ hAlign: lab.align }); if (st) cell.s = st; }
+          const st = { ...wbStyle(u16(d, 4), true) };
+          if (lab && lab.align !== 'left') st.hAlign = lab.align;
+          const s = sid(st);
+          if (s) cell.s = s;
           sh.setComputed(r, c, cell);
           break;
         }
@@ -155,6 +194,8 @@ function importWb(b: Uint8Array, name: string, warnings: string[], opts: LegacyO
           const total = u16(d, 16), clen = u16(d, 18);
           const code = d.subarray(20, 20 + clen), refs = d.subarray(20 + clen, 20 + total);
           const cell: Cell = { v: Number.isFinite(v) ? v : null };
+          const fs = sid(wbStyle(u16(d, 4), false));
+          if (fs) cell.s = fs;
           try {
             const f = wbFormula(code, refs, { r, c, s }, all, dec);
             const unk = unknownFunctions(f);
@@ -181,6 +222,25 @@ function importWb(b: Uint8Array, name: string, warnings: string[], opts: LegacyO
   book.activeSheet = 0;
   if (name) book.props.title = name.replace(/\.[^.]+$/, '');
   return book;
+}
+
+/**
+ * Number format of a Quattro Pro for Windows style: the high nibble is the kind (1 fixed,
+ * 2 scientific, 3 currency, 4 percent, 5 comma, 0 special, 7 user-defined), the low nibble the
+ * decimals or the special format (2 general, 4 hidden, 5-9 dates D1-D5, 10-13 times D6-D9).
+ */
+export function wbNumFmt(b: number): string | null {
+  const t = (b >> 4) & 7, d = b & 15;
+  const dec = d ? '.' + '0'.repeat(d) : '';
+  switch (t) {
+    case 1: return `0${dec}`;
+    case 2: return `0${dec}E+00`;
+    case 3: return `$#,##0${dec}_);($#,##0${dec})`;
+    case 4: return `0${dec}%`;
+    case 5: return `#,##0${dec}_);(#,##0${dec})`;
+    case 0: return ([null, null, null, null, ';;;', 'dd-mmm-yy', 'dd-mmm', 'mmm-yy', 'mm/dd/yy', 'mm/dd', 'h:mm:ss AM/PM', 'h:mm AM/PM', 'hh:mm:ss', 'hh:mm'] as (string | null)[])[d] ?? null;
+  }
+  return null;
 }
 
 // ------------------------------------------------------------------------------------------

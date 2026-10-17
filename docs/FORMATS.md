@@ -39,7 +39,7 @@ Fidelity tiers: **full** (everything the format stores that QuillGrid can repres
 | Microsoft Excel | 97-2003 (BIFF8) | 1997-2003 | .xls, .xlt | OLE2 compound file with a `Workbook` stream | high | See the README |
 | Microsoft Works | 6-9 spreadsheet | 2001-2007 | .xlr | OLE2 compound file whose stream starts with a BIFF BOF record | high | As Excel |
 | Microsoft Works | 2-4 for DOS spreadsheet | 1987-1994 | .wks | Lotus BOF 0x0404 followed by 0x54xx records | high | Font colors are not read |
-| Microsoft Works | 3-4 for Windows spreadsheet | 1993-1995 | .wks | First record 0x00FF with version 0x0404 | values + formulas | Bold, italic, underline and alignment are kept; number formats are not decoded |
+| Microsoft Works | 3-4 for Windows spreadsheet | 1993-1995 | .wks | First record 0x00FF with version 0x0404 | high | Number formats, bold, italic, underline and alignment are kept; font colors are not read |
 | Lotus 1-2-3 | Release 1A | 1983 | .wks | BOF record (type 0, 2 bytes) version 0x0404 | full | |
 | Lotus 1-2-3 | Release 2.x | 1985-1993 | .wk1 | BOF version 0x0406 | full | Allways/WYSIWYG .fmt files are not applied |
 | Lotus Symphony | 1.0-2.x | 1984-1990 | .wrk, .wr1 | BOF version 0x0405/0x0406 | values + formulas | Symphony windows, forms and documents are ignored |
@@ -48,7 +48,7 @@ Fidelity tiers: **full** (everything the format stores that QuillGrid can repres
 | Lotus 1-2-3 | 97, Millennium Edition | 1997-2002 | .123 | BOF version 0x1005-0x1007 | values + formulas | As Release 3; pictures and charts are skipped |
 | Lotus 1-2-3 | formatting files | 1989-1993 | .fmt, .fm3 | BOF version 0x8000-0x8007 | recognized | Not applied; open the worksheet itself |
 | Quattro, Quattro Pro for DOS | 1-5 | 1987-1993 | .wq1, .wq2 | BOF version 0x5120 / 0x5121 | high | Quattro-only functions are kept as values with a note |
-| Quattro Pro for Windows | 1-6 | 1992-1996 | .wb1, .wb2, .wb3 | BOF (2 bytes) version 0x1001-0x1007 | values + formulas | Several pages with their names; formulas with page and block references; styles and number formats are not decoded |
+| Quattro Pro for Windows | 1-6 | 1992-1996 | .wb1, .wb2, .wb3 | BOF (2 bytes) version 0x1001-0x1007 | high | Several pages with their names; formulas with page and block references; number formats, fonts and alignment from the notebook styles; colors, borders and user-defined formats are not decoded |
 | Quattro Pro | 7 and later | 1996- | .qpw | OLE2 compound file with `NativeContent_MAIN` or `PerfectOffice_MAIN` | values only | Text only, one item per row: the record layout is not public |
 | dBASE, FoxBASE, FoxPro, Visual FoxPro, Clipper | dBASE II to 7, FoxPro 2, VFP 3-9 | 1980-2007 | .dbf (.dbt, .fpt memos) | Version byte, valid date, header and record sizes that match the file length | full | Memo text needs the .dbt/.fpt file passed with the table (`importDbf(..., { memo })`); opened alone, memo cells say "(memo)" |
 | VisiCalc | VisiCalc, Advanced VisiCalc | 1979-1983 | .vc | Text lines `>A1:` with cell contents, then `/W`, `/G` commands | full | Formulas are translated with VisiCalc's left-to-right evaluation |

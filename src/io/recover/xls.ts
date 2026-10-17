@@ -367,6 +367,8 @@ class Reader {
 
   color(i: number): string | undefined {
     if (i === 0x7fff || i === 64 || i === 65 || i === 0x51 || i < 0) return undefined;
+    // BIFF3-4 use 5-bit indexes: 24 and 25 are the system text and window colors (automatic).
+    if (this.ver < 5 && (i === 24 || i === 25 || i === 31)) return undefined;
     const idx = i < 8 ? i : i - 8;
     const hex = this.palette[idx];
     return hex ? `#${hex.toLowerCase()}` : undefined;
@@ -568,9 +570,19 @@ class Reader {
       xf.bt = b & 7; xf.bl = (b >>> 3) & 7; xf.br = (b >>> 6) & 7; xf.ct = (b >>> 9) & 0x7f; xf.cl = (b >>> 16) & 0x7f; xf.cr = (b >>> 23) & 0x7f;
     } else if (this.ver >= 3) {
       xf.font = d[0]; xf.fmt = d[1];
+      xf.locked = !!(d[2] & 1); xf.hidden = !!(d[2] & 2);
       const al = this.ver === 4 ? d[4] : u16(d, 4);
       xf.h = al & 7; xf.wrap = !!(al & 8);
-      if (this.ver === 4) xf.v = (al >> 4) & 3;
+      if (this.ver === 4) { xf.v = (al >> 4) & 3; const ori = (al >> 6) & 3; xf.rot = ori === 1 ? 255 : ori === 2 ? 90 : ori === 3 ? 180 : 0; }
+      if (d.length >= 12) {
+        // Background: pattern (6 bits), foreground and background colors (5 bits each).
+        const bg = u16(d, 6);
+        xf.pattern = bg & 0x3f; xf.fore = (bg >> 6) & 0x1f; xf.back = (bg >> 11) & 0x1f;
+        // Borders: style (3 bits) and color (5 bits) for top, left, bottom, right.
+        const bd = u32(d, 8);
+        xf.bt = bd & 7; xf.ct = (bd >>> 3) & 0x1f; xf.bl = (bd >>> 8) & 7; xf.cl = (bd >>> 11) & 0x1f;
+        xf.bb = (bd >>> 16) & 7; xf.cb = (bd >>> 19) & 0x1f; xf.br = (bd >>> 24) & 7; xf.cr = (bd >>> 27) & 0x1f;
+      }
     } else {
       xf.font = d[0]; xf.fmt = d[2] & 0x3f; xf.h = d[3] & 7;
       xf.locked = !(d[2] & 0x40); xf.hidden = !!(d[2] & 0x80);

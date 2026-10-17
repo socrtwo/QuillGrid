@@ -7,7 +7,8 @@ import type { Workbook } from '../../src/model/workbook';
 import { CellError } from '../../src/model/types';
 import { formatValue } from '../../src/model/numfmt';
 import { snum, lnum, f80, lmbcs, codepage } from '../../src/io/legacy/bin';
-import { lotusNumFmt, lotusVariant } from '../../src/io/legacy/lotus';
+import { lotusNumFmt, lotusVariant, worksWinNumFmt } from '../../src/io/legacy/lotus';
+import { wbNumFmt } from '../../src/io/legacy/quattro';
 import { lotusCodeToText } from '../../src/io/legacy/lotusfmla';
 import { translateVisiCalc, importVisiCalc } from '../../src/io/legacy/visicalc';
 import { importDbf } from '../../src/io/legacy/dbf';
@@ -106,6 +107,17 @@ describe('number encodings', () => {
 });
 
 describe('Lotus 1-2-3', () => {
+  it('maps Works for Windows and Quattro Pro for Windows style formats', () => {
+    expect(worksWinNumFmt(0x40)).toBe('0.00');
+    expect(worksWinNumFmt(0x43)).toBe('0.00%');
+    expect(worksWinNumFmt(0x8a)).toBe('00000');
+    expect(worksWinNumFmt(0x05)).toBeNull();
+    expect(wbNumFmt(0x14)).toBe('0.0000');
+    expect(wbNumFmt(0x22)).toBe('0.00E+00');
+    expect(wbNumFmt(0x05)).toBe('dd-mmm-yy');
+    expect(wbNumFmt(0x02)).toBeNull();
+  });
+
   it('maps cell formats', () => {
     expect(lotusNumFmt(0x22)).toBe('$#,##0.00_);($#,##0.00)');
     expect(lotusNumFmt(0x72)).toBe('dd-mmm-yy');

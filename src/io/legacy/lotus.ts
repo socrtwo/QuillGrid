@@ -69,6 +69,26 @@ export function lotusNumFmt(fmt: number): string | null | undefined {
   return null;
 }
 
+/**
+ * Number format of a Works for Windows cell style: the low five bits are the kind (0 fixed,
+ * 1 scientific, 2 currency, 3 percent, 4 comma, 5 general, 6 date, 10 leading zeros), the top
+ * three bits the decimals.
+ */
+export function worksWinNumFmt(b: number): string | null {
+  const kind = b & 0x1f, d = b >> 5;
+  const dec = d ? '.' + '0'.repeat(d) : '';
+  switch (kind) {
+    case 0: return `0${dec}`;
+    case 1: return `0${dec}E+00`;
+    case 2: return `$#,##0${dec}_);($#,##0${dec})`;
+    case 3: return `0${dec}%`;
+    case 4: return `#,##0${dec}_);(#,##0${dec})`;
+    case 6: return 'm/d/yyyy';
+    case 10: return '0'.repeat(d + 1);
+  }
+  return null;
+}
+
 const ALIGN: Record<string, CellStyle['hAlign']> = { left: 'left', right: 'right', center: 'center', fill: 'fill' };
 
 // ------------------------------------------------------------------------------------------
@@ -235,6 +255,8 @@ function readWk1(rd: LotusReader, recs: LRec[], guard: (r: LRec, fn: () => void)
       if (f.flags & 2) st.italic = true;
       if (f.flags & 4) st.underline = 'single';
     }
+    const nf = worksWinNumFmt(s[0]);
+    if (nf) st.numFmt = nf;
     const al = s[1] & 0x0c;
     if (al === 0x04) st.hAlign = 'left'; else if (al === 0x08) st.hAlign = 'center'; else if (al === 0x0c) st.hAlign = 'right';
     return st;
