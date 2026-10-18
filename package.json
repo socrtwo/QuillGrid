@@ -1,6 +1,6 @@
 {
   "name": "quillgrid",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "QuillGrid: an original open-source spreadsheet with a complete, customizable command library.",
   "license": "MIT",
