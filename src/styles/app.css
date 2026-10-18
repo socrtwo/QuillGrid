@@ -241,9 +241,9 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
 .ql-palette { background: var(--surface); border-radius: 14px; width: min(640px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.35); overflow: hidden; display: flex; flex-direction: column; max-height: 76vh; }
 .ql-palette-input { border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding: 14px 16px; font-size: 16px; }
 .ql-palette-list { overflow: auto; }
-.ql-palette-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; }
+.ql-palette-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; min-width: 0; }
 .ql-palette-row.ql-sel, .ql-palette-row:hover { background: var(--accent-soft); }
-.ql-palette-label { flex: 1; } .ql-palette-tab { color: var(--muted); font-size: 12px; }
+.ql-palette-label { flex: 1; min-width: 0; overflow-wrap: anywhere; } .ql-palette-tab { color: var(--muted); font-size: 12px; min-width: 0; text-align: right; }
 .ql-palette-row kbd, .ql-cmdlist kbd { font: 11px ui-monospace, monospace; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
 
 /* Mini toolbar */
@@ -301,7 +301,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
 .ql-note textarea { font-family: var(--font-ui); }
 
 /* Customize dialogs */
-.ql-customize { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; min-height: 0; flex: 1; }
+.ql-customize { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; flex: 1 0 auto; }
 .ql-cust-col { display: flex; flex-direction: column; gap: 6px; min-height: 0; min-width: 0; }
 .ql-cust-mid { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
 .ql-cust-btn { white-space: nowrap; }
@@ -351,7 +351,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, "Cousine", 
   .ql-overlay { padding: var(--sat) var(--sar) var(--kb, 0px) var(--sal); align-items: flex-end; }
   .ql-palette-overlay { align-items: flex-start; padding: calc(8px + var(--sat)) calc(8px + var(--sar)) calc(8px + var(--sab)) calc(8px + var(--sal)); }
   .ql-row2 { grid-template-columns: 1fr; }
-  .ql-customize { grid-template-columns: 1fr; }
+  .ql-customize { grid-template-columns: minmax(0, 1fr); }
   /* The middle toolbar keeps its labels (Add All A–Z, Reset… are not guessable from icons) and wraps. */
   .ql-cust-mid { flex-direction: row; flex-wrap: wrap; gap: 6px; }
   .ql-cust-mid .ql-cust-btn { padding: 5px 10px 5px 7px; min-height: 36px; font-size: 12.5px; gap: 3px; }
@@ -568,8 +568,9 @@ body.ql-fullscreen .ql-titlebar, body.ql-fullscreen .ql-tabs, body.ql-fullscreen
 
 /* ===== Page Layout, printing and Review (pagelayout.ts, print/print.ts, review.ts) ===== */
 .ql-hide-ink .ql-object[data-kind="ink"] { display: none !important; }
-.ql-pp { display: flex; gap: 12px; height: 100%; min-height: 0; }
-.ql-pp-side { flex: 0 0 240px; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
+/* The preview fills the dialog but never shrinks below its settings, navigation and a 240 px page view: short windows scroll the dialog body instead of drawing the parts over each other. */
+.ql-pp { display: flex; gap: 12px; flex: 1 0 auto; }
+.ql-pp-side { flex: 0 0 240px; display: flex; flex-direction: column; gap: 8px; overflow: auto; contain: size; }
 .ql-pp-setting { display: flex; flex-direction: column; gap: 2px; }
 .ql-pp-setting select { min-height: 36px; }
 .ql-pp-check { display: flex; align-items: center; gap: 6px; min-height: 36px; font-size: 13px; }
@@ -577,13 +578,14 @@ body.ql-fullscreen .ql-titlebar, body.ql-fullscreen .ql-tabs, body.ql-fullscreen
 .ql-pp-nav { display: flex; align-items: center; gap: 4px; padding: 4px 0; flex-wrap: wrap; }
 .ql-pp-counter { width: 64px; min-height: 32px; text-align: center; }
 .ql-pp-nav .ql-btn.ql-on { background: var(--accent-soft); }
-.ql-pp-view { flex: 1; min-height: 240px; overflow: auto; background: #8a8f98; border-radius: 8px; padding: 12px; display: flex; justify-content: center; align-items: flex-start; outline: none; }
+.ql-pp-view { flex: 1 0 240px; min-height: 240px; overflow: auto; background: #8a8f98; border-radius: 8px; padding: 12px; display: flex; justify-content: center; align-items: flex-start; outline: none; }
 .ql-pp-pagewrap { flex: none; box-shadow: 0 4px 18px rgba(0,0,0,.35); background: #fff; overflow: hidden; }
 .ql-pp-margins .ql-pp-area, .ql-pp-margins .ql-pp-hf { outline: 1px dashed #2f6fb0; }
 .ql-pp-empty { color: #fff; margin: auto; text-align: center; max-width: 320px; }
 .ql-pp-phone { flex-direction: column; }
-.ql-pp-phone .ql-pp-side { flex: none; max-height: 34%; }
-@media (max-width: 700px) { .ql-pp { flex-direction: column; } .ql-pp-side { flex: none; max-height: 36%; } }
+.ql-pp-phone .ql-pp-side { flex: none; max-height: 30vh; contain: none; }
+.ql-pp-phone .ql-pp-main { flex: 1 0 auto; }
+@media (max-width: 700px) { .ql-pp { flex-direction: column; } .ql-pp-side { flex: none; max-height: 30vh; contain: none; } .ql-pp-main { flex: 1 0 auto; } }
 .ql-hf-codes { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
 .ql-hf-codes .ql-iconbtn { min-width: 36px; min-height: 36px; }
 .ql-spell { display: flex; flex-direction: column; gap: 6px; }
@@ -713,10 +715,10 @@ body.ql-fullscreen .ql-titlebar, body.ql-fullscreen .ql-tabs, body.ql-fullscreen
 .ql-qa-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
 .ql-qa-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; min-height: 72px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; font-size: 12.5px; text-align: center; }
 .ql-qa-tile:hover, .ql-qa-tile:focus-visible { border-color: var(--accent); background: var(--accent-soft); }
-.ql-macro-editor { display: flex; flex-direction: column; gap: 6px; height: 100%; min-height: 60vh; }
+.ql-macro-editor { display: flex; flex-direction: column; gap: 6px; flex: 1 0 auto; min-height: 60vh; }
 .ql-macro-bar { flex-wrap: wrap; gap: 6px; align-items: center; }
 .ql-macro-bar select { max-width: 200px; }
-.ql-macro-main { display: flex; gap: 6px; flex: 1; min-height: 240px; }
+.ql-macro-main { display: flex; gap: 6px; flex: 1 0 auto; min-height: 240px; }
 .ql-macro-mods { width: 160px; flex: none; overflow: auto; display: flex; flex-direction: column; gap: 2px; }
 .ql-macro-code { flex: 1; min-height: 240px; font-family: ui-monospace, "Cousine", monospace; font-size: 13px; line-height: 1.45; tab-size: 2; white-space: pre; }
 .ql-macro-out { margin: 0; min-height: 60px; max-height: 20vh; overflow: auto; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface2); font-size: 12.5px; white-space: pre-wrap; }
