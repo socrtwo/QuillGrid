@@ -42,13 +42,13 @@ function isPristine(tab: BookTab): boolean {
 }
 
 const SIBLING: Record<string, { app: QuillApp; what: string }> = {
-  document: { app: 'QuillPen', what: 'its tables (one sheet each) and its text' },
-  presentation: { app: 'QuillStage', what: 'a sheet per slide with its text and tables' },
-  email: { app: 'QuillPost', what: 'the message headers and body, and its spreadsheet and CSV attachments as sheets' },
+  document: { app: 'Anne\'s Pen', what: 'its tables (one sheet each) and its text' },
+  presentation: { app: 'Anne\'s Stage', what: 'a sheet per slide with its text and tables' },
+  email: { app: 'Anne\'s Post', what: 'the message headers and body, and its spreadsheet and CSV attachments as sheets' },
 };
 
 /**
- * A document, presentation or message was opened: offer the Quill app made for it, and always
+ * A document, presentation or message was opened: offer the Anne's Office app made for it, and always
  * offer to import it here. Resolves 'import', 'opened' (handed to the other app) or 'cancel'.
  */
 async function chooseForeignOpen(sn: SniffResult, data: ArrayBuffer, name: string): Promise<'import' | 'opened' | 'cancel'> {
@@ -56,19 +56,19 @@ async function chooseForeignOpen(sn: SniffResult, data: ArrayBuffer, name: strin
   if (!sib) return 'import';
   const short = name.replace(/^.*[\\/]/, '');
   const canImport = !!formatById(sn.format)?.canImport;
-  const choices = [`Open in ${sib.app}`, ...(canImport ? ['Import into QuillGrid'] : [])];
-  const c = await choiceDialog(`Open ${sn.label}`, `${short} is ${article(sn.label)} ${sn.label}. ${sib.app} is the Quill app for it.${canImport ? ` QuillGrid can also import ${sib.what} into a new workbook.` : ''}`, choices);
+  const choices = [`Open in ${sib.app}`, ...(canImport ? ['Import into Anne\'s Grid'] : [])];
+  const c = await choiceDialog(`Open ${sn.label}`, `${short} is ${article(sn.label)} ${sn.label}. ${sib.app} is the Anne's Office app for it.${canImport ? ` Anne's Grid can also import ${sib.what} into a new workbook.` : ''}`, choices);
   if (c === 1) return 'import';
   if (c !== 0) return 'cancel';
   const mime = formatById(sn.format)?.mime || 'application/octet-stream';
   const r = await openInQuillApp(sib.app, data, short, mime);
   if (r.opened) { toast(`Opened ${short} in ${sib.app}`); return 'opened'; }
   const why = r.reason === 'unsupported'
-    ? (isIOS() ? `On iPhone and iPad, apps cannot hand files to each other. Open ${short} from the Files app in ${sib.app}.` : `A web page cannot hand files to other apps. Open ${short} in ${sib.app} yourself (install it from the Quill suite if you do not have it).`)
-    : r.reason === 'not-installed' ? `${sib.app} does not seem to be installed${r.message ? ` (${r.message})` : ''}. Install it from the Quill suite to open ${short} there.`
+    ? (isIOS() ? `On iPhone and iPad, apps cannot hand files to each other. Open ${short} from the Files app in ${sib.app}.` : `A web page cannot hand files to other apps. Open ${short} in ${sib.app} yourself (install it from the Anne's Office suite if you do not have it).`)
+    : r.reason === 'not-installed' ? `${sib.app} does not seem to be installed${r.message ? ` (${r.message})` : ''}. Install it from the Anne's Office suite to open ${short} there.`
       : `${short} could not be handed to ${sib.app}${r.message ? `: ${r.message}` : '.'}`;
   if (!canImport) { await alertDialog(`${sib.app} is not available`, why); return 'cancel'; }
-  const again = await choiceDialog(`${sib.app} is not available`, `${why} You can import it into QuillGrid instead.`, ['Import into QuillGrid']);
+  const again = await choiceDialog(`${sib.app} is not available`, `${why} You can import it into Anne's Grid instead.`, ['Import into Anne\'s Grid']);
   return again === 0 ? 'import' : 'cancel';
 }
 
@@ -193,7 +193,7 @@ function markSaved(app: App, tab: BookTab, version: number) {
   tab.saved = Date.now();
   if (tab.book.version === version) { tab.dirty = false; kvDel('draft:' + tab.id); } else app.scheduleAutosave();
   app.ui.tabsChanged();
-  document.title = `${tab.displayName}${tab.dirty ? ' •' : ''} – QuillGrid`;
+  document.title = `${tab.displayName}${tab.dirty ? ' •' : ''} – Anne's Grid`;
 }
 
 def([
@@ -454,7 +454,7 @@ def([
     run: async (app) => {
       const p = app.prefs;
       const calc = app.book.calc;
-      const r = await openDialog({ title: 'QuillGrid Options', wide: true, fields: [
+      const r = await openDialog({ title: 'Anne\'s Grid Options', wide: true, fields: [
         { key: 'h1', type: 'heading', label: 'General' },
         { key: 'author', label: 'User name', type: 'text', value: p.author, half: true },
         { key: 'initials', label: 'Initials', type: 'text', value: p.initials, half: true },
@@ -585,13 +585,13 @@ def([
   { id: 'help.commandReference', label: 'Command Reference', icon: 'menu_book', tab: 'Help', group: 'Help', noRecord: true, run: (app) => app.ui.showCommandReference() },
   { id: 'help.tour', label: 'Show the Quick Tour', icon: 'tour', tab: 'Help', group: 'Help', noRecord: true, run: (app) => app.ui.tour() },
   {
-    id: 'help.about', label: 'About QuillGrid', icon: 'info', tab: 'Help', group: 'Help', noRecord: true,
+    id: 'help.about', label: 'About Anne\'s Grid', icon: 'info', tab: 'Help', group: 'Help', noRecord: true,
     run: async () => {
       const { functionNames } = await import('../calc/functions');
-      await alertDialog('About QuillGrid', h('div', { class: 'ql-msg' },
-        h('p', null, h('b', null, `QuillGrid ${__APP_VERSION__}`), ' — an original, open-source spreadsheet (MIT License). A companion to QuillPen.'),
+      await alertDialog('About Anne\'s Grid', h('div', { class: 'ql-msg' },
+        h('p', null, h('b', null, `Anne's Grid ${__APP_VERSION__}`), ' — an original, open-source spreadsheet (MIT License). A companion to Anne\'s Pen.'),
         h('p', null, `${commandCount()} commands and ${functionNames().length} worksheet functions. Every command is available to the Quick Access Bar, custom tabs, keyboard shortcuts, macros and command search.`),
-        h('p', null, 'QuillGrid is not affiliated with, endorsed by, or sponsored by Microsoft, Google, Apple, The Document Foundation, or any other vendor. Product names are used only to describe file-format compatibility or the origin of an idea.'),
+        h('p', null, 'Anne\'s Grid is not affiliated with, endorsed by, or sponsored by Microsoft, Google, Apple, The Document Foundation, or any other vendor. Product names are used only to describe file-format compatibility or the origin of an idea.'),
         h('p', null, 'Open-source components: JSZip (MIT/GPLv3 dual, used under MIT), nspell and hunspell-asm (MIT) with SCOWL English dictionaries (MIT and BSD-style), Material Symbols (Apache 2.0), Capacitor (MIT), Electron (MIT), fonts Carlito, Caladea, Gelasio, EB Garamond, Courier Prime, Libre Baskerville, Lato, Merriweather, Open Sans (SIL OFL 1.1) and Tinos, Arimo, Cousine (Apache 2.0). Their licenses are in Help ▸ Third-Party Notices.')));
     },
   },

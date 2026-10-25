@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Plan.** QuillStage has no code yet. Milestones are ordered by dependency, not by date. Each milestone ends with a tagged prerelease built for every platform by the release workflow, starting with M1. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
+> **Plan.** Anne's Stage has no code yet. Milestones are ordered by dependency, not by date. Each milestone ends with a tagged prerelease built for every platform by the release workflow, starting with M1. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
 
 ## M0 — Planning (this repository)
 
@@ -11,7 +11,7 @@
 ## M1 — Shell and model
 
 - Project scaffold: TypeScript, Vite, vitest, Capacitor 8 (Android, iOS), Electron, PWA manifest and service worker.
-- CI (`android.yml`) and Release (`release.yml`) workflows, adapted from QuillGrid.
+- CI (`android.yml`) and Release (`release.yml`) workflows, adapted from Anne's Grid.
 - Shared shell from the sister apps: command registry, ribbon, Quick Access Bar with the full drop-down and **Add All Choices** (`view.qatAddAll`), Customize Tabs, Customize Keyboard, command search, Backstage, preferences, settings import/export.
 - Deck model with transactions and undo/redo; masters, layouts, placeholders and inheritance; themes.
 - Normal view (thumbnails, slide, notes), Outline view with two-way sync, Slide Sorter, sections.
@@ -31,7 +31,7 @@
 
 - Shapes (full preset set), connectors that stay glued, merge shapes, edit points.
 - Pictures: crop, crop to shape, corrections, color, transparency, compress.
-- Tables (design and layout tabs), charts (shared renderer with QuillGrid, embedded data grid), diagrams (SmartArt-compatible layouts, keyboard editing, outline to diagram).
+- Tables (design and layout tabs), charts (shared renderer with Anne's Grid, embedded data grid), diagrams (SmartArt-compatible layouts, keyboard editing, outline to diagram).
 - Equations (LaTeX and linear), symbols, icons, decorative text, action buttons, links.
 - Comments, Navigator pane, Check Accessibility, alt text and reading order.
 - Spelling with offline English dictionaries and the **Spelling Dictionaries** wizard (90+ languages).
@@ -54,7 +54,7 @@
 - Record tab: camera, microphone, teleprompter, ink and laser capture, re-record slide, recording timeline; export to video, animated GIF, web lecture and story.
 - Live Camera, Rehearsal Coach, Live Subtitles, dictation, ink tools (ink to shape, text and math, replay).
 - Phone remote, cast to display, polls, word clouds, quizzes, ratings and audience Q&A.
-- Brand Kit, Linked Components, Web Embed, Linked Chart from QuillGrid, slide status and assignees, picture editor.
+- Brand Kit, Linked Components, Web Embed, Linked Chart from Anne's Grid, slide status and assignees, picture editor.
 
 ## M7 — AI and canvas
 

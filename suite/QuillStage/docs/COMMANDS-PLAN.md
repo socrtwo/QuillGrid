@@ -1,15 +1,15 @@
 # Command inventory plan
 
-> **Plan.** QuillStage has no code yet. This is the planned command inventory: every command of a desktop presentation program, tab by tab, with the command id QuillStage will use, followed by the commands adopted from other software in [INNOVATIONS.md](INNOVATIONS.md). When the app exists, `npm run catalog` will generate `docs/COMMANDS.md` from the command registry, and this plan will be retired.
+> **Plan.** Anne's Stage has no code yet. This is the planned command inventory: every command of a desktop presentation program, tab by tab, with the command id Anne's Stage will use, followed by the commands adopted from other software in [INNOVATIONS.md](INNOVATIONS.md). When the app exists, `npm run catalog` will generate `docs/COMMANDS.md` from the command registry, and this plan will be retired.
 
 Every command will be usable on the Quick Access Bar, on custom tabs, on a keyboard shortcut, in a macro and in command search (Alt+Q). Commands marked *not in tabs* have no default place on a tab but are reachable everywhere else, so nothing is hidden.
 
 ## Conventions
 
-- **ids** are `area.name` in camelCase, as in QuillPen and QuillGrid. Where the sister apps already define a command (`file.save`, `edit.undo`, `review.spelling`, `view.cmdSearch`, `view.qatAddAll`…), QuillStage reuses the id so that shared settings, macros and QAT layouts carry over.
+- **ids** are `area.name` in camelCase, as in Anne's Pen and Anne's Grid. Where the sister apps already define a command (`file.save`, `edit.undo`, `review.spelling`, `view.cmdSearch`, `view.qatAddAll`…), Anne's Stage reuses the id so that shared settings, macros and QAT layouts carry over.
 - **Galleries** (themes, transitions, animations, shape styles) are one command with an argument, written `id(arg)`, plus one command per item where it is useful to place a single item on the QAT, written as a range: `trans.fade`, `trans.push`, ….
 - **Shortcuts** are planned defaults. Many follow long-standing desktop conventions because users expect them; all can be rebound.
-- **Vendor feature names** are replaced with generic terms; see [LEGAL.md](LEGAL.md). The left column says what the user sees in QuillStage.
+- **Vendor feature names** are replaced with generic terms; see [LEGAL.md](LEGAL.md). The left column says what the user sees in Anne's Stage.
 
 | Namespace | Area |
 |---|---|
@@ -71,7 +71,7 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 | Print… / Print Preview and Print | Print | `file.print` | Ctrl+P | slides, handouts (1–9 per page), notes pages, outline; frames; grayscale |
 | Quick Print | Print | `file.quickPrint` | | |
 | Share… | Share | `file.share` | | system share sheet |
-| Email as Attachment | Share | `file.email` | | uses QuillPost when installed |
+| Email as Attachment | Share | `file.email` | | uses Anne's Post when installed |
 | Email as PDF | Share | `file.emailPdf` | | |
 | Present Online / Broadcast Show | Share | `show.broadcast` | | M8 |
 | Export as PDF… | Export | `file.export.pdf` | | options: slides, handouts, notes, outline, one page per build step |
@@ -82,7 +82,7 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 | Export HTML Show | Export | `file.export.htmlShow` | | self-contained player |
 | Export Story (responsive web page) | Export | `file.export.story` | | Sway-style |
 | Export Web Lecture | Export | `file.export.webLecture` | | Producer-style |
-| Export Handout Document (to QuillPen) | Export | `file.export.handoutDoc` | | .docx/.odt with slides and notes |
+| Export Handout Document (to Anne's Pen) | Export | `file.export.handoutDoc` | | .docx/.odt with slides and notes |
 | Export Outline… | Export | `file.export.outline` | | .rtf, .docx, .md, .txt |
 | Export Markdown Slides | Export | `file.export.markdown` | | |
 | Export as PowerPoint Presentation (.pptx) | Export | `file.export.pptx` | | |
@@ -91,7 +91,7 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 | Export as Macro-Enabled Presentation (.pptm) | Export | `file.export.pptm` | | VBA preserved |
 | Export as OpenDocument Presentation (.odp) | Export | `file.export.odp` | | |
 | Export as Flat OpenDocument (.fodp) | Export | `file.export.fodp` | | |
-| Export as QuillStage Presentation (.qsp / .qspe) | Export | `file.export.qsp`, `file.export.qspe` | | |
+| Export as Anne's Stage Presentation (.qsp / .qspe) | Export | `file.export.qsp`, `file.export.qspe` | | |
 | Export LaTeX Beamer (.tex) | Export | `file.export.beamer` | | stretch, M8 |
 | Package Presentation… | Export | `file.package` | | Package for CD equivalent |
 | Import Markdown Slides… | Import | `file.import.markdown` | | |
@@ -212,7 +212,7 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 | Reuse Slides… | Slides | `slide.reuse` | | |
 | Table | Tables | `insert.table` | | grid picker and dialog |
 | Draw Table | Tables | `insert.drawTable` | | |
-| Spreadsheet Table (QuillGrid) | Tables | `insert.gridObject` | | embedded workbook range |
+| Spreadsheet Table (Anne's Grid) | Tables | `insert.gridObject` | | embedded workbook range |
 | Pictures from This Device… | Images | `insert.picture` | | |
 | Online Pictures (openly licensed)… | Images | `insert.onlinePictures` | | records license and attribution |
 | Screenshot / Screen Clipping | Images | `insert.screenshot` | | desktop and web where allowed |
@@ -224,7 +224,7 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 | 3D Models… | Illustrations | `insert.model3d` | | glTF/GLB; M8 |
 | Diagram… | Illustrations | `insert.diagram` | | SmartArt equivalent: list, process, cycle, hierarchy, relationship, matrix, pyramid, picture |
 | Chart… | Illustrations | `insert.chart` | | column, bar, line, area, pie, doughnut, scatter, bubble, radar, stock, surface, histogram, box and whisker, waterfall, funnel, treemap, sunburst, map (M8), combo |
-| Linked Chart from QuillGrid… | Illustrations | `insert.linkedChart` | | |
+| Linked Chart from Anne's Grid… | Illustrations | `insert.linkedChart` | | |
 | Sparkline | Illustrations | `insert.sparkline` | | |
 | Poll / Word Cloud / Quiz / Rating | Interactive | `insert.poll`, `insert.wordCloud`, `insert.quiz`, `insert.rating` | | replaces Forms |
 | Summary Zoom / Section Zoom / Slide Zoom | Links | `insert.summaryZoom`, `insert.sectionZoom`, `insert.slideZoom` | | |
@@ -514,7 +514,7 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 | Report a Problem / Feedback | `help.feedback` (opens a GitHub issue form) |
 | Check for Updates | `help.updates` (desktop) |
 | Third-Party Notices | `help.notices` |
-| About QuillStage | `help.about` |
+| About Anne's Stage | `help.about` |
 
 ## Developer (shown on request, as in the sister apps)
 
@@ -621,7 +621,7 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 | Chart Styles gallery | Chart Styles | `chart.style` |
 | Switch Row/Column | Data | `chart.switchRowCol` |
 | Select Data… | Data | `chart.selectData` |
-| Edit Data (in grid / in QuillGrid) | Data | `chart.editData`, `chart.editInGrid` |
+| Edit Data (in grid / in Anne's Grid) | Data | `chart.editData`, `chart.editInGrid` |
 | Refresh Data | Data | `chart.refreshData` |
 | Change Chart Type | Type | `chart.changeType` |
 | Save as Template… | Type | `chart.saveTemplate` |
@@ -776,7 +776,7 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 | Result Chart Type | `poll.chartType` |
 | Allow Multiple Answers / Anonymous | `poll.multiple`, `poll.anonymous` |
 | Quiz: Correct Answer / Timer / Leaderboard | `quiz.correct`, `quiz.timer`, `quiz.leaderboard` |
-| Export Results to QuillGrid (.csv/.xlsx) | `poll.exportResults` |
+| Export Results to Anne's Grid (.csv/.xlsx) | `poll.exportResults` |
 
 ## Slides, sections and outline (thumbnails and Outline view)
 
@@ -804,7 +804,7 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 | Find Unused Masters and Layouts | `tools.unusedLayouts` | |
 | Remove Unused Masters and Layouts | `tools.removeUnusedLayouts` | |
 | Reset All Slides to Layout | `tools.resetAll` | |
-| Speaker Notes to Script (QuillPen) | `tools.notesToDoc` | |
+| Speaker Notes to Script (Anne's Pen) | `tools.notesToDoc` | |
 | Estimate Speaking Time | `tools.speakingTime` | from notes word count |
 | Batch Replace Images | `tools.replaceImages` | |
 | Extract All Media… | `tools.extractMedia` | also used by recovery |
@@ -905,4 +905,4 @@ Collected from [INNOVATIONS.md](INNOVATIONS.md) for easy review; each also appea
 
 ## Suite-wide commands carried over
 
-These exist in QuillPen and QuillGrid and keep their ids: `view.cmdSearch`, `view.qatAddAll`, `view.qatPosition`, `view.touchMode`, `file.customizeQat`, `file.customizeRibbon`, `file.customizeKeyboard`, `file.exportSettings`, `file.versions`, `file.snapshot`, `file.openRepair`, `file.recoveryReport`, `review.spelling`, `review.dictionaries`, `review.thesaurus`, `dev.recordMacro`, `dev.macroEditor`, and the AI setup commands (`ai.setup`, `ai.providers`, `ai.privacy`, `ai.active`, `ai.stop`, `ai.deleteModels`).
+These exist in Anne's Pen and Anne's Grid and keep their ids: `view.cmdSearch`, `view.qatAddAll`, `view.qatPosition`, `view.touchMode`, `file.customizeQat`, `file.customizeRibbon`, `file.customizeKeyboard`, `file.exportSettings`, `file.versions`, `file.snapshot`, `file.openRepair`, `file.recoveryReport`, `review.spelling`, `review.dictionaries`, `review.thesaurus`, `dev.recordMacro`, `dev.macroEditor`, and the AI setup commands (`ai.setup`, `ai.providers`, `ai.privacy`, `ai.active`, `ai.stop`, `ai.deleteModels`).

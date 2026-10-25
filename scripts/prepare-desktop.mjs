@@ -17,7 +17,7 @@ for (const f of ['main.cjs', 'preload.cjs']) cpSync(join(root, 'electron', f), j
 cpSync(join(root, 'resources/icon-512.png'), join(out, 'electron/icon.png'));
 writeFileSync(join(out, 'package.json'), JSON.stringify({
   name: 'quillgrid',
-  productName: 'QuillGrid',
+  productName: 'Anne\'s Grid',
   version: pkg.version,
   description: pkg.description,
   homepage: 'https://github.com/socrtwo/QuillGrid',

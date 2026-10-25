@@ -1,4 +1,4 @@
-// Quill suite icon family: same tile, same white quill feather, app-specific white card.
+// Anne's Office suite icon family: same tile, same white quill feather, app-specific white card.
 // Writes <app>/icon.svg (full tile), <app>/icon-foreground.svg (adaptive-icon foreground, transparent),
 // <app>/icon-background.txt (solid color for adaptive backgrounds) and preview.html.
 import { writeFileSync, mkdirSync } from 'node:fs';

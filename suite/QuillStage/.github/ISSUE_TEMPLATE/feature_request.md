@@ -6,7 +6,7 @@ labels: enhancement
 assignees: ''
 ---
 
-**What would you like QuillStage to do?**
+**What would you like Anne's Stage to do?**
 A clear description of the feature or command.
 
 **Where should it live?**

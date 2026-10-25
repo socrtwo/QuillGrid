@@ -351,7 +351,7 @@ export function exportHtml(book: Workbook, opts: { sheetIndex?: number; range?: 
   const sheets = opts.sheetIndex != null ? [book.sheets[opts.sheetIndex]].filter(Boolean) : book.sheets.filter((s) => s.visibility === 'visible');
   const title = book.props.title || (sheets.length === 1 ? sheets[0].name : 'Workbook');
   const body = sheets.map((s) => (sheets.length > 1 ? `<h2>${escHtml(s.name)}</h2>\n` : '') + sheetTable(s, opts.range)).join('\n');
-  const html = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n<meta name="generator" content="QuillGrid">\n<title>${escHtml(title)}</title>\n<style>body{font-family:Calibri,Carlito,Arial,sans-serif;font-size:11pt}table{border-collapse:collapse;margin-bottom:1.5em}td{padding:1px 4px;vertical-align:bottom;overflow:hidden}</style>\n</head>\n<body>\n${body}\n</body>\n</html>\n`;
+  const html = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n<meta name="generator" content="Anne's Grid">\n<title>${escHtml(title)}</title>\n<style>body{font-family:Calibri,Carlito,Arial,sans-serif;font-size:11pt}table{border-collapse:collapse;margin-bottom:1.5em}td{padding:1px 4px;vertical-align:bottom;overflow:hidden}</style>\n</head>\n<body>\n${body}\n</body>\n</html>\n`;
   return new Blob([html], { type: 'text/html;charset=utf-8' });
 }
 

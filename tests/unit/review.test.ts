@@ -216,7 +216,7 @@ describe('statistics, accessibility and page layout commands', () => {
     expect(app.book.theme.name).toBe('Harbor');
     expect(app.book.styles[0].font).toBe('Open Sans');
     app.book.undo();
-    expect(app.book.theme.name).toBe('Quill');
+    expect(app.book.theme.name).toBe('Anne\'s Office');
     expect(app.book.styles[0].font).toBeUndefined();
     app.book.undo();
     expect(s.print.area).toBeUndefined();

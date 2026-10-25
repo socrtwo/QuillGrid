@@ -2,7 +2,7 @@
  * Damaged-workbook recovery.
  *
  * The pipeline follows the author's Word Recovery / Immortal Unzipper design (socrtwo), adapted
- * from QuillPen's document recovery to spreadsheets. Methods run in order and the result
+ * from Anne's Pen's document recovery to spreadsheets. Methods run in order and the result
  * with the most recovered cells wins:
  *
  *   a. identify   S2 file identification: the real type regardless of extension, embedded or
@@ -110,7 +110,7 @@ const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const KIND_DESC: Record<string, string> = {
   xlsx: 'Microsoft Excel workbook (XLSX)', xlsm: 'Microsoft Excel macro-enabled workbook (XLSM)', ods: 'OpenDocument spreadsheet (ODS)',
   fods: 'Flat OpenDocument spreadsheet (FODS)', xls: 'Microsoft Excel 97-2003 workbook (XLS)', csv: 'Delimited text (CSV/TSV)',
-  html: 'HTML document (tables)', xml2003: 'Excel 2003 XML spreadsheet (SpreadsheetML)', qgw: 'QuillGrid workbook',
+  html: 'HTML document (tables)', xml2003: 'Excel 2003 XML spreadsheet (SpreadsheetML)', qgw: 'Anne\'s Grid workbook',
   encrypted: 'Password-protected (encrypted) Office file', unknown: 'Unrecognized data',
 };
 
@@ -1072,7 +1072,7 @@ export async function recoverWorkbook(data: ArrayBuffer, name: string, opts: Rec
       mId.detail = 'This is a password-protected (encrypted) Office file: an encrypted package inside a compound file.';
       report.notes.push('The workbook is encrypted with a password. Open it with the password in the program that created it, remove the password (File > Info > Protect Workbook > Encrypt with Password), and save it again.');
       for (const id of ['open', 'zip', 'xml', 'rawsheet', 'biff', 'ods', 'text', 'strings'] as MethodId[]) { const m = M(id); m.detail = 'Not possible: the content is encrypted.'; }
-      report.summary = 'This workbook is password-protected (encrypted); QuillGrid cannot decrypt it.';
+      report.summary = 'This workbook is password-protected (encrypted); Anne\'s Grid cannot decrypt it.';
       return finish(report, cands, base);
     }
     if (det.kind === 'other') {

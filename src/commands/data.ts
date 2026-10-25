@@ -1498,7 +1498,7 @@ function editLinks(app: App): void {
   }
   for (const n of app.book.names) for (const m of n.ref.matchAll(/'?\[([^\]]+)\]/g)) found.add(m[1]);
   if (!found.size) { void alertDialog('Edit Links', 'This workbook has no links to other workbooks.'); return; }
-  void alertDialog('Edit Links', `This workbook refers to ${found.size} other workbook${found.size === 1 ? '' : 's'}:\n${[...found].join('\n')}\nLinks to other workbooks can't be updated in QuillGrid; formulas that use them keep their last values or show #REF!. Open the source workbook and copy the data in, or use Find & Replace to point the formulas at this workbook.`);
+  void alertDialog('Edit Links', `This workbook refers to ${found.size} other workbook${found.size === 1 ? '' : 's'}:\n${[...found].join('\n')}\nLinks to other workbooks can't be updated in Anne's Grid; formulas that use them keep their last values or show #REF!. Open the source workbook and copy the data in, or use Find & Replace to point the formulas at this workbook.`);
 }
 
 function relationships(app: App): void {

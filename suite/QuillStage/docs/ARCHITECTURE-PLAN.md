@@ -1,10 +1,10 @@
 # Architecture plan
 
-> **This is a plan, not a description of existing code.** QuillStage has no code yet. The design below mirrors what QuillPen and QuillGrid already ship, so that the suite shares one shell and one set of conventions. Details will change as the code is written; this file will then be replaced by `docs/ARCHITECTURE.md`.
+> **This is a plan, not a description of existing code.** Anne's Stage has no code yet. The design below mirrors what Anne's Pen and Anne's Grid already ship, so that the suite shares one shell and one set of conventions. Details will change as the code is written; this file will then be replaced by `docs/ARCHITECTURE.md`.
 
 ## Summary
 
-QuillStage will be a TypeScript web application built with **Vite** and tested with **vitest**. The Android and iOS releases will package it with **Capacitor 8**, the Windows, macOS and Linux releases with **Electron**, and the same build will run in a browser as an installable, offline-capable **PWA**. It will share its application shell with QuillPen and QuillGrid: command registry, Quick Access Bar, customizable tabs and keyboard, dialogs, command search, macro recorder, AI setup and providers, spelling and dictionary downloads, the recovery engine's generic parts, and the platform layer.
+Anne's Stage will be a TypeScript web application built with **Vite** and tested with **vitest**. The Android and iOS releases will package it with **Capacitor 8**, the Windows, macOS and Linux releases with **Electron**, and the same build will run in a browser as an installable, offline-capable **PWA**. It will share its application shell with Anne's Pen and Anne's Grid: command registry, Quick Access Bar, customizable tabs and keyboard, dialogs, command search, macro recorder, AI setup and providers, spelling and dictionary downloads, the recovery engine's generic parts, and the platform layer.
 
 ## Intended source layout
 
@@ -48,7 +48,7 @@ src/
     coach.ts              rehearsal coach (speech recognition, pace, fillers, pauses, report)
     record.ts             recording studio: camera, microphone, ink and laser capture, per-slide takes
   canvas/                 canvas mode (frames, camera path, brainstorm board) — milestone M7
-  charts/                 chart renderer (shared code with QuillGrid's SVG chart renderer)
+  charts/                 chart renderer (shared code with Anne's Grid's SVG chart renderer)
   commands/
     registry.ts           Command interface and registry: the single source for QAT, tabs, keys, macros, search
     *.ts                  command modules by area (file, edit, fmt, slide, insert, draw, design, trans, anim,
@@ -79,21 +79,21 @@ tests/
 
 - **Commands are data.** The ribbon, Quick Access Bar, context menus, keyboard shortcuts, macros and search all refer to command ids, so every feature can be placed anywhere. A command declares its id, label, icon, tab and group (or *not in tabs*), shortcut, enablement test and `run(app, arg?)`. `npm run catalog` will generate `docs/COMMANDS.md`, and a unit test will fail if any command lacks a label or icon or if a tab refers to an unknown id. This is how "no missing commands" is enforced: the planned inventory in [COMMANDS-PLAN.md](COMMANDS-PLAN.md) becomes a checklist test.
 - **The model follows PresentationML, not the other way round.** The in-memory model uses the same concepts as Office Open XML (masters, layouts, placeholders with inheritance, theme-relative colors, the timing tree), so .pptx round trips do not lose structure. OpenDocument and Markdown are mapped onto it. Unknown .pptx parts and extension lists are kept and written back unchanged where they remain valid.
-- **Transactions record before-images,** as in QuillGrid: every change runs inside `Deck.transact()`. Slide edits record the slide's previous state; structural edits record the slide list, sections and masters. Undo restores before-images, so no command needs inverse logic, and macros are recorded at the command level.
-- **One renderer for every surface.** Edit view, thumbnails, slide show, presenter view, print, PDF, image and video export use the same slide renderer, so what you see is what you present and export. Text is laid out by QuillStage (not left to the browser) wherever line breaks must match between screen and export; the browser's text shaping is used inside each line.
+- **Transactions record before-images,** as in Anne's Grid: every change runs inside `Deck.transact()`. Slide edits record the slide's previous state; structural edits record the slide list, sections and masters. Undo restores before-images, so no command needs inverse logic, and macros are recorded at the command level.
+- **One renderer for every surface.** Edit view, thumbnails, slide show, presenter view, print, PDF, image and video export use the same slide renderer, so what you see is what you present and export. Text is laid out by Anne's Stage (not left to the browser) wherever line breaks must match between screen and export; the browser's text shaping is used inside each line.
 - **Inheritance is resolved lazily.** Properties are looked up through shape → layout placeholder → master placeholder → master text styles → theme, with a per-slide cache invalidated by transactions.
 - **Fonts.** Decks that name common proprietary fonts render with metric-compatible open fonts (Carlito, Caladea, Tinos, Arimo, Cousine, Gelasio, EB Garamond), as in the sister apps; installed originals are preferred; embedded fonts in .pptx are used when their embedding permissions allow.
-- **Recovery is a pipeline** (below), shared in its generic parts with QuillPen and QuillGrid.
+- **Recovery is a pipeline** (below), shared in its generic parts with Anne's Pen and Anne's Grid.
 
 ## Document formats
 
 | Format | Plan |
 |---|---|
 | .pptx / .pptm / .ppsx / .potx | Read and write with JSZip and a streaming XML reader. Presentation, slides, layouts, masters, themes, notes, handouts, comments (classic and modern), charts (with embedded workbook), diagrams (data model, with the cached drawing used when a layout is unknown), media, tables, custom shows, sections, tags, custom XML. VBA project kept byte-for-byte in .pptm. |
-| .ppt (97–2003) | Import only: compound-file reader shared with QuillPen's Word 97 recovery; record walker for the `PowerPoint Document` stream (persist directory, slides, masters, text atoms, shapes via the Office Drawing records), pictures from the `Pictures` stream. |
+| .ppt (97–2003) | Import only: compound-file reader shared with Anne's Pen's Word 97 recovery; record walker for the `PowerPoint Document` stream (persist directory, slides, masters, text atoms, shapes via the Office Drawing records), pictures from the `Pictures` stream. |
 | .odp / .otp / .fodp | Read and write: draw pages, master pages, styles, presentation:animations (mapped to the timing model), transitions, notes, charts as tables of values plus rendering. |
 | Markdown | `---` slide separator, title, bullets, images, code blocks, notes blocks, front matter for theme and size. |
-| Native .qsp / .qspe | JSON package (zip) with the model and media; encrypted variant uses AES-256-GCM with a password-derived key, as in QuillPen and QuillGrid. |
+| Native .qsp / .qspe | JSON package (zip) with the model and media; encrypted variant uses AES-256-GCM with a password-derived key, as in Anne's Pen and Anne's Grid. |
 
 ## Rendering and the slide show
 
@@ -124,11 +124,11 @@ tests/
 | HTML show | One self-contained file: deck JSON, media as data or sibling files, and a compact player with keyboard, touch, notes window and timings. |
 | Story | Responsive scrolling HTML generated from the deck. |
 | Web lecture | HTML show plus synchronized narration video and a slide list. |
-| Handouts / outline | .docx/.odt through QuillPen's converters (shared package), .rtf, .md, .txt. |
+| Handouts / outline | .docx/.odt through Anne's Pen's converters (shared package), .rtf, .md, .txt. |
 
 ## Recovery pipeline
 
-QuillStage inherits the suite's recovery engine, which descends from the author's tools: byte-level ZIP salvage and the ImmortalInflate decoder of [Immortal Unzipper / Immortal Zip](https://socrtwo.github.io/Immortal-Zip/), XML healing and strings scans from [Word Recovery](https://github.com/socrtwo/wordrecovery-SF), and the S2 File Identifier. Recovery runs automatically when a file fails to open normally, and on purpose from **File ▸ Open ▸ Open and Repair**. The recovered deck opens as "*name* (Recovered)", unsaved, with a report; **Save** asks for a new name so the damaged original is never overwritten.
+Anne's Stage inherits the suite's recovery engine, which descends from the author's tools: byte-level ZIP salvage and the ImmortalInflate decoder of [Immortal Unzipper / Immortal Zip](https://socrtwo.github.io/Immortal-Zip/), XML healing and strings scans from [Word Recovery](https://github.com/socrtwo/wordrecovery-SF), and the S2 File Identifier. Recovery runs automatically when a file fails to open normally, and on purpose from **File ▸ Open ▸ Open and Repair**. The recovered deck opens as "*name* (Recovered)", unsaved, with a report; **Save** asks for a new name so the damaged original is never overwritten.
 
 | Step | Method |
 |---|---|
@@ -143,11 +143,11 @@ QuillStage inherits the suite's recovery engine, which descends from the author'
 | i | **OpenDocument salvage:** heal `content.xml`, cut at the last complete `</draw:page>`, rebuild the package (mimetype first, manifest regenerated), otherwise raw scan of `draw:page` text and images. |
 | j | **Strings scan:** printable ASCII and UTF-16LE runs as a last resort; labeled text-only recovery. |
 
-Tests will build valid fixtures in code, damage them (truncation, flipped bytes, missing central directory, missing parts, dangling relationships, malformed XML), and check what is recovered, as QuillGrid's recovery tests do.
+Tests will build valid fixtures in code, damage them (truncation, flipped bytes, missing central directory, missing parts, dangling relationships, malformed XML), and check what is recovered, as Anne's Grid's recovery tests do.
 
 ## AI
 
-**Several AIs on one request** (same design as QuillPen, QuillGrid and QuillPost; `src/ai/ensemble.ts`):
+**Several AIs on one request** (same design as Anne's Pen, Anne's Grid and Anne's Post; `src/ai/ensemble.ts`):
 the person can choose 2–6 configured providers. In *master* mode every member answers in parallel and
 one chosen AI writes the final answer from the anonymized, shuffled responses. In *Quaker consensus*
 mode a clerk drafts a minute from the members' answers; each member then unites with it, stands aside
@@ -179,7 +179,7 @@ Offline Hunspell dictionaries for every variety of English ship with the app (SC
 
 ## Continuous integration and releases
 
-As in QuillGrid:
+As in Anne's Grid:
 - **CI** (`.github/workflows/android.yml`): on every push and pull request (docs-only changes skipped), type-check, unit tests, web build, then a Capacitor sync and Gradle build of the APK and AAB, uploaded as artifacts; signed with a release keystore from repository secrets when present, otherwise debug-signed with a warning.
 - **Release** (`.github/workflows/release.yml`): on a tag `v*`, a manual run, or a commit whose message contains `[release]`: web zip, desktop installers for every OS and architecture, an unsigned iOS .ipa and the Android APK/AAB, published together as one GitHub release with SHA-256 checksums and a per-platform table; a failed platform is listed instead of blocking the others.
 - Android `versionCode` derives from time so it always increases across workflows.

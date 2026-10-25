@@ -1,4 +1,4 @@
-# AI in QuillGrid
+# AI in Anne's Grid
 
 The **AI** tab is optional. Nothing is sent anywhere until you run an AI command, and every AI command is an ordinary command: it can go on the Quick Access Bar, on a custom tab, on a shortcut, or in a macro.
 
@@ -15,7 +15,7 @@ You can add several providers and switch with **Active AI**. **Providers & Model
 
 | Group | Providers |
 |---|---|
-| On device | QuillGrid Local AI (see below); Chrome's built-in model on desktop Chrome |
+| On device | Anne's Grid Local AI (see below); Chrome's built-in model on desktop Chrome |
 | Your computer | Ollama (`http://localhost:11434/v1`), LM Studio (`http://localhost:1234/v1`) |
 | Free tiers | OpenRouter (free models), Google Gemini, Groq, Mistral, Cerebras, SambaNova, Z.ai, Cohere, NVIDIA NIM, Cloudflare Workers AI |
 | Paid keys | OpenAI, Anthropic, DeepSeek, xAI, Perplexity, Together, Fireworks, Hugging Face Inference Providers, Moonshot, Alibaba Qwen, Azure OpenAI / AI Foundry, Amazon Bedrock, any OpenAI-compatible service |
@@ -24,7 +24,7 @@ Free-tier terms are set by each provider and change; the wizard links to the pro
 
 ### On-device model
 
-QuillGrid Local AI runs a small open instruction model with Transformers.js in a Web Worker, on WebGPU when available, otherwise WebAssembly on the CPU. The model is downloaded once (from the Hugging Face Hub) and then works offline. Choices:
+Anne's Grid Local AI runs a small open instruction model with Transformers.js in a Web Worker, on WebGPU when available, otherwise WebAssembly on the CPU. The model is downloaded once (from the Hugging Face Hub) and then works offline. Choices:
 
 | Model | Download | Notes |
 |---|---|---|
@@ -64,7 +64,7 @@ While the AIs work, the busy indicator and the AI pane show progress ("Asking 3 
 
 **Cost.** Each command is sent to every chosen service. With N AIs, master mode makes about N + 1 requests; consensus mode makes up to N × (rounds + 1) + rounds (for three AIs and three rounds, up to 15). Paid services charge for each request, and free tiers reach their limits sooner. AI Settings shows the numbers for your choice, and the usage counter there counts every request.
 
-**Privacy.** The same cells are sent to every chosen service, and each service's terms and privacy policy apply. AI Settings lists every service that will receive the text, and the first time a cloud service joins, QuillGrid asks before sending it anything. Choosing only on-device or local-server AIs keeps everything on your devices. The settings store only which providers and models take part; keys stay in the key store.
+**Privacy.** The same cells are sent to every chosen service, and each service's terms and privacy policy apply. AI Settings lists every service that will receive the text, and the first time a cloud service joins, Anne's Grid asks before sending it anything. Choosing only on-device or local-server AIs keeps everything on your devices. The settings store only which providers and models take part; keys stay in the key store.
 
 ## Privacy and keys
 

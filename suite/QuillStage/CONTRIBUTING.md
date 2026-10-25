@@ -1,6 +1,6 @@
-# Contributing to QuillStage
+# Contributing to Anne's Stage
 
-Thank you for your interest. QuillStage is in the **planning stage — there is no code yet**, so the most useful contributions right now are:
+Thank you for your interest. Anne's Stage is in the **planning stage — there is no code yet**, so the most useful contributions right now are:
 
 - **Feedback on the plan:** missing commands, wrong command placement, ideas from other presentation software, and corrections to [docs/INNOVATIONS.md](docs/INNOVATIONS.md) or [docs/QAT.md](docs/QAT.md). Open an issue with the *Feature request* template.
 - **Test files:** presentations you made yourself (or that are openly licensed) that exercise unusual features, and damaged files for the recovery engine. Do not attach files you do not have the right to share or that contain private information.
@@ -15,7 +15,7 @@ Thank you for your interest. QuillStage is in the **planning stage — there is 
 
 ## When code exists
 
-The workflow will match QuillPen and QuillGrid:
+The workflow will match Anne's Pen and Anne's Grid:
 
 ```bash
 npm ci

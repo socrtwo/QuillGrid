@@ -1,19 +1,19 @@
 # Quick Access Bar plan
 
-> **Plan.** QuillStage has no code yet. This document fixes what the Quick Access Bar (QAT) will offer, so that nothing a desktop presentation program puts on its Quick Access Toolbar is missing. It follows the implementation already shipped in QuillGrid and QuillPen (`QAT_STANDARD`, `QAT_EXTRAS`, `addAllQatChoices` in the shared shell).
+> **Plan.** Anne's Stage has no code yet. This document fixes what the Quick Access Bar (QAT) will offer, so that nothing a desktop presentation program puts on its Quick Access Toolbar is missing. It follows the implementation already shipped in Anne's Grid and Anne's Pen (`QAT_STANDARD`, `QAT_EXTRAS`, `addAllQatChoices` in the shared shell).
 
 ## Principles
 
 - Every command is eligible. The QAT stores command ids; any of the commands in [COMMANDS-PLAN.md](COMMANDS-PLAN.md), plus macros and separators, can be placed on it.
 - The drop-down arrow at the end of the bar offers the **standard choices** as a checklist, so the common ones are one tap away without opening a dialog.
-- QuillStage's checklist is the **union** of the choices that the desktop presentation program has offered across its versions, plus a few presentation extras. Nothing that any version offered is left out.
-- The bar can sit at the top, below the ribbon, or **at the bottom near the on-screen keyboard** (a QuillPen/QuillGrid innovation), and can show or hide command labels.
+- Anne's Stage's checklist is the **union** of the choices that the desktop presentation program has offered across its versions, plus a few presentation extras. Nothing that any version offered is left out.
+- The bar can sit at the top, below the ribbon, or **at the bottom near the on-screen keyboard** (a Anne's Pen / Anne's Grid innovation), and can show or hide command labels.
 
 ## The desktop drop-down choices, by version
 
-The table records the *Customize Quick Access Toolbar* drop-down in Microsoft PowerPoint for Windows. It was compiled from product knowledge and documentation of each release; it must be checked against installed copies before implementation (tracked in [ROADMAP.md](ROADMAP.md), M1). Because QuillStage offers the union, an error in a single cell changes nothing in the plan except a footnote.
+The table records the *Customize Quick Access Toolbar* drop-down in Microsoft PowerPoint for Windows. It was compiled from product knowledge and documentation of each release; it must be checked against installed copies before implementation (tracked in [ROADMAP.md](ROADMAP.md), M1). Because Anne's Stage offers the union, an error in a single cell changes nothing in the plan except a footnote.
 
-| Choice (desktop label) | 2007 | 2010 | 2013–2019 | Microsoft 365 (2021+) | QuillStage command |
+| Choice (desktop label) | 2007 | 2010 | 2013–2019 | Microsoft 365 (2021+) | Anne's Stage command |
 |---|---|---|---|---|---|
 | AutoSave | — | — | — | Yes (appears when signed in; shown as a switch) | `file.autosave` |
 | New | Yes | Yes | Yes | Yes | `file.new` |
@@ -39,15 +39,15 @@ The table records the *Customize Quick Access Toolbar* drop-down in Microsoft Po
 
 ### Notes on other versions and related lists
 
-- **Other Office applications** had different extras in the same drop-down: Word offered *Draw Table* (and *Spelling & Grammar*), Excel offered *Sort Ascending* and *Sort Descending*. *Form…* is an Excel command that was only available through *Commands Not in the Ribbon*. None of these was in PowerPoint's list. QuillStage nevertheless offers **Draw Table** among its extras, because PowerPoint has the command (Insert ▸ Table ▸ Draw Table); a Form command does not apply to presentations (data-entry forms are covered by QuillGrid, and audience forms by Poll and Quiz).
+- **Other Office applications** had different extras in the same drop-down: Word offered *Draw Table* (and *Spelling & Grammar*), Excel offered *Sort Ascending* and *Sort Descending*. *Form…* is an Excel command that was only available through *Commands Not in the Ribbon*. None of these was in PowerPoint's list. Anne's Stage nevertheless offers **Draw Table** among its extras, because PowerPoint has the command (Insert ▸ Table ▸ Draw Table); a Form command does not apply to presentations (data-entry forms are covered by Anne's Grid, and audience forms by Poll and Quiz).
 - **PowerPoint for Mac** customizes its toolbar through a separate menu with a similar set (AutoSave, Home, Save, Undo, Redo, Print, and present commands). Any Mac-only choice found when verifying will be added to the extras.
 - **PowerPoint for the web** gained a simplified Quick Access Toolbar with a shorter list; every item on it is already in the union above.
-- The **right-click menu** on any command offers *Add to Quick Access Toolbar*, *Customize Quick Access Toolbar…*, *Show Quick Access Toolbar Below the Ribbon* and *Collapse the Ribbon*. QuillStage offers the same on right-click and on **long-press** for touch.
+- The **right-click menu** on any command offers *Add to Quick Access Toolbar*, *Customize Quick Access Toolbar…*, *Show Quick Access Toolbar Below the Ribbon* and *Collapse the Ribbon*. Anne's Stage offers the same on right-click and on **long-press** for touch.
 - PowerPoint 2003 and earlier used toolbars, not a Quick Access Toolbar; their standard toolbar commands are all in the command inventory.
 
-## QuillStage's drop-down
+## Anne's Stage's drop-down
 
-Shown in this order, as in QuillGrid:
+Shown in this order, as in Anne's Grid:
 
 1. **Standard choices** (the union above): AutoSave, New, Open, Save, Email, Quick Print, Print Preview and Print, Spelling, Undo, Redo, Present from Beginning, Touch/Mouse Mode, Open Recent File.
 2. **Presentation extras:** Present from Current Slide (`show.fromCurrent`), Presenter View (`show.presenterView`), New Slide (`slide.new`), Duplicate Slide (`slide.duplicate`), Save As (`file.saveAs`), Share (`file.share`), Export to PDF (`file.export.pdf`), Draw Table (`insert.drawTable`), Find (`edit.find`), Format Painter (`edit.formatPainter`), Search Commands (`view.cmdSearch`).
@@ -99,4 +99,4 @@ As in the sister apps, the dialog has a *Choose commands from* list with these c
 - each built-in tab, including contextual tabs (Shape Format, Picture Format, Table Design, Chart Design, Diagram Design, Video Playback…), and each custom tab
 - **Macros**
 
-Buttons: Add, Remove, Add Separator, Move Up, Move Down, Add All A–Z, Reset, Import/Export (JSON, shared format with QuillPen and QuillGrid so common commands carry over), and a *Show below/above/at the bottom* option. Each deck can optionally carry its own QAT additions (as desktop programs allow "for this document only"); they are stored in the native format and in a custom part of .pptx that other programs ignore.
+Buttons: Add, Remove, Add Separator, Move Up, Move Down, Add All A–Z, Reset, Import/Export (JSON, shared format with Anne's Pen and Anne's Grid so common commands carry over), and a *Show below/above/at the bottom* option. Each deck can optionally carry its own QAT additions (as desktop programs allow "for this document only"); they are stored in the native format and in a custom part of .pptx that other programs ignore.
