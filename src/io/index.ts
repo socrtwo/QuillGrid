@@ -51,8 +51,8 @@ export const FORMATS: FormatDef[] = [
   { id: 'txt', label: 'Text (Tab delimited) (.txt)', ext: ['txt', 'text'], mime: 'text/plain', canImport: true, canExport: true, binary: false },
   { id: 'html', label: 'Web Page (.html)', ext: ['html', 'htm', 'xhtml'], mime: 'text/html', canImport: true, canExport: true, binary: false },
   { id: 'json', label: 'Anne\'s Grid JSON (.json)', ext: ['json'], mime: 'application/json', canImport: true, canExport: true, binary: false },
-  { id: 'qgw', label: 'QuillGrid Workbook (.qgw)', ext: ['qgw', 'qlw'], mime: 'application/x-quillgrid', canImport: true, canExport: true, binary: true }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
-  { id: 'qgwe', label: 'Encrypted QuillGrid Workbook (.qgwe)', ext: ['qgwe', 'qlwe'], mime: 'application/x-quillgrid-encrypted', canImport: true, canExport: true, binary: true, note: 'AES-256 with a password' }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+  { id: 'qgw', label: 'Anne\'s Grid Workbook (.qgw)', ext: ['qgw', 'qlw'], mime: 'application/x-quillgrid', canImport: true, canExport: true, binary: true }, // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
+  { id: 'qgwe', label: 'Encrypted Anne\'s Grid Workbook (.qgwe)', ext: ['qgwe', 'qlwe'], mime: 'application/x-quillgrid-encrypted', canImport: true, canExport: true, binary: true, note: 'AES-256 with a password' }, // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
   { id: 'xls', label: 'Excel 97-2003 Workbook (.xls)', ext: ['xls', 'xlt', 'xlw'], mime: 'application/vnd.ms-excel', canImport: true, canExport: false, binary: true, note: 'Opens values, formulas and basic formatting; save as .xlsx to keep it' },
   { id: 'sylk', label: 'SYLK (.slk)', ext: ['slk', 'sylk'], mime: 'application/x-sylk', canImport: true, canExport: false, binary: false },
   { id: 'dif', label: 'Data Interchange Format (.dif)', ext: ['dif'], mime: 'application/x-dif', canImport: true, canExport: false, binary: false },

@@ -292,13 +292,13 @@ export async function onBackButton(cb: () => boolean): Promise<void> {
   App.addListener('backButton', () => { if (!cb()) App.minimizeApp(); });
 }
 
-export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qgw,.qgwe,.qlw,.qlwe,.json,.xlsb,.sxc,.stc,.gnumeric,.gnm,.ksp,.numbers,.uos,.uof,.ndjson,.jsonl,.sqlite,.sqlite3,.db,.db3,.mht,.mhtml,.gz,.sylk' // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qgw,.qgwe,.qlw,.qlwe,.json,.xlsb,.sxc,.stc,.gnumeric,.gnm,.ksp,.numbers,.uos,.uof,.ndjson,.jsonl,.sqlite,.sqlite3,.db,.db3,.mht,.mhtml,.gz,.sylk' // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
   // legacy spreadsheets
   + ',.wk1,.wks,.wk3,.wk4,.123,.wrk,.wr1,.wq1,.wq2,.wb1,.wb2,.wb3,.qpw,.xlr,.dbf,.vc,.cwk'
   // documents, presentations and mail (their tables and text are imported)
   + ',.docx,.docm,.doc,.odt,.fodt,.rtf,.wpd,.wps,.wri,.epub,.pdf,.pptx,.ppt,.pps,.ppsx,.odp,.fodp,.eml,.emlx,.msg,.mbox';
 export const OPEN_MIMES = [
-  'application/x-quilllattice', 'application/x-quilllattice-encrypted', // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+  'application/x-quilllattice', 'application/x-quilllattice-encrypted', // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-excel.sheet.macroEnabled.12',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.template',

@@ -26,8 +26,8 @@ module.exports = {
     { ext: 'tsv', name: 'Tab-Separated Values', role: 'Editor', mimeType: 'text/tab-separated-values' },
     { ext: 'qgw', name: 'Anne\'s Grid Workbook', role: 'Editor', mimeType: 'application/x-quillgrid' },
     { ext: 'qgwe', name: 'Encrypted Anne\'s Grid Workbook', role: 'Editor', mimeType: 'application/x-quillgrid-encrypted' },
-    { ext: 'qlw', name: 'QuillGrid Workbook (QuillLattice)', role: 'Editor', mimeType: 'application/x-quillgrid' }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
-    { ext: 'qlwe', name: 'Encrypted QuillGrid Workbook (QuillLattice)', role: 'Editor', mimeType: 'application/x-quillgrid-encrypted' }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+    { ext: 'qlw', name: 'Anne\'s Grid Workbook (QuillLattice)', role: 'Editor', mimeType: 'application/x-quillgrid' }, // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
+    { ext: 'qlwe', name: 'Encrypted Anne\'s Grid Workbook (QuillLattice)', role: 'Editor', mimeType: 'application/x-quillgrid-encrypted' }, // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
   ],
   win: {
     target: [{ target: 'nsis', arch: ['x64', 'arm64'] }, { target: 'portable', arch: ['x64'] }],

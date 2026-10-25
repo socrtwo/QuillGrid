@@ -34,8 +34,9 @@ This file is generated from the source by `npm run catalog`.
 | Close Workbook | Close | Ctrl+w, Ctrl+F4 | `file.close` | not in tabs |
 | Exit | Close |  | `file.exit` | not in tabs |
 | Export as Anne's Grid JSON (.json) | Export |  | `file.export.json` | not in tabs |
+| Export as Anne's Grid Workbook (.qgw) | Export |  | `file.export.qgw` | not in tabs |
 | Export as CSV (Comma delimited) (.csv) | Export |  | `file.export.csv` | not in tabs |
-| Export as Encrypted QuillGrid Workbook (.qgwe) | Export |  | `file.export.qgwe` | not in tabs |
+| Export as Encrypted Anne's Grid Workbook (.qgwe) | Export |  | `file.export.qgwe` | not in tabs |
 | Export as Excel Macro-Enabled Workbook (.xlsm) | Export |  | `file.export.xlsm` | not in tabs |
 | Export as Excel Template (.xltx) | Export |  | `file.export.xltx` | not in tabs |
 | Export as Excel Workbook (.xlsx) | Export |  | `file.export.xlsx` | not in tabs |
@@ -43,7 +44,6 @@ This file is generated from the source by `npm run catalog`.
 | Export as Markdown table (.md) | Export |  | `file.export.md` | not in tabs |
 | Export as OpenDocument Spreadsheet (.ods) | Export |  | `file.export.ods` | not in tabs |
 | Export as PDF | Export |  | `file.exportPdf` | not in tabs |
-| Export as QuillGrid Workbook (.qgw) | Export |  | `file.export.qgw` | not in tabs |
 | Export as Tab-separated values (.tsv) | Export |  | `file.export.tsv` | not in tabs |
 | Export as Text (Tab delimited) (.txt) | Export |  | `file.export.txt` | not in tabs |
 | Export as Web Page (.html) | Export |  | `file.export.html` | not in tabs |

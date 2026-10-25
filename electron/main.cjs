@@ -33,7 +33,7 @@ const OPENABLE = ['xlsx', 'xlsm', 'xltx', 'xltm', 'xls', 'xlt', 'xlw', 'ods', 'o
   'wk1', 'wks', 'wk3', 'wk4', '123', 'wrk', 'wr1', 'wq1', 'wq2', 'wb1', 'wb2', 'wb3', 'qpw', 'xlr', 'dbf', 'vc', 'cwk'];
 /** Documents, slides and mail the app can import or hand to a sibling Anne's Office app (never programs or scripts). */
 const DOCUMENTS = ['docx', 'docm', 'dotx', 'doc', 'dot', 'odt', 'ott', 'fodt', 'rtf', 'wpd', 'wps', 'wri', 'sxw', 'abw', 'pages', 'epub', 'pdf', 'txt', 'md',
-  'pptx', 'pptm', 'ppsx', 'potx', 'ppt', 'pps', 'pot', 'odp', 'otp', 'fodp', 'sxi', 'key', 'eml', 'emlx', 'msg', 'mbox', 'mht', 'mhtml']; // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+  'pptx', 'pptm', 'ppsx', 'potx', 'ppt', 'pps', 'pot', 'odp', 'otp', 'fodp', 'sxi', 'key', 'eml', 'emlx', 'msg', 'mbox', 'mht', 'mhtml']; // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
 
 protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
 
@@ -79,7 +79,7 @@ const MIME = {
   csv: 'text/csv', tsv: 'text/tab-separated-values', tab: 'text/tab-separated-values',
   txt: 'text/plain', prn: 'text/plain', html: 'text/html', htm: 'text/html', xml: 'application/xml',
   qgw: 'application/x-quillgrid', qgwe: 'application/x-quillgrid-encrypted', json: 'application/json',
-  qlw: 'application/x-quillgrid', qlwe: 'application/x-quillgrid-encrypted', // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+  qlw: 'application/x-quillgrid', qlwe: 'application/x-quillgrid-encrypted', // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
 };
 function fileResult(p) {
   const data = fs.readFileSync(p);
