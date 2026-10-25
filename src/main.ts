@@ -1,4 +1,4 @@
-/** QuillGrid entry point. */
+/** Anne's Grid entry point. */
 import './util/legacy'; // first: carries data over from the app's former name
 import 'material-symbols/outlined.css';
 import './styles/app.css';

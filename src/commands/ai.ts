@@ -56,9 +56,9 @@ export async function ensureAiReady(app: App, sendsData: boolean, reason = 'This
   const free = ids.some((id) => providerById(id)?.free === 'free');
   const ok = ids.length === 1
     ? await confirmDialog('Sending Data to an AI Service',
-      `AI commands send the cells they need directly from this device to ${names(ids)}. QuillGrid has no server and keeps no copy. ${names(ids)}'s terms and privacy policy apply${free ? ', and free tiers may use what you send to improve their models' : ''}. For confidential data, use the on-device model. Continue?`, 'Continue', 'Cancel')
+      `AI commands send the cells they need directly from this device to ${names(ids)}. Anne\'s Grid has no server and keeps no copy. ${names(ids)}'s terms and privacy policy apply${free ? ', and free tiers may use what you send to improve their models' : ''}. For confidential data, use the on-device model. Continue?`, 'Continue', 'Cancel')
     : await confirmDialog('Sending Data to Several AI Services',
-      `Several AIs are on (AI ▸ Several AIs), so AI commands send the cells they need directly from this device to each of these services: ${names(aiRecipients())}. QuillGrid has no server and keeps no copy. Each service's terms and privacy policy apply${free ? ', and free tiers may use what you send to improve their models' : ''}. For confidential data, use the on-device model. Continue?`, 'Continue', 'Cancel');
+      `Several AIs are on (AI ▸ Several AIs), so AI commands send the cells they need directly from this device to each of these services: ${names(aiRecipients())}. Anne\'s Grid has no server and keeps no copy. Each service's terms and privacy policy apply${free ? ', and free tiers may use what you send to improve their models' : ''}. For confidential data, use the on-device model. Continue?`, 'Continue', 'Cancel');
   if (ok) saveAiSettings((x) => { for (const id of ids) if (!x.privacyAck.includes(id)) x.privacyAck.push(id); });
   return ok;
 }
@@ -856,7 +856,7 @@ def([
       const p = providerById(s.active || '');
       const esc = (t: string) => t.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]!));
       await openDialog({ title: 'AI & Privacy', ok: 'Close', cancel: false, fields: [{ key: 'i', type: 'info', html: [
-        '<p><b>QuillGrid has no server.</b> AI requests go directly from this device to the provider you choose, using your own key. Nothing is sent until you run an AI command or ask in the AI pane.</p>',
+        '<p><b>Anne\'s Grid has no server.</b> AI requests go directly from this device to the provider you choose, using your own key. Nothing is sent until you run an AI command or ask in the AI pane.</p>',
         `<p><b>Active provider:</b> ${p ? esc(p.name) : 'none'}${p && (p.kind === 'local' || p.kind === 'builtin') ? ' — runs on this device; your data does not leave it.' : p ? ' — the cells a command needs (the selection, the data around it, or the sheet when you ask) are sent to this service; its terms apply.' : ''}</p>`,
         activeEnsemble() ? `<p><b>Several AIs are on.</b> Each AI command sends the same cells to every one of these services: ${esc(names(aiRecipients()))}. Each service's terms apply, and paid services charge for each request.</p>` : '',
         '<p><b>Keys</b> are stored on this device only (the Android Keystore-encrypted store in the app, or this browser\'s IndexedDB on the web). They are never placed in workbooks, drafts or exported settings.</p>',

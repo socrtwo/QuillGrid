@@ -89,7 +89,7 @@ export function renderBackstage(app: App, root: HTMLElement, page: string): void
       const grid = h('div', { class: 'ql-bs-cards' });
       for (const f of FORMATS.filter((x) => x.canExport)) grid.appendChild(card(f.label, `.${f.ext[0]}`, 'description', () => (page === 'saveas' ? app.exec('file.saveAsFormat', f.id) : app.exec('file.exportAs', f.id))));
       grid.appendChild(card('PDF', 'Through the system print service ("Save as PDF")', 'picture_as_pdf', () => app.exec('file.exportPdf')));
-      grid.appendChild(card('Encrypted QuillGrid (.qgwe)', 'AES-256 password protected', 'enhanced_encryption', () => app.exec('file.encrypt')));
+      grid.appendChild(card('Encrypted Anne\'s Grid (.qgwe)', 'AES-256 password protected', 'enhanced_encryption', () => app.exec('file.encrypt')));
       grid.appendChild(card('Template', 'Reuse this workbook as a starting point', 'bookmark_add', () => app.exec('file.saveTemplate')));
       body.appendChild(grid);
       break;

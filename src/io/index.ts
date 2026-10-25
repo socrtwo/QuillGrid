@@ -50,7 +50,7 @@ export const FORMATS: FormatDef[] = [
   { id: 'tsv', label: 'Tab-separated values (.tsv)', ext: ['tsv', 'tab'], mime: 'text/tab-separated-values', canImport: true, canExport: true, binary: false },
   { id: 'txt', label: 'Text (Tab delimited) (.txt)', ext: ['txt', 'text'], mime: 'text/plain', canImport: true, canExport: true, binary: false },
   { id: 'html', label: 'Web Page (.html)', ext: ['html', 'htm', 'xhtml'], mime: 'text/html', canImport: true, canExport: true, binary: false },
-  { id: 'json', label: 'QuillGrid JSON (.json)', ext: ['json'], mime: 'application/json', canImport: true, canExport: true, binary: false },
+  { id: 'json', label: 'Anne\'s Grid JSON (.json)', ext: ['json'], mime: 'application/json', canImport: true, canExport: true, binary: false },
   { id: 'qgw', label: 'QuillGrid Workbook (.qgw)', ext: ['qgw', 'qlw'], mime: 'application/x-quillgrid', canImport: true, canExport: true, binary: true }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
   { id: 'qgwe', label: 'Encrypted QuillGrid Workbook (.qgwe)', ext: ['qgwe', 'qlwe'], mime: 'application/x-quillgrid-encrypted', canImport: true, canExport: true, binary: true, note: 'AES-256 with a password' }, // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
   { id: 'xls', label: 'Excel 97-2003 Workbook (.xls)', ext: ['xls', 'xlt', 'xlw'], mime: 'application/vnd.ms-excel', canImport: true, canExport: false, binary: true, note: 'Opens values, formulas and basic formatting; save as .xlsx to keep it' },
@@ -187,8 +187,8 @@ export async function importFile(data: ArrayBuffer, name: string, opts: ImportOp
 
   if (opts.repair) return recover(null);
   if (!fmt || !fmt.canImport) {
-    if (sn.format !== 'unknown' && sn.confidence >= 0.5) throw new Error(`This is ${article(sn.label)} ${sn.label}. QuillGrid recognizes it but cannot open this kind of file.`);
-    throw new Error(`QuillGrid does not recognize the contents of ${name.replace(/^.*[\\/]/, '') || 'this file'}. Try Open and Repair to recover any text in it.`);
+    if (sn.format !== 'unknown' && sn.confidence >= 0.5) throw new Error(`This is ${article(sn.label)} ${sn.label}. Anne\'s Grid recognizes it but cannot open this kind of file.`);
+    throw new Error(`Anne\'s Grid does not recognize the contents of ${name.replace(/^.*[\\/]/, '') || 'this file'}. Try Open and Repair to recover any text in it.`);
   }
   const note = opts.as ? undefined : sn.note;
   try {

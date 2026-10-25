@@ -356,7 +356,7 @@ const BUILTIN: SniffRule[] = [
   { id: 'sxw', format: 'odt', label: 'StarOffice/OpenOffice.org 1 text (SXW)', category: D, ext: ['sxw', 'stw'], detect: () => 0 },
   { id: 'sxi', format: 'odp', label: 'StarOffice/OpenOffice.org 1 presentation (SXI)', category: P, ext: ['sxi', 'sti'], detect: () => 0 },
   { id: 'epub', format: 'wordtext', label: 'EPUB e-book', category: D, ext: ['epub'], detect: () => 0 },
-  { id: 'qgw', format: 'qgw', label: 'QuillGrid workbook', category: S, ext: ['qgw', 'qlw'], detect: (c) => (zipHas(c, (n) => n === 'workbook.json') ? 0.97 : 0) },
+  { id: 'qgw', format: 'qgw', label: 'Anne\'s Grid workbook', category: S, ext: ['qgw', 'qlw'], detect: (c) => (zipHas(c, (n) => n === 'workbook.json') ? 0.97 : 0) },
   { id: 'iwork', format: 'numbers', label: 'Apple Numbers spreadsheet', category: S, ext: ['numbers'], detect: (c) => {
     const n = c.zip();
     if (!n) return 0;
@@ -535,7 +535,7 @@ const BUILTIN: SniffRule[] = [
   { id: 'tnef', format: 'tnef', label: 'Outlook rich-text attachment (winmail.dat)', category: E, ext: ['tnef'], detect: (c) => (startsWith(c.bytes, [0x78, 0x9f, 0x3e, 0x22]) ? 0.9 : 0) },
 
   // ---- text formats this app already reads
-  { id: 'qgwe', format: 'qgwe', label: 'Encrypted QuillGrid workbook', category: S, ext: ['qgwe', 'qlwe'], detect: (c) => (c.head.startsWith('QFDE1') ? 0.98 : 0) },
+  { id: 'qgwe', format: 'qgwe', label: 'Encrypted Anne\'s Grid workbook', category: S, ext: ['qgwe', 'qlwe'], detect: (c) => (c.head.startsWith('QFDE1') ? 0.98 : 0) },
   { id: 'sylk', format: 'sylk', label: 'SYLK file (SLK)', category: S, ext: ['slk', 'sylk'], detect: (c) => (/^\uFEFF?ID;/.test(c.text()) ? 0.92 : 0) },
   { id: 'dif', format: 'dif', label: 'Data Interchange Format (DIF)', category: S, ext: ['dif'], detect: (c) => (/^\uFEFF?TABLE\r?\n\s*0\s*,\s*1\s*\r?\n/.test(c.text().trimStart()) ? 0.92 : 0) },
   { id: 'xml2003', format: 'xml', label: 'Excel 2003 XML spreadsheet', category: S, ext: ['xml'], detect: (c) => {
@@ -550,7 +550,7 @@ const BUILTIN: SniffRule[] = [
     if (/opendocument\.text"/.test(t) || /opendocument\.presentation"/.test(t)) return 0;
     return 0.9;
   } },
-  { id: 'json', format: 'json', label: 'QuillGrid JSON workbook', category: S, ext: ['json'], detect: (c) => (/^\s*\{/.test(c.text()) && /"format"\s*:\s*"quillgrid"|"qgw"\s*:/.test(c.text().slice(0, 4096)) ? 0.9 : 0) },
+  { id: 'json', format: 'json', label: 'Anne\'s Grid JSON workbook', category: S, ext: ['json'], detect: (c) => (/^\s*\{/.test(c.text()) && /"format"\s*:\s*"quillgrid"|"qgw"\s*:/.test(c.text().slice(0, 4096)) ? 0.9 : 0) },
   { id: 'html', format: 'html', label: 'Web page (HTML)', category: S, ext: ['html', 'htm', 'xhtml', 'shtml'], detect: (c) => {
     const t = c.text().replace(/^\uFEFF/, '');
     if (/^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<(!doctype html|html|table|body|head|meta)\b/i.test(t)) return 0.8;

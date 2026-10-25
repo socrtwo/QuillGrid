@@ -1,8 +1,8 @@
 # File formats (plan)
 
-QuillStage will open presentations from every current and historical presentation program it can
-read faithfully, recognizing each file by its **content, not its extension**, the same way QuillPen,
-QuillGrid and QuillPost do. A misnamed file, or one with no extension, opens with the right reader,
+Anne's Stage will open presentations from every current and historical presentation program it can
+read faithfully, recognizing each file by its **content, not its extension**, the same way Anne's Pen,
+Anne's Grid and Anne's Post do. A misnamed file, or one with no extension, opens with the right reader,
 and the person is told when the content and the name disagree.
 
 Fidelity tiers used below:
@@ -44,20 +44,20 @@ Fidelity tiers used below:
 | Corel Presentations | Corel Presentations 7–X9 (WordPerfect Office) | 1996– | .shw .shw3 .mst | WordPerfect-family prefix (`\xFFWPC`) with Presentations product code | Content |
 | Aldus / Adobe Persuasion | Persuasion 1–4 (Mac/Windows) | 1988–1997 | .prs .per | Persuasion header | Text (best effort) |
 | Astound / Gold Disk | Astound, Gold Disk ShowPartner | 1990s | .asd .shw | product signatures | Text (best effort) |
-| Microsoft Works / Word "slide" outlines | outline-only decks | 1990s | .rtf .doc | via QuillPen's readers: Heading 1 = slide title | Content |
+| Microsoft Works / Word "slide" outlines | outline-only decks | 1990s | .rtf .doc | via Anne's Pen's readers: Heading 1 = slide title | Content |
 | ClarisWorks / AppleWorks slide shows | ClarisWorks 4–AppleWorks 6 | 1995–2007 | .cwk | AppleWorks header, presentation document type | Text (best effort) |
 | MagicPoint | MagicPoint | 1997– | .mgp | `%` directives | High |
 | Sozi | Sozi (SVG zooming presentations) | 2010– | .svg | Sozi namespace | Content (frames become slides) |
 | Prezi portable exports | Prezi Classic portable | 2009–2019 | .pez / folder | Prezi XML | Content (frames become slides, path order kept) |
 
 Formats that are proprietary and undocumented are attempted only clean-room from public information;
-where that is not enough, QuillStage recognizes the file, explains why it cannot be opened, and
+where that is not enough, Anne's Stage recognizes the file, explains why it cannot be opened, and
 offers a text salvage.
 
 ## Files from other kinds of programs
 
-QuillStage recognizes documents, spreadsheets and email by content too, and offers to open them in
-the sister app (QuillPen, QuillGrid, QuillPost) when it is installed, or to import them:
+Anne's Stage recognizes documents, spreadsheets and email by content too, and offers to open them in
+the sister app (Anne's Pen, Anne's Grid, Anne's Post) when it is installed, or to import them:
 - documents (.docx, .odt, .rtf, .doc, .wpd, .pages …): each Heading 1 starts a slide (an outline
   deck), with its text, lists and images; or the whole document as one slide per page;
 - spreadsheets (.xlsx, .ods, .csv, .xls, .numbers …): a table or a chart per selected range;

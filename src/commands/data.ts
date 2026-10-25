@@ -1498,12 +1498,12 @@ function editLinks(app: App): void {
   }
   for (const n of app.book.names) for (const m of n.ref.matchAll(/'?\[([^\]]+)\]/g)) found.add(m[1]);
   if (!found.size) { void alertDialog('Edit Links', 'This workbook has no links to other workbooks.'); return; }
-  void alertDialog('Edit Links', `This workbook refers to ${found.size} other workbook${found.size === 1 ? '' : 's'}:\n${[...found].join('\n')}\nLinks to other workbooks can't be updated in QuillGrid; formulas that use them keep their last values or show #REF!. Open the source workbook and copy the data in, or use Find & Replace to point the formulas at this workbook.`);
+  void alertDialog('Edit Links', `This workbook refers to ${found.size} other workbook${found.size === 1 ? '' : 's'}:\n${[...found].join('\n')}\nLinks to other workbooks can't be updated in Anne\'s Grid; formulas that use them keep their last values or show #REF!. Open the source workbook and copy the data in, or use Find & Replace to point the formulas at this workbook.`);
 }
 
 function relationships(app: App): void {
   const tables = app.book.sheets.flatMap((s) => s.tables.map((t) => `${t.name} — ${s.name}!${addrText(t.range)} (${t.columns.map((c) => c.name).join(', ')})`));
-  void alertDialog('Relationships', `${tables.length ? `Tables in this workbook:\n${tables.join('\n')}` : 'This workbook has no tables. Use Insert ▸ Table to create one.'}\nQuillGrid doesn't keep a data model of related tables. To combine tables, look up related rows with XLOOKUP or use Get Data ▸ From Table/Range to group and reshape them.`);
+  void alertDialog('Relationships', `${tables.length ? `Tables in this workbook:\n${tables.join('\n')}` : 'This workbook has no tables. Use Insert ▸ Table to create one.'}\nAnne\'s Grid doesn't keep a data model of related tables. To combine tables, look up related rows with XLOOKUP or use Get Data ▸ From Table/Range to group and reshape them.`);
 }
 
 // --------------------------------------------------------------------------------------------

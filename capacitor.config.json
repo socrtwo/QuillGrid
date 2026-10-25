@@ -1,6 +1,6 @@
 {
   "appId": "io.github.socrtwo.quillgrid",
-  "appName": "QuillGrid",
+  "appName": "Anne's Grid",
   "webDir": "dist",
   "android": {
     "allowMixedContent": false,

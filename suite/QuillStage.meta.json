@@ -1,5 +1,5 @@
 {
-  "name": "QuillStage",
+  "name": "Anne's Stage",
   "description": "An original, open-source presentation project focused on modern storytelling, design, and delivery experiences. Built as a clean-room alternative with a familiar slide workflow and innovative features.",
   "homepage": "",
   "topics": [
@@ -17,11 +17,11 @@
     "pwa",
     "open-source",
     "office-suite",
-    "quill-suite"
+    "annes-office-suite"
   ],
   "keywords": [
-    "quillstage",
-    "quill-suite",
+    "annes-stage",
+    "annes-office-suite",
     "presentation",
     "slides",
     "slideshow",

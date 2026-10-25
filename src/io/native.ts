@@ -1,5 +1,5 @@
 /**
- * Native QuillGrid formats:
+ * Native Anne's Grid formats:
  *   .json  the workbook model as JSON (Workbook.toJSON, errors as {"#err": code})
  *   .qgw   a ZIP with workbook.json, pictures extracted to media/
  *   .qgwe  the same JSON encrypted with a password (PBKDF2 + AES-256-GCM, src/util/crypto.ts)
@@ -70,7 +70,7 @@ export async function exportQlw(book: Workbook): Promise<Blob> {
   }
   const vba: Uint8Array | undefined = (book as any).vbaProject;
   if (vba instanceof Uint8Array) zip.file('vbaProject.bin', vba);
-  zip.file('workbook.json', JSON.stringify({ qgw: 1, app: 'QuillGrid', saved: new Date().toISOString(), workbook: json }));
+  zip.file('workbook.json', JSON.stringify({ qgw: 1, app: 'Anne\'s Grid', saved: new Date().toISOString(), workbook: json }));
   const data = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE', compressionOptions: { level: 6 } });
   return new Blob([data as BlobPart], { type: 'application/x-quillgrid' });
 }
@@ -78,7 +78,7 @@ export async function exportQlw(book: Workbook): Promise<Blob> {
 export async function importQlw(data: ArrayBuffer): Promise<Workbook> {
   const zip = await JSZip.loadAsync(data);
   const f = zip.file('workbook.json');
-  if (!f) throw new Error('workbook.json is missing from this QuillGrid file');
+  if (!f) throw new Error('workbook.json is missing from this Anne\'s Grid file');
   const env = JSON.parse(await f.async('string'));
   const json = env.workbook || env;
   for (const sh of json.sheets || []) {
@@ -100,7 +100,7 @@ export async function importQlw(data: ArrayBuffer): Promise<Workbook> {
 // .qgwe (encrypted)
 
 export async function exportQlwe(book: Workbook, password: string): Promise<Blob> {
-  const bytes = await encryptJson({ qgw: 1, app: 'QuillGrid', workbook: plain(book) }, password);
+  const bytes = await encryptJson({ qgw: 1, app: 'Anne\'s Grid', workbook: plain(book) }, password);
   return new Blob([bytes as BlobPart], { type: 'application/x-quillgrid-encrypted' });
 }
 

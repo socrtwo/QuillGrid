@@ -172,7 +172,7 @@ describe('JSON', () => {
     expect(val(r.book.sheets[0], 'B3')).toBe('y');
     expect(r.warnings.join(' ')).toMatch(/skipped/);
   });
-  it('still opens QuillGrid JSON natively', async () => {
+  it('still opens Anne\'s Grid JSON natively', async () => {
     const { exportFile } = await import('../../src/io/index');
     const { Workbook } = await import('../../src/model/workbook');
     const b = new Workbook(); b.sheets[0].cells.set(K('A1'), { v: 'native' });

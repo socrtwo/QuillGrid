@@ -1,6 +1,6 @@
 # File formats
 
-QuillGrid opens files by what they contain, not by their name. A file called `budget.xls` that
+Anne's Grid opens files by what they contain, not by their name. A file called `budget.xls` that
 is really a Lotus 1-2-3 worksheet opens as a 1-2-3 worksheet, and a file with no extension at all
 opens like any other. When the contents and the extension disagree, or the extension is missing,
 a short note says what the file turned out to be.
@@ -18,8 +18,8 @@ there is one detector. Other modules add rules with `registerSniffer(rule)`; a r
 The result decides what happens next:
 
 - **spreadsheet**: the matching importer opens it.
-- **document, presentation or email**: QuillGrid offers to hand the file to the Quill app made
-  for it (QuillPen for documents, QuillStage for presentations, QuillPost for mail) and always
+- **document, presentation or email**: Anne's Grid offers to hand the file to the Anne's Office app made
+  for it (Anne's Pen for documents, Anne's Stage for presentations, Anne's Post for mail) and always
   offers to import it instead (see below). On Android the sibling app is launched by package
   name; on the desktop the file is opened with the program registered for its type; a web page
   and iOS cannot hand files to other apps, so the dialog explains how to open it there.
@@ -28,7 +28,7 @@ The result decides what happens next:
 
 ## Legacy and binary spreadsheet formats
 
-Fidelity tiers: **full** (everything the format stores that QuillGrid can represent),
+Fidelity tiers: **full** (everything the format stores that Anne's Grid can represent),
 **high** (values, formulas and most formatting), **values + formulas**, **values only**.
 
 | Program | Versions | Era | Extensions | Detection signature | Fidelity | Limitations |
@@ -62,7 +62,7 @@ Formulas are decompiled to their original 1-2-3 syntax and translated by the 1-2
 translator (`src/heritage/lotus.ts`), so 1-2-3 semantics are kept: zero-based offsets in @CHOOSE,
 @INDEX, @VLOOKUP, @MID and @FIND, argument orders of the financial functions, and labels counting
 as zero in @AVG, @COUNT and the other statistical functions. A formula that uses a function
-QuillGrid does not have keeps its last calculated value and gets a cell note with the original
+Anne's Grid does not have keeps its last calculated value and gets a cell note with the original
 formula; the import notes list how many there were.
 
 Damaged files are read again leniently (records with impossible lengths are skipped and reading
@@ -86,7 +86,7 @@ files; no code from other spreadsheet projects was used.
 
 ## Modern, XML and text spreadsheet formats
 
-Fidelity tiers: **full** (everything the format stores that QuillGrid can represent),
+Fidelity tiers: **full** (everything the format stores that Anne's Grid can represent),
 **high** (values, formulas and most formatting), **values + formulas**, **values only**.
 Detection rules for these formats are in `src/io/sniff-b.ts` (`SNIFF_RULES_B`); each importer
 is its own module under `src/io/`. Every format here opens by content, whatever the file is
@@ -113,7 +113,7 @@ called; the extension only breaks ties.
 | Fixed-width text | Excel "Formatted Text (Space delimited)", report listings | 1980s- | .prn, .txt | Blank columns line up in every line and no delimiter is used consistently | values only | Columns that do not line up fall back to delimited text |
 | SYLK | Multiplan, Excel, LibreOffice | 1981- | .slk, .sylk | `ID;` first line | high | Values, R1C1 or A1 formulas, number formats, fonts, alignment, borders, widths; escapes for accents and line breaks |
 | DIF | VisiCalc, Lotus, Excel, LibreOffice | 1980- | .dif | `TABLE` / `0,1` header with `VECTORS`, `TUPLES` or `DATA` | values only | Dates written as text become dates; column-major files are transposed |
-| JSON | records, row arrays, column objects, wrapped arrays | 2001- | .json | Top-level `[` or `{` | values only | Nested objects flatten to dotted columns; arrays of scalars join; ISO dates become dates; each array of records inside an object becomes a sheet. QuillGrid's own JSON is still recognized |
+| JSON | records, row arrays, column objects, wrapped arrays | 2001- | .json | Top-level `[` or `{` | values only | Nested objects flatten to dotted columns; arrays of scalars join; ISO dates become dates; each array of records inside an object becomes a sheet. Anne's Grid's own JSON is still recognized |
 | JSON Lines | NDJSON | 2013- | .ndjson, .jsonl | Several lines that each parse as JSON | values only | Lines that are not JSON are skipped with a note |
 | SQLite | 3.x | 2004- | .sqlite, .sqlite3, .db, .db3 | `SQLite format 3\0` | values only | Read-only, by a small reader of the published file format (no SQL engine): every table opens as a sheet; WITHOUT ROWID tables are supported; views and virtual tables have no stored rows and are listed in a note; changes still in a `-wal` file are not seen; blobs show their size |
 | gzip | any of the above compressed | | .gz | `1F 8B 08` | as the contents | The contents are identified again by what they are |

@@ -1,5 +1,5 @@
 /**
- * QuillGrid was formerly named QuillLattice. On the first start after the rename this copies the
+ * Anne's Grid was formerly named QuillLattice. On the first start after the rename this copies the
  * browser-side data stored under the old names to the new ones, so settings, drafts, version
  * snapshots, dictionaries and AI settings carry over. Imported first by main.ts so it runs before
  * any module reads localStorage. The old entries are left in place (nothing is deleted).

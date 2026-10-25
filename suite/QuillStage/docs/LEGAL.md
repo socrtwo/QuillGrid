@@ -1,11 +1,11 @@
 # Clean-room, trademark and licensing notes
 
-This file records how QuillStage will provide a complete presentation command set while avoiding other vendors' trademarks and copyrights. It summarizes the project's practice, the same practice QuillPen and QuillGrid follow; it is not legal advice. QuillStage has no code yet, so this file states the rules the code will be written under.
+This file records how Anne's Stage will provide a complete presentation command set while avoiding other vendors' trademarks and copyrights. It summarizes the project's practice, the same practice Anne's Pen and Anne's Grid follow; it is not legal advice. Anne's Stage has no code yet, so this file states the rules the code will be written under.
 
 ## What is reproduced, and why it is safe
 
 - **Functionality and command names.** Presentation operations (New Slide, Duplicate Slide, Slide Master, Rehearse Timings, Presenter View, Fade transition, Fly In animation) are functional ideas. Their names are ordinary descriptive words used across the industry. Functionality is not protected by copyright, and descriptive terms are not trademarks for those functions.
-- **Tab and group organization.** Grouping commands under tabs such as Home, Insert, Design, Transitions, Animations and Slide Show is a common, functional arrangement. QuillStage's grouping, ordering, labels, tooltips and descriptions are written for this project.
+- **Tab and group organization.** Grouping commands under tabs such as Home, Insert, Design, Transitions, Animations and Slide Show is a common, functional arrangement. Anne's Stage's grouping, ordering, labels, tooltips and descriptions are written for this project.
 - **Keyboard shortcuts.** Long-standing shortcuts (F5 to start a show, Ctrl+M for a new slide) are functional conventions users rely on; all of them can be rebound.
 - **File formats.** .pptx (ECMA-376 / ISO/IEC 29500 Office Open XML, PresentationML and DrawingML), .odp (ISO/IEC 26300 OpenDocument), the legacy binary .ppt format (published by Microsoft as the [MS-PPT] and related Open Specifications), PDF (ISO 32000), Markdown and HTML are public specifications. The converters will be written from those specifications and tested with open-source tools (LibreOffice) and files produced by the project.
 - **Visual effects.** Transitions and animations are described by the file formats (each effect has a name and parameters in the specification) and are implemented from those descriptions, not by copying another program's code or assets.
@@ -15,7 +15,7 @@ This file records how QuillStage will provide a complete presentation command se
 - No vendor logos, icons, splash screens, color schemes or trade dress. Command icons will be Google's Material Symbols (Apache 2.0). The app icon and visual design are original.
 - No vendor product names in the app's own name or interface. Trademarked or brand-specific feature names are replaced with generic terms:
 
-| Vendor term | QuillStage term |
+| Vendor term | Anne's Stage term |
 |---|---|
 | PowerPoint (as a feature or format name in menus) | "PowerPoint Presentation (.pptx)" only in file-type lists, to identify the format |
 | WordArt | Decorative Text |
@@ -43,14 +43,14 @@ This file records how QuillStage will provide a complete presentation command se
 
 ## Nominative use
 
-QuillStage's documentation names other products (Microsoft PowerPoint, Apple Keynote, Google Slides, LibreOffice Impress, Prezi, Canva, Sway, Pitch, Gamma, Tome, Ludus, Mentimeter, Slido, Zoho Show, WPS Presentation, Focusky, Harvard Graphics, Aldus Persuasion, Lotus Freelance Graphics, Corel Presentations, Astound, ShowPartner, Microsoft Producer, reveal.js, Marp, Slidev, Beamer, KineMaster, Freeform, Miro, Whimsical and others) only to identify file formats or to credit where an idea came from ("Build Order panel, inspired by Keynote"). This is nominative use; it does not imply affiliation, sponsorship or endorsement. The names are trademarks of their respective owners, including:
+Anne's Stage's documentation names other products (Microsoft PowerPoint, Apple Keynote, Google Slides, LibreOffice Impress, Prezi, Canva, Sway, Pitch, Gamma, Tome, Ludus, Mentimeter, Slido, Zoho Show, WPS Presentation, Focusky, Harvard Graphics, Aldus Persuasion, Lotus Freelance Graphics, Corel Presentations, Astound, ShowPartner, Microsoft Producer, reveal.js, Marp, Slidev, Beamer, KineMaster, Freeform, Miro, Whimsical and others) only to identify file formats or to credit where an idea came from ("Build Order panel, inspired by Keynote"). This is nominative use; it does not imply affiliation, sponsorship or endorsement. The names are trademarks of their respective owners, including:
 
 - PowerPoint, Microsoft 365, Sway and Microsoft Producer are trademarks of Microsoft Corporation.
 - Keynote, Freeform and iWork are trademarks of Apple Inc.
 - Google Slides is a trademark of Google LLC.
 - LibreOffice is a trademark of The Document Foundation.
 - Prezi, Canva, Pitch, Gamma, Tome, Ludus, Mentimeter, Slido, Zoho, WPS, Focusky, KineMaster, Miro and Whimsical are trademarks of their respective owners.
-- Pecha Kucha (PechaKucha) and Ignite are names of presentation formats and event series owned by their respective organizers; QuillStage's *Timed Format* presets describe the formats' timing only.
+- Pecha Kucha (PechaKucha) and Ignite are names of presentation formats and event series owned by their respective organizers; Anne's Stage's *Timed Format* presets describe the formats' timing only.
 
 ## Third-party components (planned)
 
@@ -71,4 +71,4 @@ The final list will be generated from `package.json` into a third-party notices 
 
 ## Online services
 
-QuillStage will work offline. Online services are called only when the user invokes the matching command: the chosen AI provider (AI tab), on-device model downloads (Hugging Face Hub), dictionary downloads (Review ▸ Spelling Dictionaries), openly licensed picture search (Insert ▸ Online Pictures), the thesaurus service, web search and translation (opened in the browser or sent to the chosen AI provider), and, for audience features, phone remote and broadcast, the signaling relay the user configures.
+Anne's Stage will work offline. Online services are called only when the user invokes the matching command: the chosen AI provider (AI tab), on-device model downloads (Hugging Face Hub), dictionary downloads (Review ▸ Spelling Dictionaries), openly licensed picture search (Insert ▸ Online Pictures), the thesaurus service, web search and translation (opened in the browser or sent to the chosen AI provider), and, for audience features, phone remote and broadcast, the signaling relay the user configures.

@@ -39,7 +39,7 @@ const RECOMMEND_ORDER: Record<string, string[]> = {
   xml: ['xmltrncatorfixr'],
 };
 
-/** File kinds QuillGrid itself opens. */
+/** File kinds Anne's Grid itself opens. */
 export const HANDLED_HERE = ['docx', 'ooxml', 'doc', 'odt', 'rtf', 'html', 'xml', 'txt', 'csv', 'epub', 'ole'];
 
 export const DESCRIPTIONS: Record<string, string> = {

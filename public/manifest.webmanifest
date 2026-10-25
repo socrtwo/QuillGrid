@@ -1,6 +1,6 @@
 {
-  "name": "QuillGrid",
-  "short_name": "QuillGrid",
+  "name": "Anne's Grid",
+  "short_name": "Anne's Grid",
   "description": "An open-source spreadsheet that opens and saves Excel, OpenDocument and CSV files, with a complete, customizable command library.",
   "id": "./",
   "start_url": "./",

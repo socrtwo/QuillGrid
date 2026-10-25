@@ -31,7 +31,7 @@ import { BUILTIN_FORMATS } from '../../model/numfmt';
 import { isOle2, readCfb } from './doc97';
 import { cp1252 } from './salvage';
 
-export const XLS_ENCRYPTED_MSG = 'This workbook is password-protected (encrypted); QuillGrid cannot decrypt it.';
+export const XLS_ENCRYPTED_MSG = 'This workbook is password-protected (encrypted); Anne\'s Grid cannot decrypt it.';
 
 export interface BiffStats {
   /** BIFF version: 2, 3, 4, 5 (Excel 5.0/95) or 8 (Excel 97-2003). */
