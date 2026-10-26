@@ -6,10 +6,10 @@ Every command will be usable on the Quick Access Bar, on custom tabs, on a keybo
 
 ## Conventions
 
-- **ids** are `area.name` in camelCase, as in Anne's Pen and QuillGrid. Where the sister apps already define a command (`file.save`, `edit.undo`, `review.spelling`, `view.cmdSearch`, `view.qatAddAll`…), Anne's Stage reuses the id so that shared settings, macros and QAT layouts carry over.
+- **ids** are `area.name` in camelCase, as in Anne's Pen and Anne's Grid. Where the sister apps already define a command (`file.save`, `edit.undo`, `review.spelling`, `view.cmdSearch`, `view.qatAddAll`…), Anne's Stage reuses the id so that shared settings, macros and QAT layouts carry over.
 - **Galleries** (themes, transitions, animations, shape styles) are one command with an argument, written `id(arg)`, plus one command per item where it is useful to place a single item on the QAT, written as a range: `trans.fade`, `trans.push`, ….
 - **Shortcuts** are planned defaults. Many follow long-standing desktop conventions because users expect them; all can be rebound.
-- **Vendor feature names** are replaced with generic terms; see [LEGAL.md](LEGAL.md). The left column says what the user sees in QuillStage.
+- **Vendor feature names** are replaced with generic terms; see [LEGAL.md](LEGAL.md). The left column says what the user sees in Anne's Stage.
 
 | Namespace | Area |
 |---|---|

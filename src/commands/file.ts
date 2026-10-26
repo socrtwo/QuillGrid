@@ -589,7 +589,7 @@ def([
     run: async () => {
       const { functionNames } = await import('../calc/functions');
       await alertDialog('About Anne\'s Grid', h('div', { class: 'ql-msg' },
-        h('p', null, h('b', null, `Anne\'s Grid ${__APP_VERSION__}`), ' — an original, open-source spreadsheet (MIT License). A companion to QuillPen.'),
+        h('p', null, h('b', null, `Anne\'s Grid ${__APP_VERSION__}`), ' — an original, open-source spreadsheet (MIT License). A companion to Anne\'s Pen.'),
         h('p', null, `${commandCount()} commands and ${functionNames().length} worksheet functions. Every command is available to the Quick Access Bar, custom tabs, keyboard shortcuts, macros and command search.`),
         h('p', null, 'Anne\'s Grid is not affiliated with, endorsed by, or sponsored by Microsoft, Google, Apple, The Document Foundation, or any other vendor. Product names are used only to describe file-format compatibility or the origin of an idea.'),
         h('p', null, 'Open-source components: JSZip (MIT/GPLv3 dual, used under MIT), nspell and hunspell-asm (MIT) with SCOWL English dictionaries (MIT and BSD-style), Material Symbols (Apache 2.0), Capacitor (MIT), Electron (MIT), fonts Carlito, Caladea, Gelasio, EB Garamond, Courier Prime, Libre Baskerville, Lato, Merriweather, Open Sans (SIL OFL 1.1) and Tinos, Arimo, Cousine (Apache 2.0). Their licenses are in Help ▸ Third-Party Notices.')));

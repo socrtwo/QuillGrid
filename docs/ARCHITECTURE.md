@@ -1,6 +1,6 @@
 # Architecture
 
-Anne's Grid is a TypeScript web application. The Android and iOS releases package it with Capacitor, the desktop releases with Electron, and the same build runs in a browser as an installable, offline-capable web app. It shares its application shell (command registry, Quick Access Bar, customizable tabs, dialogs, AI setup, dictionary downloads, recovery engine and platform layer) with its sibling, QuillPen.
+Anne's Grid is a TypeScript web application. The Android and iOS releases package it with Capacitor, the desktop releases with Electron, and the same build runs in a browser as an installable, offline-capable web app. It shares its application shell (command registry, Quick Access Bar, customizable tabs, dialogs, AI setup, dictionary downloads, recovery engine and platform layer) with its sibling, Anne's Pen.
 
 ```
 src/

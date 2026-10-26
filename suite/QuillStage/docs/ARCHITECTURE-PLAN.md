@@ -83,7 +83,7 @@ tests/
 - **One renderer for every surface.** Edit view, thumbnails, slide show, presenter view, print, PDF, image and video export use the same slide renderer, so what you see is what you present and export. Text is laid out by Anne's Stage (not left to the browser) wherever line breaks must match between screen and export; the browser's text shaping is used inside each line.
 - **Inheritance is resolved lazily.** Properties are looked up through shape → layout placeholder → master placeholder → master text styles → theme, with a per-slide cache invalidated by transactions.
 - **Fonts.** Decks that name common proprietary fonts render with metric-compatible open fonts (Carlito, Caladea, Tinos, Arimo, Cousine, Gelasio, EB Garamond), as in the sister apps; installed originals are preferred; embedded fonts in .pptx are used when their embedding permissions allow.
-- **Recovery is a pipeline** (below), shared in its generic parts with Anne's Pen and QuillGrid.
+- **Recovery is a pipeline** (below), shared in its generic parts with Anne's Pen and Anne's Grid.
 
 ## Document formats
 
@@ -93,7 +93,7 @@ tests/
 | .ppt (97–2003) | Import only: compound-file reader shared with Anne's Pen's Word 97 recovery; record walker for the `PowerPoint Document` stream (persist directory, slides, masters, text atoms, shapes via the Office Drawing records), pictures from the `Pictures` stream. |
 | .odp / .otp / .fodp | Read and write: draw pages, master pages, styles, presentation:animations (mapped to the timing model), transitions, notes, charts as tables of values plus rendering. |
 | Markdown | `---` slide separator, title, bullets, images, code blocks, notes blocks, front matter for theme and size. |
-| Native .qsp / .qspe | JSON package (zip) with the model and media; encrypted variant uses AES-256-GCM with a password-derived key, as in Anne's Pen and QuillGrid. |
+| Native .qsp / .qspe | JSON package (zip) with the model and media; encrypted variant uses AES-256-GCM with a password-derived key, as in Anne's Pen and Anne's Grid. |
 
 ## Rendering and the slide show
 
