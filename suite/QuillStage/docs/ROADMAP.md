@@ -11,7 +11,7 @@
 ## M1 — Shell and model
 
 - Project scaffold: TypeScript, Vite, vitest, Capacitor 8 (Android, iOS), Electron, PWA manifest and service worker.
-- CI (`android.yml`) and Release (`release.yml`) workflows, adapted from QuillGrid.
+- CI (`android.yml`) and Release (`release.yml`) workflows, adapted from Anne's Grid.
 - Shared shell from the sister apps: command registry, ribbon, Quick Access Bar with the full drop-down and **Add All Choices** (`view.qatAddAll`), Customize Tabs, Customize Keyboard, command search, Backstage, preferences, settings import/export.
 - Deck model with transactions and undo/redo; masters, layouts, placeholders and inheritance; themes.
 - Normal view (thumbnails, slide, notes), Outline view with two-way sync, Slide Sorter, sections.
