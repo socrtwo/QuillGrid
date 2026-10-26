@@ -22,6 +22,7 @@ function open(): Promise<IDBDatabase | null> {
 export async function kvGet<T = any>(key: string): Promise<T | undefined> {
   const db = await open();
   if (!db) {
+    if (typeof localStorage === 'undefined') return undefined;
     const v = localStorage.getItem('qlkv:' + key);
     return v ? JSON.parse(v) : undefined;
   }
@@ -34,7 +35,7 @@ export async function kvGet<T = any>(key: string): Promise<T | undefined> {
 
 export async function kvSet(key: string, value: any): Promise<void> {
   const db = await open();
-  if (!db) { try { localStorage.setItem('qlkv:' + key, JSON.stringify(value)); } catch { /* */ } return; }
+  if (!db) { try { if (typeof localStorage !== 'undefined') localStorage.setItem('qlkv:' + key, JSON.stringify(value)); } catch { /* */ } return; }
   return new Promise((resolve) => {
     const tx = db.transaction(OS, 'readwrite');
     tx.objectStore(OS).put(value, key);
@@ -45,7 +46,7 @@ export async function kvSet(key: string, value: any): Promise<void> {
 
 export async function kvDel(key: string): Promise<void> {
   const db = await open();
-  if (!db) { localStorage.removeItem('qlkv:' + key); return; }
+  if (!db) { if (typeof localStorage !== 'undefined') localStorage.removeItem('qlkv:' + key); return; }
   return new Promise((resolve) => {
     const tx = db.transaction(OS, 'readwrite');
     tx.objectStore(OS).delete(key);
@@ -57,6 +58,7 @@ export async function kvDel(key: string): Promise<void> {
 export async function kvKeys(prefix = ''): Promise<string[]> {
   const db = await open();
   if (!db) {
+    if (typeof localStorage === 'undefined') return [];
     return Object.keys(localStorage).filter((k) => k.startsWith('qlkv:' + prefix)).map((k) => k.slice(5));
   }
   return new Promise((resolve) => {

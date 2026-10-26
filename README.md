@@ -4,7 +4,8 @@
 
 An original, open-source spreadsheet for Android (and the web, desktop and iOS) whose goal is simple: **no missing commands**. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, on a keyboard shortcut, or in a macro, which is the full-library customization that mobile and online spreadsheet apps leave out. It is the companion to the [Anne's Pen](https://github.com/socrtwo/QuillPen) word processor and shares its interface and customization system.
 
-- **687 commands** across File, Home, Insert, Draw, Page Layout, Formulas, Data, Review, View, Tools, **AI**, Developer and Help, plus contextual Table Design, PivotTable Analyze, Chart Design, Picture Format and Shape Format tabs. See [docs/COMMANDS.md](docs/COMMANDS.md).
+- **1,139 commands** across File, Home, Insert, Draw, Page Layout, Formulas, Data, Review, View, Tools, **AI**, Developer, Help and the three plug-in tabs **Utilities**, **Plus** and **Extras**, plus contextual Table Design, PivotTable Analyze, Chart Design, Picture Format and Shape Format tabs. See [docs/COMMANDS.md](docs/COMMANDS.md).
+- **Add-in tool libraries built in.** The Utilities tab follows the catalog of the ASAP Utilities add-in category by category (Select, Sheets, Range, Fill, Columns & Rows, Objects & Comments, Format & Layout, Numbers & Dates, Text, Formulas, Web Data, Info & List, File & System, Import, Export…); the Plus tab gathers the tools known from Kutools, Ablebits Ultimate Suite, Power Tools, XLTools and Inquire (reading layout, super filter, split names, merge tables, lookup wizard, cell encryption, workbook analysis, an SQL query engine over sheets…); the Extras tab adds tools of its own for genealogy, publishing, finance, data quality, dates, geography and workflow. 452 tools, all original re-implementations. See [docs/PLUGINS.md](docs/PLUGINS.md).
 - **522 worksheet functions**, including dynamic arrays (FILTER, SORT, UNIQUE, SEQUENCE, XLOOKUP, TEXTSPLIT, VSTACK, GROUPBY, PIVOTBY…), LET and LAMBDA with MAP/REDUCE/SCAN/BYROW/BYCOL, and the full statistical, financial, engineering and database libraries.
 - **Opens damaged workbooks** with a recovery engine built on the author's [Word Recovery](https://github.com/socrtwo/wordrecovery-SF) / Immortal Unzipper heritage: byte-level ZIP salvage, XML repair, raw worksheet scanning, and record-level salvage of Excel 97–2003 .xls files. See [docs/RECOVERY.md](docs/RECOVERY.md).
 - **AI tab** with formula writing and explanation, data analysis, fill-by-instruction, classification, extraction and cleaning. It offers a free on-device model (no account) and a setup wizard for free and paid providers. See [docs/AI.md](docs/AI.md).
@@ -76,6 +77,9 @@ Recalculation is incremental: dependencies are recorded as formulas are evaluate
 | Column types; Monte Carlo Simulation and What-If Sliders; Cell History | Airtable and Grist; Causal; online spreadsheets |
 | ISBETWEEN, WEIGHTAVG, SEMEAN, REFCONVERT, XINDEX, COUNTUNIQUE, ISEMAIL, ISURL, EPOCHTODATE and date helpers | 1-2-3, online spreadsheets, StarCalc |
 | Command search, keyboard rebinding for every command, QAT at the bottom near the keyboard | Anne's Pen |
+| Utilities tab: Select by Content, Conditional Row Delete, Reset the Last Cell, Replace from a List, Count and Sum by Color, Freeze Conditional Formatting, Sheet Index… | ASAP Utilities (re-implemented, see docs/PLUGINS.md) |
+| Plus tab: Reading Layout, Prevent Typing, Super Filter, Split Names, Merge Two Tables, Lookup Wizard, Encrypt Cells, Workbook Analysis, SQL queries | Kutools, Ablebits Ultimate Suite, Power Tools, XLTools, Inquire |
+| Extras tab: Soundex, genealogy date parsing, Julian/Gregorian, title case, ISBN check, amortization, Benford's law, value clustering, holidays, coordinates | Anne's Grid |
 | Metric-compatible open fonts substituted for Calibri, Cambria, Times New Roman, Arial, Courier New, Georgia and Garamond | Document-fidelity practice in open-source suites |
 
 [docs/HERITAGE.md](docs/HERITAGE.md) surveys VisiCalc, SuperCalc, Multiplan, Lotus 1-2-3, Symphony, Improv, Agenda, Quattro Pro, Framework, Javelin, Excel 1.0, Boeing Calc, Wingz, Resolver One and today's database-style and model-style spreadsheets, feature by feature: what Anne's Grid already had, what was added, and what was left out and why.
@@ -93,9 +97,9 @@ Providers:
 
 Keys are stored encrypted on the device (Android Keystore on Android, the system keychain on desktop; a plain browser keeps them in site storage), and nothing is sent until you use an AI command.
 
-## Known limitations (0.1)
+## Known limitations
 
-- **Native builds are untested on devices.** The web build, 591 unit tests, a browser smoke test (`npm run e2e`) and a phone layout audit (`npm run e2e:layout`: every window, menu and pane on emulated phones with system bars and the on-screen keyboard) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
+- **Native builds are untested on devices.** The web build, 630 unit tests, a browser smoke test (`npm run e2e`) and a phone layout audit (`npm run e2e:layout`: every window, menu and pane on emulated phones with system bars and the on-screen keyboard) pass; the Android, iOS and desktop packages build from the same code but have not yet been exercised on real hardware.
 - **VBA is preserved, not run.** .xlsm files keep their VBA project when saved as .xlsm; macros run only in Anne's Grid's JavaScript macro language.
 - **PivotTables from other programs open as static values.** PivotTables made in Anne's Grid are live, but they are written to .xlsx as values, not as pivot caches.
 - **OpenDocument charts and embedded objects** are not opened or saved; cell data, formulas, styles, merges and conditional formats are.

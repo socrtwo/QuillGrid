@@ -36,6 +36,10 @@ src/
     *.ts                  command modules by area (file, edit, format, cells, view, insert, charts, table,
                           formulas, pivot, conditional, data, page layout, review, tools, ai, developer, draw,
                           heritage: features from earlier spreadsheets, see docs/HERITAGE.md)
+    utilShared.ts         helpers shared by the plug-in tabs (selection, protection, reports, blocks)
+    utilities*.ts         Utilities tab (ASAP Utilities-style categories), see docs/PLUGINS.md
+    plus.ts               Plus tab (Kutools/Ablebits/Power Tools/XLTools/Inquire-style tools, SQL engine)
+    extras.ts             Extras tab (genealogy, publishing, finance, data quality, dates, geography, workflow)
   heritage/               logic behind the heritage commands: 1-2-3 formula translation, R1C1 and formula
                           rules, explain/dependency graphs, cell history, matrices, Monte Carlo, code export
   io/                     format converters: xlsx/xlsm/xltx, ods/fods, csv/tsv, html, sylk, dif, xml 2003, native
