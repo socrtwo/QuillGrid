@@ -535,7 +535,7 @@ async function inkToMath(app: App): Promise<void> {
   session?.commit();
   const d = lastInk(app);
   if (!d) { toast('Write an equation in ink first, then use Ink to Math.'); return; }
-  const text = await promptDialog('Ink to Math', 'Handwriting recognition is not available offline in QuillGrid, so type the equation you wrote. It replaces the ink as a text box (for example: x = (-b ± √(b²-4ac)) / 2a). To compute it, enter it as a formula in a cell instead.', '');
+  const text = await promptDialog('Ink to Math', 'Handwriting recognition is not available offline in Anne\'s Grid, so type the equation you wrote. It replaces the ink as a text box (for example: x = (-b ± √(b²-4ac)) / 2a). To compute it, enter it as a formula in a cell instead.', '');
   if (text == null || !text.trim()) return;
   const s = app.sheet;
   app.book.transact('Ink to Math', () => {

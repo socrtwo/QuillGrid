@@ -1,6 +1,6 @@
-# QuillGrid for Android
+# Anne's Grid for Android
 
-The Android app is the QuillGrid web app (TypeScript/Vite, built into `dist/`) wrapped with
+The Android app is the Anne's Grid web app (TypeScript/Vite, built into `dist/`) wrapped with
 [Capacitor 8](https://capacitorjs.com/). The native project lives in `android/` and is committed;
 `npx cap sync android` copies the web build into it and regenerates the Capacitor plugin glue.
 
@@ -65,7 +65,7 @@ Publishing:
   match `package.json`.
 - **Prerelease from any branch, without tagging:** Actions -> *Android* -> *Run workflow*, choose the
   branch, tick **prerelease**. This publishes a GitHub prerelease called
-  `QuillGrid <version> (build <run number>)` under the tag `v<version>-build.<run number>` pointing at
+  `Anne's Grid <version> (build <run number>)` under the tag `v<version>-build.<run number>` pointing at
   that commit.
 
 ## Signing
@@ -93,7 +93,7 @@ keytool -genkeypair -v \
   -keystore quillgrid-release.jks \
   -alias quillgrid \
   -keyalg RSA -keysize 4096 -validity 10000 \
-  -dname "CN=QuillGrid, O=QuillGrid, C=US"
+  -dname "CN=Anne's Grid, O=Anne's Grid, C=US"
 ```
 
 Keep the `.jks` file and its passwords somewhere safe and **never commit it** (`*.jks` and `*.keystore`
@@ -144,17 +144,17 @@ The `.aab` is for Google Play only; it cannot be installed directly.
 - **Open / Save As** use the system file picker (Storage Access Framework), so files in Drive,
   Dropbox, SD cards, etc. work and no storage permission is needed. Ctrl+S writes back to the same
   workbook via a persisted URI permission.
-- **Open with QuillGrid** (`ACTION_VIEW`) for `.xlsx`, `.xlsm`, `.xltx`, `.xls`, `.ods`, `.fods`,
+- **Open with Anne's Grid** (`ACTION_VIEW`) for `.xlsx`, `.xlsm`, `.xltx`, `.xls`, `.ods`, `.fods`,
   `.csv`, `.tsv`, `.txt`, `.qgw` and `.qgwe`. Files are matched by MIME type
   (`…spreadsheetml.sheet`, `…ms-excel.sheet.macroEnabled.12`, `…spreadsheetml.template`,
   `application/vnd.ms-excel`, `…opendocument.spreadsheet`, `text/csv`, `text/comma-separated-values`,
   `text/tab-separated-values`, `text/plain`), and by file extension when the provider reports only
   `application/octet-stream`.
-- **Share to QuillGrid** (`ACTION_SEND`) for the same types. Text shared without a file arrives
+- **Share to Anne's Grid** (`ACTION_SEND`) for the same types. Text shared without a file arrives
   as a `.txt` file and opens through the text import.
 - **Print** goes through Android's print service, which also offers *Save as PDF*.
 - **Share** sends the exported file to any app via the share sheet.
-- The activity is `singleTask`, so opening another file while QuillGrid runs delivers it to the running
+- The activity is `singleTask`, so opening another file while Anne's Grid runs delivers it to the running
   instance (`fileOpened` event).
 
 ## Native plugin API (`QuillNative`)
@@ -186,7 +186,7 @@ Notes:
 
 ## App icon
 
-The launcher icon is the Quill suite icon for this app: a white worksheet card and a white quill on a
+The launcher icon is the Anne's Office suite icon for this app: a white worksheet card and a white quill on a
 green tile. Its sources are `resources/icon.svg` (the full tile), `resources/icon-foreground.svg` (the
 adaptive-icon foreground, artwork inside the safe zone) and `resources/icon-background.txt` (the
 adaptive background color, `#1E7A46`). `node scripts/gen-android-icons.mjs` writes from them:

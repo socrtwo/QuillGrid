@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>QuillGrid</string>
+	<string>Anne's Grid</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -43,7 +43,7 @@
       </array>
     </dict>
 	</dict>
-	<!-- File types QuillGrid can open ("Open in" / Share sheet / Files app). -->
+	<!-- File types Anne's Grid can open ("Open in" / Share sheet / Files app). -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -101,7 +101,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>QuillGrid Workbook</string>
+			<string>Anne's Grid Workbook</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
@@ -254,14 +254,14 @@
 			</dict>
 		</dict>
 	</array>
-	<!-- Formats QuillGrid defines. -->
+	<!-- Formats Anne's Grid defines. -->
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
 			<key>UTTypeIdentifier</key>
 			<string>io.github.socrtwo.quillgrid.qgw</string>
 			<key>UTTypeDescription</key>
-			<string>QuillGrid Workbook</string>
+			<string>Anne's Grid Workbook</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
@@ -283,7 +283,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>io.github.socrtwo.quillgrid.qgwe</string>
 			<key>UTTypeDescription</key>
-			<string>Encrypted QuillGrid Workbook</string>
+			<string>Encrypted Anne's Grid Workbook</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>

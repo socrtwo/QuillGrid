@@ -1,4 +1,4 @@
-/** Generates docs/COMMANDS.md from the live command registry (every command QuillGrid defines). Run: npm run catalog */
+/** Generates docs/COMMANDS.md from the live command registry (every command Anne's Grid defines). Run: npm run catalog */
 import { writeFileSync } from 'node:fs';
 import '../src/commands';
 import { allCommands } from '../src/commands/registry';
@@ -17,8 +17,8 @@ const tabName = (t: string) =>
   t === 'Backstage' ? 'File' : t === 'Sheet' ? 'Sheet Tabs' : contextualTabs.includes(t) ? `${t} (contextual)` : t;
 const key = (k: string) => k.replace(/Mod/g, 'Ctrl').replace(/-/g, '+').replace(/\+\+$/, '+-');
 const lines: string[] = [];
-lines.push('# QuillGrid Command Reference', '');
-lines.push(`QuillGrid ships **${cmds.length} commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).`, '');
+lines.push('# Anne\'s Grid Command Reference', '');
+lines.push(`Anne\'s Grid ships **${cmds.length} commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, or found with command search (Alt+Q).`, '');
 lines.push(`${cmds.filter((c) => !inTabs.has(c.id)).length} of them are "Commands Not in the Tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, the command search, or menus — so nothing the app can do is hidden.`, '');
 lines.push('This file is generated from the source by `npm run catalog`.', '');
 lines.push('## Default tab layout', '');

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">QuillGrid</string>
-    <string name="title_activity_main">QuillGrid</string>
+    <string name="app_name">Anne\'s Grid</string>
+    <string name="title_activity_main">Anne\'s Grid</string>
     <string name="package_name">io.github.socrtwo.quillgrid</string>
     <string name="custom_url_scheme">io.github.socrtwo.quillgrid</string>
 </resources>

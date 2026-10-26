@@ -148,7 +148,7 @@ vite.config.ts.timestamp-*
 # Turbo Repo
 .turbo
 
-# QuillGrid
+# Anne's Grid
 dist/
 android/app/build/
 android/build/

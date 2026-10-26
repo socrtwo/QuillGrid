@@ -1034,7 +1034,7 @@ def([
     run: (app) => { download(new Blob([JSON.stringify({ macros: app.prefs.macros, modules: app.book.modules }, null, 2)], { type: 'application/json' }), 'macros.json'); },
   },
   {
-    id: 'dev.importMacros', label: 'Import Macros', icon: 'upload_file', tab: D, group: 'Code', noRecord: true, tip: 'Load recorded macros and modules from a file exported by QuillGrid',
+    id: 'dev.importMacros', label: 'Import Macros', icon: 'upload_file', tab: D, group: 'Code', noRecord: true, tip: 'Load recorded macros and modules from a file exported by Anne\'s Grid',
     run: async (app) => {
       const [f] = await pickFile('.json,application/json');
       if (!f) return;

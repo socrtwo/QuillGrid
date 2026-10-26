@@ -165,7 +165,7 @@ strings -n 4 -e l damaged.xls   # UTF-16 shared strings</code></pre>
     <p>Excel for Android: open the workbook, … menu &gt; <b>History</b>. Google Sheets/Drive and OneDrive keep versions too.</p>
     <h3>2. Trash and recently deleted</h3>
     <p>Google Drive &gt; <b>Trash</b>, OneDrive &gt; <b>Recycle bin</b>, and the Files app's trash keep deleted files for about 30 days.</p>
-    <h3>3. QuillGrid's own copies</h3>
+    <h3>3. Anne\'s Grid's own copies</h3>
     <p>Open &gt; Recent keeps a cached copy of each file you opened here.</p>
     <h3>4. Online viewers</h3>
     <p>${link('https://www.office.com/launch/excel', 'Excel for the web')} and ${link('https://sheets.google.com/', 'Google Sheets')} sometimes open what desktop apps refuse.</p>`],
@@ -174,7 +174,7 @@ strings -n 4 -e l damaged.xls   # UTF-16 shared strings</code></pre>
     <h3>2. Files &gt; Recently Deleted</h3><p>Files keeps deleted items for about 30 days.</p>
     <h3>3. Online viewers</h3><p>${link('https://www.office.com/launch/excel', 'Excel for the web')} · ${link('https://sheets.google.com/', 'Google Sheets')}</p>`],
   tools: ['More S2 recovery tools', `
-    <p>Free tools by the author of QuillGrid's recovery engine, each specialized for one kind of damage:</p>
+    <p>Free tools by the author of Anne\'s Grid's recovery engine, each specialized for one kind of damage:</p>
     <ul>
       <li>${link('https://socrtwo.github.io/corruptexcelrec-SF/', 'S2 Recovery Tools for Microsoft Excel')} · ${link('https://socrtwo.github.io/excelrcvryaddin-SF/', 'Excel Recovery Addin')}</li>
       <li>${link('https://socrtwo.github.io/Immortal-Zip/', 'Immortal Zip')} · ${link('https://socrtwo.github.io/xmltrncatorfixr-SF/app/', 'XML Truncator-Fixer')} · ${link('https://socrtwo.github.io/Universal-File-Repair-Tool/', 'Universal File Repair Tool')}</li>
@@ -207,7 +207,7 @@ export async function showManualRecovery(actions: ReportActions = {}): Promise<v
     const a = (e.target as HTMLElement).closest('a[data-external]') as HTMLAnchorElement | null;
     if (a) { e.preventDefault(); openExternal(a.href); }
   });
-  const intro = h('p', { class: 'ql-help' }, 'QuillGrid can try every recovery method on a damaged workbook (XLSX, XLSM, XLS, ODS, CSV, HTML or XML) or on any file that may hold spreadsheet data: pick it with "Recover a file…". The steps below find other copies of the file.');
+  const intro = h('p', { class: 'ql-help' }, 'Anne\'s Grid can try every recovery method on a damaged workbook (XLSX, XLSM, XLS, ODS, CSV, HTML or XML) or on any file that may hold spreadsheet data: pick it with "Recover a file…". The steps below find other copies of the file.');
   content.append(intro, tabs, pane);
   show(guess);
   await openDialog({

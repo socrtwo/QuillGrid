@@ -17,7 +17,7 @@ values compared cell by cell.
 
 ## io/
 
-- `libreoffice-roundtrip.xlsx`, `libreoffice.ods`: QuillGrid exports re-saved by LibreOffice.
+- `libreoffice-roundtrip.xlsx`, `libreoffice.ods`: Anne's Grid exports re-saved by LibreOffice.
 
 ## io/b/ (modern, XML and text spreadsheet formats)
 

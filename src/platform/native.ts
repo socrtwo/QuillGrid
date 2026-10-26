@@ -6,7 +6,7 @@
  * - Desktop (Windows, macOS, Linux, Raspberry Pi OS): the Electron preload (electron/preload.cjs)
  *   exposes the same interface as `window.quillDesktop`, backed by native file dialogs and the file system.
  * - Browser and iOS: <input type=file>, the File System Access API or downloads, and window.print().
- *   On iOS, saved files go to the app's Documents folder (Files ▸ On My iPhone ▸ QuillGrid).
+ *   On iOS, saved files go to the app's Documents folder (Files ▸ On My iPhone ▸ Anne's Grid).
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { download, pickFile } from '../ui/dom';
@@ -42,7 +42,7 @@ interface QuillNativePlugin {
   /** One-shot http://127.0.0.1:<port>/ listener for OAuth redirects (OpenRouter PKCE); only requests for `path` count. */
   startLoopback(opts: { timeoutMs: number; successHtml?: string; path?: string }): Promise<{ port: number }>;
   stopLoopback(): Promise<void>;
-  /** Android: hand a document to a sibling Quill app (ACTION_VIEW with its package). */
+  /** Android: hand a document to a sibling Anne's Office app (ACTION_VIEW with its package). */
   openInApp?(opts: { packageName: string; name: string; mime: string; data: string }): Promise<{ opened: boolean; reason?: string }>;
 }
 
@@ -119,7 +119,7 @@ export async function openDocument(accept: string, mimeTypes: string[]): Promise
 }
 
 function toastSaved(name: string): void {
-  import('../ui/dialog').then(({ toast }) => toast(`Saved "${name}" to Files ▸ On My iPhone ▸ QuillGrid`)).catch(() => undefined);
+  import('../ui/dialog').then(({ toast }) => toast(`Saved "${name}" to Files ▸ On My iPhone ▸ Anne\'s Grid`)).catch(() => undefined);
 }
 
 export async function saveAs(blob: Blob, name: string): Promise<{ uri: string | null; name: string } | null> {
@@ -219,7 +219,7 @@ export async function shareFile(blob: Blob, name: string, title?: string): Promi
 }
 
 /**
- * iOS has no QuillNative plugin: "Open in QuillGrid" and Share arrive as file:// URLs through the
+ * iOS has no QuillNative plugin: "Open in Anne's Grid" and Share arrive as file:// URLs through the
  * Capacitor App plugin. With LSSupportsOpeningDocumentsInPlace off, iOS copies the file into the app's
  * Documents/Inbox first, so it can be read without a security-scoped bookmark. There is no write-back
  * URI: Save on iOS goes through Save As / Share.
@@ -292,13 +292,13 @@ export async function onBackButton(cb: () => boolean): Promise<void> {
   App.addListener('backButton', () => { if (!cb()) App.minimizeApp(); });
 }
 
-export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qgw,.qgwe,.qlw,.qlwe,.json,.xlsb,.sxc,.stc,.gnumeric,.gnm,.ksp,.numbers,.uos,.uof,.ndjson,.jsonl,.sqlite,.sqlite3,.db,.db3,.mht,.mhtml,.gz,.sylk' // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+export const OPEN_ACCEPT = '.xlsx,.xlsm,.xltx,.xltm,.xls,.xlt,.xlw,.ods,.ots,.fods,.csv,.tsv,.tab,.txt,.prn,.html,.htm,.xml,.slk,.dif,.qgw,.qgwe,.qlw,.qlwe,.json,.xlsb,.sxc,.stc,.gnumeric,.gnm,.ksp,.numbers,.uos,.uof,.ndjson,.jsonl,.sqlite,.sqlite3,.db,.db3,.mht,.mhtml,.gz,.sylk' // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
   // legacy spreadsheets
   + ',.wk1,.wks,.wk3,.wk4,.123,.wrk,.wr1,.wq1,.wq2,.wb1,.wb2,.wb3,.qpw,.xlr,.dbf,.vc,.cwk'
   // documents, presentations and mail (their tables and text are imported)
   + ',.docx,.docm,.doc,.odt,.fodt,.rtf,.wpd,.wps,.wri,.epub,.pdf,.pptx,.ppt,.pps,.ppsx,.odp,.fodp,.eml,.emlx,.msg,.mbox';
 export const OPEN_MIMES = [
-  'application/x-quilllattice', 'application/x-quilllattice-encrypted', // rename:keep — QuillGrid was named QuillLattice; its .qlw/.qlwe files still open
+  'application/x-quilllattice', 'application/x-quilllattice-encrypted', // rename:keep — Anne's Grid was named QuillLattice; its .qlw/.qlwe files still open
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-excel.sheet.macroEnabled.12',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
@@ -309,11 +309,11 @@ export const OPEN_MIMES = [
 ];
 
 // ------------------------------------------------------------------------------------------
-// Sibling Quill apps
+// Sibling Anne's Office apps
 
-export type QuillApp = 'QuillPen' | 'QuillPost' | 'QuillStage';
+export type QuillApp = 'Anne\'s Pen' | 'Anne\'s Post' | 'Anne\'s Stage';
 export const QUILL_APP_IDS: Record<QuillApp, string> = {
-  QuillPen: 'io.github.socrtwo.quillpen', QuillPost: 'io.github.socrtwo.quillpost', QuillStage: 'io.github.socrtwo.quillstage',
+  'Anne\'s Pen': 'io.github.socrtwo.quillpen', 'Anne\'s Post': 'io.github.socrtwo.quillpost', 'Anne\'s Stage': 'io.github.socrtwo.quillstage',
 };
 
 /**

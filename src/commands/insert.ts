@@ -53,7 +53,7 @@ export async function pictureDataUrl(file: Blob): Promise<string | null> {
 export async function insertPictureFile(app: App, file: Blob, name = 'Picture'): Promise<DrawingObject | null> {
   if (!canEditObjects(app)) return null;
   const src = await pictureDataUrl(file);
-  if (!src) { toast('That file is not a picture QuillGrid can show.'); return null; }
+  if (!src) { toast('That file is not a picture Anne\'s Grid can show.'); return null; }
   const sz = await imageSize(src);
   const k = Math.min(1, 640 / Math.max(sz.w, sz.h));
   return addDrawing(app, { kind: 'image', at: { ...cellAnchor(app), w: Math.round(sz.w * k), h: Math.round(sz.h * k) }, src, alt: name.replace(/\.[^.]+$/, ''), lockAspect: true }, 'Insert Picture');
